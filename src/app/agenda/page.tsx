@@ -10,14 +10,21 @@ import { APPOINTMENTS, CUSTOMERS, SERVICES, TRENDING_SERVICES, TRENDING_PRODUCTS
 import { AiUpsellDialog } from "@/components/ai-upsell-dialog"
 
 export default function AgendaPage() {
-  const [date, setDate] = React.useState<Date | undefined>(new Date("2025-05-20"))
-  const [selectedAppt, setSelectedAppt] = React.useState<any>(null)
+  const [date, setDate] = React.useState<Date | undefined>(undefined)
 
-  const filteredAppointments = APPOINTMENTS.filter(appt => {
-    if (!date) return false
-    const apptDate = new Date(appt.date)
-    return apptDate.toDateString() === date.toDateString()
-  })
+  React.useEffect(() => {
+    // Initialize date after mount to avoid hydration mismatch due to timezones
+    setDate(new Date("2025-05-20T00:00:00"))
+  }, [])
+
+  const filteredAppointments = React.useMemo(() => {
+    if (!date) return []
+    const targetDateStr = date.toDateString()
+    return APPOINTMENTS.filter(appt => {
+      const apptDate = new Date(appt.date + "T00:00:00")
+      return apptDate.toDateString() === targetDateStr
+    })
+  }, [date])
 
   return (
     <div className="grid gap-6 lg:grid-cols-12 animate-in slide-in-from-bottom-4 duration-500">
@@ -67,7 +74,7 @@ export default function AgendaPage() {
         <Card className="border-none shadow-xl bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="font-headline">Horários de {date?.toLocaleDateString('pt-BR')}</CardTitle>
+              <CardTitle className="font-headline">Horários de {date ? date.toLocaleDateString('pt-BR') : '...'}</CardTitle>
               <CardDescription>{filteredAppointments.length} agendamentos previstos.</CardDescription>
             </div>
             <Tabs defaultValue="list">
@@ -120,9 +127,8 @@ export default function AgendaPage() {
                 })
               ) : (
                 <div className="py-20 text-center flex flex-col items-center gap-4">
-                  <Calendar className="h-12 w-12 text-muted-foreground opacity-20" />
+                  <Clock className="h-12 w-12 text-muted-foreground opacity-20" />
                   <p className="text-muted-foreground italic">Nenhum agendamento para este dia.</p>
-                  <Button variant="outline" size="sm">Adicionar Horário</Button>
                 </div>
               )}
             </div>

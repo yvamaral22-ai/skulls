@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Settings } from "lucide-react"
+import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3 } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
