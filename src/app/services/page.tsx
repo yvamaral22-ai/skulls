@@ -13,7 +13,7 @@ export default function ServicesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-headline">Serviços e Preços</h1>
-          <p className="text-muted-foreground">Configure os serviços que você oferece na EstiloCerto.</p>
+          <p className="text-muted-foreground">Configure os serviços que você oferece na Skull Barber.</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-white">
           <Plus className="mr-2 h-4 w-4" /> Novo Serviço

@@ -4,7 +4,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 
 export const metadata: Metadata = {
-  title: 'EstiloCerto Agenda',
+  title: 'Skull Barber Agenda',
   description: 'Gestão moderna e eficiente para barbeiros.',
 };
 

@@ -33,8 +33,8 @@ export function AppSidebar() {
             <Scissors className="size-5" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-semibold text-primary font-headline">EstiloCerto</span>
-            <span className="text-xs text-muted-foreground">Agenda</span>
+            <span className="font-semibold text-primary font-headline text-lg">Skull Barber</span>
+            <span className="text-xs text-muted-foreground">Sistema de Gestão</span>
           </div>
         </div>
       </SidebarHeader>
