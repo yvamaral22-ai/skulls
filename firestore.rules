@@ -1,0 +1,192 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * BARBERSHOP MANAGEMENT SYSTEM - SECURITY RULES
+     * 
+     * Core Philosophy:
+     * This ruleset enforces a multi-tenant authorization model centered around the Barbershop entity.
+     * Access is partitioned by user roles (Admin, Barber, Client) and validated against a global 
+     * /users/{userId} profile.
+     * 
+     * Data Structure:
+     * - /users/{userId}: Global user profiles containing roles (userType) and primary barbershopId.
+     * - /barbershops/{barbershopId}: Top-level business entity.
+     * - /barbershops/{barbershopId}/...: Subcollections for services, barbers, clients, and appointments.
+     * 
+     * Key Security Decisions:
+     * - Denormalization: Critical IDs (barbershopId, barberId, clientId) are expected on documents 
+     *   to allow fast, efficient authorization checks without excessive get() calls.
+     * - Prototyping Mode: Rules strictly enforce WHO can access data but do NOT enforce specific 
+     *   data schemas (types/lengths) to allow for rapid UI/UX iteration.
+     * - Role-Based Access (RBAC): The 'userType' from the user's root profile determines 
+     *   administrative or staff capabilities across the barbershop sub-tree.
+     */
+
+    // --- Helper Functions ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Fetches the current authenticated user's profile data
+    function getAuthData() {
+      // It's crucial that /users/{userId} rules allow 'get' for the user's own profile.
+      // This assumes the user's own profile can always be retrieved securely.
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Checks if the user is the Admin/Owner of the specific barbershop
+    function isAdmin(barbershopId) {
+      return isSignedIn() && 
+             getAuthData().userType == 'admin' && 
+             getAuthData().barbershopId == barbershopId;
+    }
+
+    // Checks if the user is a Barber working at the specific barbershop
+    function isBarber(barbershopId) {
+      return isSignedIn() && 
+             getAuthData().userType == 'barber' && 
+             getAuthData().barbershopId == barbershopId;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for global user profiles. Users can only manage their own data.
+     * @path /users/{userId}
+     * @allow (get, list, create, update) if the authenticated UID matches the document ID.
+     * @deny (delete) always, to prevent accidental account deletion from client-side.
+     * @principle Enforces strict path-based ownership for private user metadata.
+     */
+    match /users/{userId} {
+      allow get, list: if isUser(userId);
+      // For create, ensure the ID matches the auth UID and the document's 'id' field
+      allow create: if isUser(userId) && request.resource.data.id == userId;
+      // For update, ensure the ID matches the auth UID and the document's 'id' field is not changed to a different user's ID
+      allow update: if isUser(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if false; // Deny deletes to prevent accidental account deletion
+    }
+
+    /**
+     * @description Rules for the primary Barbershop entity.
+     * @path /barbershops/{barbershopId}
+     * @allow (get) for any authenticated user to facilitate booking discovery.
+     * @allow (create, update, delete) only for the designated owner.
+     * @principle Restricts business-level configuration to the verified owner.
+     */
+    match /barbershops/{barbershopId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn(); // Allow listing barbershops for discovery
+      allow create: if isSignedIn() && request.resource.data.ownerUserId == request.auth.uid;
+      allow update, delete: if resource != null && resource.data.ownerUserId == request.auth.uid;
+
+      /**
+       * @description Rules for barbers working at the shop.
+       * @path /barbershops/{barbershopId}/barbers/{barberId}
+       * @allow (get, list) for all users to view the shop's staff.
+       * @allow (create, update, delete) for the shop Admin.
+       * @principle Admin-only management of staff records with public visibility.
+       */
+      match /barbers/{barberId} {
+        allow get, list: if isSignedIn();
+        allow create: if isAdmin(barbershopId);
+        // Barbers can update their own profile, Admins can update any barber's profile
+        allow update: if resource != null && (isAdmin(barbershopId) || (isBarber(barbershopId) && isUser(resource.data.userId)));
+        allow delete: if resource != null && isAdmin(barbershopId);
+      }
+
+      /**
+       * @description Rules for services offered by the barbershop.
+       * @path /barbershops/{barbershopId}/services/{serviceId}
+       * @allow (get, list) for all users to browse the service catalog.
+       * @allow (create, update, delete) for the shop Admin.
+       * @principle Admin-only management of business offerings.
+       */
+      match /services/{serviceId} {
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isAdmin(barbershopId);
+      }
+
+      /**
+       * @description Rules for client records within a barbershop.
+       * @path /barbershops/{barbershopId}/clients/{clientId}
+       * @allow (get) for the individual client or shop Admin.
+       * @allow (create) for the client themselves or Admin.
+       * @allow (update) for the client or Admin (internal notes managed by staff).
+       * @principle Shared access between the business owner and the specific customer.
+       */
+      match /clients/{clientId} {
+        allow get: if isAdmin(barbershopId) || isUser(resource.data.userId);
+        allow list: if isAdmin(barbershopId); // Only Admin can list all clients for a shop
+        allow create: if isAdmin(barbershopId) || request.resource.data.userId == request.auth.uid;
+        allow update: if resource != null && (isAdmin(barbershopId) || isUser(resource.data.userId));
+        allow delete: if resource != null && isAdmin(barbershopId);
+      }
+
+      /**
+       * @description Rules for appointments.
+       * @path /barbershops/{barbershopId}/appointments/{appointmentId}
+       * @allow (get, list) for Admin, the assigned Barber, or the Client.
+       * @allow (create) for Clients booking themselves or Admin.
+       * @allow (update, delete) for the involved Client, Barber, or Admin.
+       * @principle Multi-party access based on denormalized relationship IDs on the document.
+       */
+      match /appointments/{appointmentId} {
+        // Anyone involved in the appointment (admin, barber, client) can view it.
+        // Admins can view all appointments.
+        allow get, list: if isSignedIn() && (
+          isAdmin(barbershopId) || 
+          (resource.data.clientId == request.auth.uid) || 
+          (resource.data.barberId == request.auth.uid)
+        );
+        allow create: if isSignedIn() && (
+          isAdmin(barbershopId) || 
+          (request.resource.data.clientId == request.auth.uid) // Client can book themselves
+        );
+        // Update/delete by Admin, or by the involved client/barber
+        allow update: if resource != null && (
+          isAdmin(barbershopId) || 
+          (resource.data.clientId == request.auth.uid) || 
+          (resource.data.barberId == request.auth.uid)
+        );
+        // Only Admin or the client can delete their own appointment
+        allow delete: if resource != null && (
+          isAdmin(barbershopId) || 
+          (resource.data.clientId == request.auth.uid)
+        );
+      }
+
+      /**
+       * @description Rules for availability blocks (breaks, days off).
+       * @path /barbershops/{barbershopId}/availabilityBlocks/{availabilityBlockId}
+       * @allow (get, list) for all users to prevent booking during blocked times.
+       * @allow (create, update, delete) for the specific Barber or Admin.
+       * @principle Staff-managed schedule control with global visibility for conflict avoidance.
+       */
+      match /availabilityBlocks/{availabilityBlockId} {
+        allow get, list: if isSignedIn();
+        // Admin can create for anyone; Barber can create for themselves
+        allow create: if isAdmin(barbershopId) || (isBarber(barbershopId) && request.resource.data.barberId == request.auth.uid);
+        // Admin can update/delete any; Barber can update/delete their own
+        allow update, delete: if resource != null && (isAdmin(barbershopId) || (isBarber(barbershopId) && resource.data.barberId == request.auth.uid));
+      }
+
+      /**
+       * @description Rules for operational expenses.
+       * @path /barbershops/{barbershopId}/expenses/{expenseId}
+       * @allow (get, list, create, update, delete) exclusively for the Admin.
+       * @deny (all) for Barbers and Clients.
+       * @principle Protects sensitive financial data from non-administrative staff and customers.
+       */
+      match /expenses/{expenseId} {
+        allow get, list, create, update, delete: if isAdmin(barbershopId);
+      }
+    }
+  }
+}

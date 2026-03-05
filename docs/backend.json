@@ -1,0 +1,570 @@
+{
+  "entities": {
+    "Barbershop": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Barbershop",
+      "type": "object",
+      "description": "Represents a single barbershop business, acting as the primary container for all related data like services, barbers, clients, and appointments.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Barbershop entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the barbershop."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical street address of the barbershop."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The main contact phone number for the barbershop."
+        },
+        "email": {
+          "type": "string",
+          "description": "The main contact email for the barbershop.",
+          "format": "email"
+        },
+        "ownerUserId": {
+          "type": "string",
+          "description": "Reference to the User who is the owner/administrator of this barbershop. (Relationship: User 1:N Barbershop)"
+        },
+        "currency": {
+          "type": "string",
+          "description": "The default currency used for pricing and financial reporting in the barbershop (e.g., 'BRL', 'USD')."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "address",
+        "phoneNumber",
+        "email",
+        "ownerUserId",
+        "currency"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account in the system, which can be an administrator, a barber, or a client. Authentication details are handled by an external system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user, used for login and communication.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the user."
+        },
+        "userType": {
+          "type": "string",
+          "description": "The role of the user within the application (e.g., 'admin', 'barber', 'client')."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The primary contact phone number for the user."
+        },
+        "barbershopId": {
+          "type": "string",
+          "description": "Reference to the Barbershop this user is primarily associated with. (Relationship: Barbershop 1:N User)"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "userType",
+        "phoneNumber",
+        "barbershopId"
+      ]
+    },
+    "Barber": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Barber",
+      "type": "object",
+      "description": "Details specific to a barber working at the barbershop, including their schedule, services, and commission rate.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Barber entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User account associated with this barber. (Relationship: User 1:N Barber)"
+        },
+        "barbershopId": {
+          "type": "string",
+          "description": "Reference to the Barbershop where this barber works. (Relationship: Barbershop 1:N Barber)"
+        },
+        "commissionRate": {
+          "type": "number",
+          "description": "The commission rate for the barber, represented as a decimal (e.g., 0.45 for 45%)."
+        },
+        "specialties": {
+          "type": "array",
+          "description": "A list of specialties or areas of expertise for the barber.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description or bio of the barber, visible to clients."
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL to the barber's profile picture.",
+          "format": "uri"
+        },
+        "availableDays": {
+          "type": "array",
+          "description": "An array of strings representing the days of the week the barber is typically available (e.g., 'Monday', 'Tuesday').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workingHoursStart": {
+          "type": "string",
+          "description": "The typical start time of the barber's workday (e.g., '09:00')."
+        },
+        "workingHoursEnd": {
+          "type": "string",
+          "description": "The typical end time of the barber's workday (e.g., '18:00')."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "barbershopId",
+        "commissionRate",
+        "availableDays",
+        "workingHoursStart",
+        "workingHoursEnd"
+      ]
+    },
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a customer of the barbershop, storing their contact information, history, and specific preferences.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Client entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User account associated with this client. (Relationship: User 1:N Client)"
+        },
+        "barbershopId": {
+          "type": "string",
+          "description": "Reference to the Barbershop this client is associated with. (Relationship: Barbershop 1:N Client)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the client."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The primary contact phone number for the client."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the client.",
+          "format": "email"
+        },
+        "internalNotes": {
+          "type": "string",
+          "description": "Internal notes added by the barber about the client, e.g., preferences for specific services or products."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "barbershopId",
+        "name",
+        "phoneNumber",
+        "email"
+      ]
+    },
+    "Service": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Service",
+      "type": "object",
+      "description": "Defines a service offered by the barbershop, including its name, description, price, duration, and associated portfolio images.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Service entity."
+        },
+        "barbershopId": {
+          "type": "string",
+          "description": "Reference to the Barbershop that offers this service. (Relationship: Barbershop 1:N Service)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the service (e.g., 'Corte Masculino', 'Barba')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the service."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the service."
+        },
+        "durationMinutes": {
+          "type": "number",
+          "description": "The estimated duration of the service in minutes."
+        },
+        "portfolioImageUrls": {
+          "type": "array",
+          "description": "An array of URLs to images showcasing this service for a portfolio or gallery.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the service is currently active and available for booking."
+        }
+      },
+      "required": [
+        "id",
+        "barbershopId",
+        "name",
+        "description",
+        "price",
+        "durationMinutes",
+        "isActive"
+      ]
+    },
+    "Appointment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Appointment",
+      "type": "object",
+      "description": "Represents a scheduled booking for a service with a specific barber and client at a given time.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Appointment entity."
+        },
+        "barbershopId": {
+          "type": "string",
+          "description": "Reference to the Barbershop where the appointment is booked. (Relationship: Barbershop 1:N Appointment)"
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to the Client who booked the appointment. (Relationship: Client 1:N Appointment)"
+        },
+        "barberId": {
+          "type": "string",
+          "description": "Reference to the Barber who will perform the service. (Relationship: Barber 1:N Appointment)"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Reference to the Service being performed. (Relationship: Service 1:N Appointment)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The date and time when the appointment is scheduled to start.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The date and time when the appointment is scheduled to end.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the appointment (e.g., 'scheduled', 'completed', 'canceled', 'rescheduled', 'no-show')."
+        },
+        "totalPrice": {
+          "type": "number",
+          "description": "The total price charged for the service at the time of booking, to ensure consistent financial reporting."
+        },
+        "barberCommissionAmount": {
+          "type": "number",
+          "description": "The calculated commission for the barber for this specific appointment, locked at the time of booking."
+        },
+        "clientNotes": {
+          "type": "string",
+          "description": "Any specific requests or notes from the client for this particular appointment."
+        },
+        "bookedAt": {
+          "type": "string",
+          "description": "The date and time when the appointment was originally booked.",
+          "format": "date-time"
+        },
+        "lastUpdatedAt": {
+          "type": "string",
+          "description": "The date and time when the appointment's details were last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "barbershopId",
+        "clientId",
+        "barberId",
+        "serviceId",
+        "startTime",
+        "endTime",
+        "status",
+        "totalPrice",
+        "barberCommissionAmount",
+        "bookedAt",
+        "lastUpdatedAt"
+      ]
+    },
+    "AvailabilityBlock": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AvailabilityBlock",
+      "type": "object",
+      "description": "Represents a specific time slot when a barber is unavailable for appointments, used for managing their schedule and blocking off time.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AvailabilityBlock entity."
+        },
+        "barberId": {
+          "type": "string",
+          "description": "Reference to the Barber whose schedule is being blocked. (Relationship: Barber 1:N AvailabilityBlock)"
+        },
+        "barbershopId": {
+          "type": "string",
+          "description": "Reference to the Barbershop this availability block belongs to. (Relationship: Barbershop 1:N AvailabilityBlock)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The date and time when the blocked period starts.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The date and time when the blocked period ends.",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string",
+          "description": "A description of why the time slot is blocked (e.g., 'Lunch Break', 'Personal Appointment', 'Day Off')."
+        }
+      },
+      "required": [
+        "id",
+        "barberId",
+        "barbershopId",
+        "startTime",
+        "endTime",
+        "reason"
+      ]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Records an operational expense incurred by the barbershop for financial tracking and reporting.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Expense entity."
+        },
+        "barbershopId": {
+          "type": "string",
+          "description": "Reference to the Barbershop that incurred this expense. (Relationship: Barbershop 1:N Expense)"
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of what the expense was for."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary amount of the expense."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date when the expense was incurred or recorded.",
+          "format": "date-time"
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the expense (e.g., 'Rent', 'Supplies', 'Utilities', 'Marketing')."
+        }
+      },
+      "required": [
+        "id",
+        "barbershopId",
+        "description",
+        "amount",
+        "date",
+        "category"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores core user profile data, including their type (admin, barber, client) and the primary barbershop they are associated with. This collection is crucial for determining user roles and scope in security rules. The 'userId' here must match Firebase Authentication's UID. Authorization relies on `request.auth.uid`."
+        }
+      },
+      {
+        "path": "/barbershops/{barbershopId}",
+        "definition": {
+          "entityName": "Barbershop",
+          "schema": {
+            "$ref": "#/backend/entities/Barbershop"
+          },
+          "description": "Represents an individual barbershop business. This is the top-level entity for all barbershop-specific data. It includes the 'ownerUserId' for explicit ownership. Access to this document (read/write) is restricted to the owner.",
+          "params": [
+            {
+              "name": "barbershopId",
+              "description": "The unique identifier for a specific barbershop."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/barbershops/{barbershopId}/barbers/{barberId}",
+        "definition": {
+          "entityName": "Barber",
+          "schema": {
+            "$ref": "#/backend/entities/Barber"
+          },
+          "description": "Contains details for barbers working at a specific barbershop. Includes denormalized 'barbershopId' for authorization independence and 'userId' linking to the user's profile. Access for creating/modifying is typically restricted to the barbershop owner/admin, while clients can read public barber profiles.",
+          "params": [
+            {
+              "name": "barbershopId",
+              "description": "The unique identifier of the barbershop this barber works for."
+            },
+            {
+              "name": "barberId",
+              "description": "The unique identifier for a specific barber, typically matching their User ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/barbershops/{barbershopId}/services/{serviceId}",
+        "definition": {
+          "entityName": "Service",
+          "schema": {
+            "$ref": "#/backend/entities/Service"
+          },
+          "description": "Lists all services offered by a specific barbershop. Includes denormalized 'barbershopId' for authorization independence. Clients can read these services, while barbershop owners/admins can create, update, and delete them.",
+          "params": [
+            {
+              "name": "barbershopId",
+              "description": "The unique identifier of the barbershop that offers this service."
+            },
+            {
+              "name": "serviceId",
+              "description": "The unique identifier for a specific service."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/barbershops/{barbershopId}/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Stores client information specific to a barbershop. Includes denormalized 'barbershopId' for authorization independence and 'userId' linking to the client's user profile. Owners/admins can manage client records, and a client can read their own record.",
+          "params": [
+            {
+              "name": "barbershopId",
+              "description": "The unique identifier of the barbershop this client is associated with."
+            },
+            {
+              "name": "clientId",
+              "description": "The unique identifier for a specific client, typically matching their User ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/barbershops/{barbershopId}/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Records all appointments for a specific barbershop. Includes denormalized 'barbershopId', 'barberId', and 'clientId' for robust authorization independence and QAPs. Clients can view/manage their own appointments, barbers can view/manage their assigned appointments, and owners/admins can view/manage all appointments for their barbershop.",
+          "params": [
+            {
+              "name": "barbershopId",
+              "description": "The unique identifier of the barbershop where the appointment is booked."
+            },
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier for a specific appointment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/barbershops/{barbershopId}/availabilityBlocks/{availabilityBlockId}",
+        "definition": {
+          "entityName": "AvailabilityBlock",
+          "schema": {
+            "$ref": "#/backend/entities/AvailabilityBlock"
+          },
+          "description": "Manages time slots when a specific barber is unavailable. Includes denormalized 'barbershopId' and 'barberId' for authorization independence. Barbers can manage their own availability, and owners/admins can manage all availability for their barbershop.",
+          "params": [
+            {
+              "name": "barbershopId",
+              "description": "The unique identifier of the barbershop this availability block belongs to."
+            },
+            {
+              "name": "availabilityBlockId",
+              "description": "The unique identifier for a specific availability block."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/barbershops/{barbershopId}/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Records operational expenses for a specific barbershop. Includes denormalized 'barbershopId' for authorization independence. This collection is typically accessible only to the barbershop owner/admin.",
+          "params": [
+            {
+              "name": "barbershopId",
+              "description": "The unique identifier of the barbershop that incurred this expense."
+            },
+            {
+              "name": "expenseId",
+              "description": "The unique identifier for a specific expense record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore data structure is designed to be secure, scalable, and highly debuggable, strictly adhering to the core design principles and mandates. The primary strategy involves a logical segregation of data by the 'Barbershop' entity, with a global 'users' collection to manage user roles and primary associations.\n\n**Authorization Independence (CRITICAL):** This design achieves Authorization Independence by extensive denormalization of authorization context. Every document within a barbershop's subcollections (e.g., 'barbers', 'clients', 'services', 'appointments', 'availabilityBlocks', 'expenses') explicitly includes the 'barbershopId'. For documents related to specific users (like appointments or availability blocks), 'barberId' or 'clientId' are also included directly on the document. This eliminates the need for `get()` calls to parent documents or external collections (other than the user's own profile) within security rules to determine access rights to a specific document. For instance, an `Appointment` document contains `barbershopId`, `barberId`, and `clientId`. Rules can directly check `request.auth.uid == appointment.clientId` or `request.auth.uid == appointment.barberId`, or verify that `request.auth.barbershopId` (from the user's profile) matches `appointment.barbershopId` without traversing the hierarchy.\n\n**QAPs (Queryable Authorization Patterns):** The structure fully supports QAPs by ensuring that authorization-relevant fields are present on each document. For example:\n\n*   **Client's Appointments:** A client can query `/barbershops/{barbershopId}/appointments` with `where('clientId', '==', request.auth.uid)`. The security rules can then directly verify `resource.data.clientId == request.auth.uid`, making the query efficient and secure as `clientId` is a direct field on the `Appointment` document.\n*   **Barber's Schedule:** A barber can query `/barbershops/{barbershopId}/appointments` with `where('barberId', '==', request.auth.uid)` and `/barbershops/{barbershopId}/availabilityBlocks` with `where('barberId', '==', request.auth.uid)`. Again, `barberId` is directly on the document, enabling robust rule enforcement without `get()` calls.\n*   **Admin/Owner Access:** An admin or owner's `barbershopId` (retrieved from their `/users/{uid}` document) is matched against the `{barbershopId}` wildcard in the path. This allows them to read/write to any document within their associated barbershop's subcollections. The security rules will establish the user's role and `barbershopId` from their own `/users/{uid}` document (a single, self-referential `get()` operation per request, which is a standard and acceptable practice for DBAC).\n\n**Structural Segregation:** All documents within a given collection share a homogeneous security posture. For instance, all `services` under `/barbershops/{barbershopId}/services` can be read by clients but managed by barbers/admins of that specific barbershop. Private data like `expenses` is kept separate under `/barbershops/{barbershopId}/expenses`, accessible only by the barbershop owner/admin. This simplifies rule writing by moving complexity from conditional logic within rules to structural organization.\n\n**Access Modeling:**\n\n*   **Private Data:** The `/users/{userId}` collection uses path-based ownership, where `userId` matches `request.auth.uid`. This document stores the user's `userType` and `barbershopId`, which are crucial for defining their global permissions and scope.\n*   **Hierarchical Paths for User-Owned/Barbershop-Owned Data:** The primary structure `/barbershops/{barbershopId}/...` ensures all data pertaining to a specific barbershop is logically grouped and secured. Subcollections like `barbers`, `clients`, `services`, `appointments`, `availabilityBlocks`, and `expenses` reside under their respective `barbershopId`.\n\nThis architecture provides a clear, maintainable, and secure foundation for the EstiloCerto Agenda application."
+  }
+}
