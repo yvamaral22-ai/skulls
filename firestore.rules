@@ -3,191 +3,127 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * CUSTOMER MANAGEMENT & SCHEDULING SYSTEM SECURITY RULES
+     * BARBER APP SECURITY RULES - PROTOTYPING MODE
      * 
-     * Core Philosophy:
-     * This ruleset enforces a strict identity-based access model. Users are partitioned into
-     * Clients, Barbers, and Admins. Authorization is primarily handled through UID-to-DocumentID 
-     * matching and role-based access markers.
+     * CORE PHILOSOPHY:
+     * This ruleset implements a strict "Barber-as-Owner" authorization model. Access is entirely 
+     * determined by the top-level 'barberProfileId', which corresponds directly to the 
+     * Firebase Authentication UID (request.auth.uid). 
      * 
-     * Data Structure:
-     * - /users/{userId}: Primary profile information.
-     * - /admins/{adminId}: Secure marker collection for administrative privileges.
-     * - /barbers/{barberId}: Professional barber profiles.
-     * - /clients/{clientId}: Specific client metadata and internal barber notes.
-     * - /appointments/{appointmentId}: Shared documents containing both clientId and barberId.
+     * DATA STRUCTURE:
+     * The database is organized hierarchically. All resources (Clients, Services, Appointments, 
+     * and Availability Blocks) are stored as subcollections under a specific Barber Profile:
+     * /barberProfiles/{barberProfileId}/[subcollection]/{documentId}
      * 
-     * Key Security Decisions:
-     * 1. Authorization Independence: We denormalize critical IDs (clientId, barberId) onto 
-     *    appointment documents to allow rules to verify access without costly lookups.
-     * 2. Role Verification: Admin status is verified by the existence of a document in the 
-     *    dedicated /admins collection, avoiding circular dependencies in the /users collection.
-     * 3. Prototyping Flexibility: We strictly enforce "Who" can access data (Authorization) 
-     *    but remain flexible on "What" the data looks like (Schema), allowing for rapid 
-     *    iteration of the beauty service offerings.
-     * 4. Relational Integrity: On creation, we enforce that the internal 'id' or 'ownerId' 
-     *    fields match the authenticated user to prevent data hijacking.
+     * KEY SECURITY DECISIONS:
+     * 1. Path-Based Authorization: The 'barberProfileId' in the document path is the primary 
+     *    authorizer. If the authenticated user's UID does not match the 'barberProfileId' 
+     *    in the URL, access is denied.
+     * 2. Denormalization for Integrity: Every document within a subcollection is expected 
+     *    to contain a 'barberProfileId' field. The rules enforce that this internal field 
+     *    matches the path ID during creation and remains immutable during updates.
+     * 3. Privacy by Default: There are no public collections. All data is private to the 
+     *    barber who owns the profile.
+     * 4. Prototyping Flexibility: While ownership and relational integrity (IDs) are 
+     *    strictly enforced, data types and specific schema shapes for content fields 
+     *    (like names, notes, or prices) are not validated to allow for rapid UI iteration.
      */
 
-    // --- Helper Functions ---
+    // --- GLOBAL HELPER FUNCTIONS ---
 
+    /**
+     * @description Checks if the request is made by an authenticated user.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * @description Checks if the provided userId matches the authenticated user's UID.
+     * @param userId The ID to compare against the current user's UID.
+     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    /**
+     * @description Combines ownership check with document existence check for updates and deletes.
+     * @param userId The ID of the owner of the document.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
-    function isBarber() {
-      return isSignedIn() && exists(/databases/$(database)/documents/barbers/$(request.auth.uid));
-    }
-
-    // Helper to check if a user is part of an appointment
-    function isAppointmentParticipant(apptData) {
-      return isSignedIn() && (request.auth.uid == apptData.clientId || request.auth.uid == apptData.barberId || isAdmin());
-    }
-
-    // Helper for destructive operations to ensure document existence and ownership
-    // FIX: 'resource' is a global variable. It must be passed as an argument to helper functions.
-    // FIX: This function is now used in update rules for user-owned documents.
-    function isExistingOwner(currentResource, userId) {
-      return currentResource != null && isOwner(userId);
-    }
-
-    // --- Collection Rules ---
+    // --- COLLECTION RULES ---
 
     /**
-     * @description Rules for the primary User Profile. Users can manage their own profile.
-     * @path /users/{userId}
-     * @allow (get, list, create, update) if the authenticated UID matches the {userId}.
-     * @deny (delete) if not an Admin.
-     * @principle Enforces strict document ownership and prevents user impersonation.
+     * @description Rules for the root BarberProfile entity.
+     * @path /barberProfiles/{barberProfileId}
+     * @allow (create) User with UID 'abc' creating /barberProfiles/abc.
+     * @deny (get) User with UID 'abc' trying to read /barberProfiles/xyz.
+     * @principle Ownership: Only the barber can manage their own profile.
      */
-    match /users/{userId} {
-      allow get, list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      // FIX: Use the 'isExistingOwner' helper.
-      allow update: if isExistingOwner(resource, userId);
-      allow delete: if isAdmin();
-    }
-
-    /**
-     * @description Role marker collection. Existence here confers Admin rights.
-     * @path /admins/{adminId}
-     * @allow (get) if signed in.
-     * @deny (list, create, update, delete) for all except existing Admins.
-     * @principle Uses a dedicated path for role-based access control (RBAC) to ensure authorization independence.
-     */
-    match /admins/{adminId} {
-      allow get: if isSignedIn();
-      allow list, create, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description Publicly viewable barber profiles for marketing and portfolio.
-     * @path /barbers/{barberId}
-     * @allow (get, list) for all users (public catalog).
-     * @allow (create, update) if the user owns the barber profile or is an Admin.
-     * @deny (delete) for non-admins to prevent accidental loss of professional data.
-     * @principle Combines public visibility with owner-only editing.
-     */
-    match /barbers/{barberId} {
-      allow get, list: if true;
-      allow create: if isOwner(barberId) || isAdmin();
-      // FIX: Use the 'isExistingOwner' helper.
-      allow update: if isExistingOwner(resource, barberId) || isAdmin();
-      allow delete: if isAdmin();
+    match /barberProfiles/{barberProfileId} {
+      allow get, list: if isOwner(barberProfileId);
+      allow create: if isOwner(barberProfileId) && request.resource.data.id == barberProfileId;
+      allow update: if isExistingOwner(barberProfileId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(barberProfileId);
 
       /**
-       * @description Management of a barber's available working hours and blocked times.
-       * @path /barbers/{barberId}/availability/{availabilityId}
-       * @allow (get, list) for all users to facilitate appointment booking.
-       * @allow (create, update, delete) if the parent barber or an Admin.
-       * @principle Relational integrity: ensures availability is only managed by the barber it belongs to.
+       * @description Rules for Clients managed by a specific barber.
+       * @path /barberProfiles/{barberProfileId}/clients/{clientId}
+       * @allow (list) Barber 'abc' listing /barberProfiles/abc/clients.
+       * @deny (create) Barber 'abc' creating a client for Barber 'xyz'.
+       * @principle Relational Integrity: Enforces that the client belongs to the correct barber path.
        */
-      match /availability/{availabilityId} {
-        allow get, list: if true;
-        allow create: if isOwner(barberId) || isAdmin();
-        // FIX: Use the 'isExistingOwner' helper.
-        allow update, delete: if isExistingOwner(resource, barberId) || isAdmin();
+      match /clients/{clientId} {
+        allow get, list: if isOwner(barberProfileId);
+        allow create: if isOwner(barberProfileId) && request.resource.data.barberProfileId == barberProfileId;
+        allow update: if isExistingOwner(barberProfileId) && request.resource.data.barberProfileId == resource.data.barberProfileId;
+        allow delete: if isExistingOwner(barberProfileId);
       }
-    }
-
-    /**
-     * @description Detailed client profiles including private notes for barbers.
-     * @path /clients/{clientId}
-     * @allow (get, list) if owner, a barber (for CRM notes), or Admin.
-     * @allow (create, update) if owner or Admin.
-     * @deny (delete) if not Admin.
-     * @principle Shared visibility between the client and the professional service provider.
-     */
-    match /clients/{clientId} {
-      allow get, list: if isOwner(clientId) || isBarber() || isAdmin();
-      allow create: if isOwner(clientId) || isAdmin();
-      // FIX: Use the 'isExistingOwner' helper.
-      allow update: if isExistingOwner(resource, clientId) || isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    /**
-     * @description The barbershop's service menu (Cuts, Shaves, etc.).
-     * @path /services/{serviceId}
-     * @allow (get, list) for everyone.
-     * @allow (create, update, delete) restricted to Admins.
-     * @principle Public read access for customer browsing with strict administrative control over business offerings.
-     */
-    match /services/{serviceId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
 
       /**
-       * @description Portfolio images showcasing specific service results.
-       * @path /services/{serviceId}/images/{imageId}
-       * @allow (get, list) for everyone.
-       * @allow (create, update, delete) restricted to Admins.
-       * @principle Visual gallery management restricted to shop management.
+       * @description Rules for Services offered by a specific barber.
+       * @path /barberProfiles/{barberProfileId}/services/{serviceId}
+       * @allow (update) Barber 'abc' changing price of /barberProfiles/abc/services/cut1.
+       * @deny (delete) Barber 'abc' trying to delete /barberProfiles/xyz/services/cut2.
+       * @principle Authorization Independence: Uses denormalized ID for fast ownership checks.
        */
-      match /images/{imageId} {
-        allow get, list: if true;
-        allow create, update, delete: if isAdmin();
+      match /services/{serviceId} {
+        allow get, list: if isOwner(barberProfileId);
+        allow create: if isOwner(barberProfileId) && request.resource.data.barberProfileId == barberProfileId;
+        allow update: if isExistingOwner(barberProfileId) && request.resource.data.barberProfileId == resource.data.barberProfileId;
+        allow delete: if isExistingOwner(barberProfileId);
       }
-    }
 
-    /**
-     * @description Critical scheduling records linking clients and barbers.
-     * @path /appointments/{appointmentId}
-     * @allow (get, list) if the user's UID is either the clientId or barberId in the document.
-     * @allow (create) if the user is the clientId (self-booking) or an Admin.
-     * @allow (update) if a participant, provided critical relations (clientId/barberId) don't change.
-     * @principle Shared access model utilizing denormalized IDs for performant, secure list queries.
-     */
-    match /appointments/{appointmentId} {
-      // FIX: Split 'get' and 'list' operations. 'resource.data' is not available for 'list'.
-      allow get: if isAppointmentParticipant(resource.data);
-      // FIX: For 'list', require admin or a query constraint from the authenticated participant.
-      allow list: if isAdmin() || (
-        isSignedIn() &&
-        (request.query.where.get('clientId', null) == request.auth.uid ||
-         request.query.where.get('barberId', null) == request.auth.uid)
-      );
-      allow create: if isSignedIn() && (request.resource.data.clientId == request.auth.uid || isAdmin());
-      allow update: if resource != null && isAppointmentParticipant(resource.data) && (request.resource.data.clientId == resource.data.clientId);
-      allow delete: if isAdmin();
-    }
+      /**
+       * @description Rules for Appointments scheduled for a specific barber.
+       * @path /barberProfiles/{barberProfileId}/appointments/{appointmentId}
+       * @allow (create) Barber 'abc' creating /barberProfiles/abc/appointments/app1.
+       * @deny (update) Barber 'abc' trying to move an appointment to Barber 'xyz' (immutable barberProfileId).
+       * @principle Immutability: Prevents transferring appointments between barbers.
+       */
+      match /appointments/{appointmentId} {
+        allow get, list: if isOwner(barberProfileId);
+        allow create: if isOwner(barberProfileId) && request.resource.data.barberProfileId == barberProfileId;
+        allow update: if isExistingOwner(barberProfileId) && request.resource.data.barberProfileId == resource.data.barberProfileId;
+        allow delete: if isExistingOwner(barberProfileId);
+      }
 
-    /**
-     * @description Operational business expenses (Rent, Supplies).
-     * @path /expenses/{expenseId}
-     * @allow (get, list, create, update, delete) restricted to Admins only.
-     * @principle Financial data isolation; strictly hidden from barbers and clients.
-     */
-    match /expenses/{expenseId} {
-      allow get, list, create, update, delete: if isAdmin();
+      /**
+       * @description Rules for AvailabilityBlocks (unavailability) for a specific barber.
+       * @path /barberProfiles/{barberProfileId}/availabilityBlocks/{availabilityBlockId}
+       * @allow (get) Barber 'abc' viewing their own break /barberProfiles/abc/availabilityBlocks/lunch.
+       * @deny (list) Anonymous user trying to list availability blocks.
+       * @principle Ownership: Protects the barber's private schedule.
+       */
+      match /availabilityBlocks/{availabilityBlockId} {
+        allow get, list: if isOwner(barberProfileId);
+        allow create: if isOwner(barberProfileId) && request.resource.data.barberProfileId == barberProfileId;
+        allow update: if isExistingOwner(barberProfileId) && request.resource.data.barberProfileId == resource.data.barberProfileId;
+        allow delete: if isExistingOwner(barberProfileId);
+      }
     }
   }
 }
