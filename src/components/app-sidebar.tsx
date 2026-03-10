@@ -1,7 +1,8 @@
+
 "use client"
 
 import * as React from "react"
-import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3 } from "lucide-react"
+import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +20,7 @@ const items = [
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
   { title: "Clientes", url: "/customers", icon: Users },
   { title: "Serviços", url: "/services", icon: Scissors },
+  { title: "Equipe", url: "/staff", icon: Briefcase },
   { title: "Relatórios", url: "/reports", icon: BarChart3 },
 ]
 
@@ -34,7 +36,7 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
             <span className="font-semibold text-primary font-headline text-lg">Skull Barber</span>
-            <span className="text-xs text-muted-foreground">Sistema de Gestão</span>
+            <span className="text-xs text-muted-foreground">Gestão Master</span>
           </div>
         </div>
       </SidebarHeader>
