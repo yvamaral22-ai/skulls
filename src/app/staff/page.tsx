@@ -12,18 +12,37 @@ import {
   Briefcase, Plus, Mail, Phone, TrendingUp, Scissors, CalendarDays, Users, BarChart2, Clock, Pencil
 } from "lucide-react"
 import { STAFF, APPOINTMENTS, SERVICES } from "../lib/mock-data"
-import { toast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 export default function StaffPage() {
   const todayDate = "2025-05-20"
   const [isAddOpen, setIsAddOpen] = React.useState(false)
+  const [editingId, setEditingId] = React.useState<string | null>(null)
+  const { toast } = useToast()
 
-  const handleAction = (msg: string) => {
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault()
     toast({
       title: "Equipe Skull Barber",
-      description: msg,
+      description: "Novo barbeiro adicionado à equipe com sucesso.",
     })
     setIsAddOpen(false)
+  }
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault()
+    toast({
+      title: "Perfil Atualizado",
+      description: "As informações do profissional foram salvas.",
+    })
+    setEditingId(null)
+  }
+
+  const handleContact = (name: string) => {
+    toast({
+      title: "Notificação Enviada",
+      description: `Um lembrete de contato foi enviado para ${name}.`,
+    })
   }
 
   return (
@@ -40,24 +59,27 @@ export default function StaffPage() {
               <Plus className="mr-2 h-4 w-4" /> Adicionar Barbeiro
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
-              <DialogTitle>Novo Profissional</DialogTitle>
+              <DialogTitle className="font-headline text-2xl">Novo Profissional</DialogTitle>
+              <DialogDescription>Cadastre um novo barbeiro e defina sua comissão.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); handleAction("Novo barbeiro adicionado à equipe."); }} className="space-y-4 py-4">
+            <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Nome Artístico</Label>
-                <Input placeholder="Ex: Rick Navalha" required />
+                <Input placeholder="Ex: Rick Navalha" required className="bg-background" />
               </div>
               <div className="space-y-2">
                 <Label>E-mail</Label>
-                <Input type="email" placeholder="barbeiro@skullbarber.com" required />
+                <Input type="email" placeholder="barbeiro@skullbarber.com" required className="bg-background" />
               </div>
               <div className="space-y-2">
                 <Label>Taxa de Comissão (%)</Label>
-                <Input type="number" placeholder="40" required />
+                <Input type="number" placeholder="40" required className="bg-background" />
               </div>
-              <Button type="submit" className="w-full">Cadastrar</Button>
+              <DialogFooter className="pt-4">
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Cadastrar Profissional</Button>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -140,35 +162,37 @@ export default function StaffPage() {
 
                 <div className="pt-4 flex flex-col gap-2">
                   <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1 bg-secondary hover:bg-secondary/80 text-xs" onClick={() => handleAction(`Contato enviado para ${member.name}`)}>
+                    <Button variant="secondary" className="flex-1 bg-secondary hover:bg-secondary/80 text-xs" onClick={() => handleContact(member.name)}>
                       <Mail className="mr-2 h-3 w-3" /> Contato
                     </Button>
                     
-                    <Dialog>
+                    <Dialog open={editingId === member.id} onOpenChange={(open) => setEditingId(open ? member.id : null)}>
                       <DialogTrigger asChild>
                         <Button variant="outline" className="flex-1 border-primary/20 text-xs hover:bg-primary/10">
                           <Pencil className="mr-2 h-3 w-3" /> Editar Perfil
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="bg-card border-border">
+                      <DialogContent className="bg-card border-border shadow-2xl">
                         <DialogHeader>
-                          <DialogTitle>Editar Profissional</DialogTitle>
+                          <DialogTitle className="font-headline text-2xl">Editar Profissional</DialogTitle>
                         </DialogHeader>
-                        <form onSubmit={(e) => { e.preventDefault(); handleAction("Perfil do barbeiro atualizado."); }} className="space-y-4 py-4">
+                        <form onSubmit={handleUpdate} className="space-y-4 py-4">
                           <div className="space-y-2">
-                            <Label>Nome</Label>
-                            <Input defaultValue={member.name} />
+                            <Label>Nome Artístico</Label>
+                            <Input defaultValue={member.name} className="bg-background" required />
                           </div>
                           <div className="space-y-2">
                             <Label>Comissão (%)</Label>
-                            <Input defaultValue={member.commissionRate * 100} type="number" />
+                            <Input defaultValue={member.commissionRate * 100} type="number" className="bg-background" required />
                           </div>
-                          <Button type="submit" className="w-full">Salvar</Button>
+                          <DialogFooter className="pt-4">
+                            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Alterações</Button>
+                          </DialogFooter>
                         </form>
                       </DialogContent>
                     </Dialog>
                   </div>
-                  <Button className="w-full h-11 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all font-bold" onClick={() => handleAction("Gerando relatório completo...")}>
+                  <Button className="w-full h-11 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all font-bold" onClick={() => toast({ title: "Relatório Gerado", description: `O extrato de ${member.name} foi enviado para o seu e-mail.` })}>
                     Relatório Individual Completo
                   </Button>
                 </div>

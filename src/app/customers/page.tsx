@@ -11,24 +11,37 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { User, Search, Plus, Phone, History, Info, Pencil } from "lucide-react"
 import { CUSTOMERS } from "../lib/mock-data"
-import { toast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = React.useState("")
   const [isAddOpen, setIsAddOpen] = React.useState(false)
+  const [editingId, setEditingId] = React.useState<string | null>(null)
+  const { toast } = useToast()
 
   const filteredCustomers = CUSTOMERS.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.phone.includes(searchTerm)
   )
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault()
+    // Lógica de salvamento no Firestore viria aqui
     toast({
-      title: "Sucesso!",
-      description: "As informações do cliente foram atualizadas.",
+      title: "Cliente Cadastrado!",
+      description: "O novo cliente foi adicionado à sua base de dados com sucesso.",
     })
     setIsAddOpen(false)
+  }
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Lógica de atualização no Firestore viria aqui
+    toast({
+      title: "Perfil Atualizado!",
+      description: "As informações do cliente foram sincronizadas com sucesso.",
+    })
+    setEditingId(null)
   }
 
   return (
@@ -41,30 +54,30 @@ export default function CustomersPage() {
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 text-white">
+            <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
               <Plus className="mr-2 h-4 w-4" /> Novo Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
-              <DialogTitle>Cadastrar Novo Cliente</DialogTitle>
+              <DialogTitle className="font-headline text-2xl">Cadastrar Novo Cliente</DialogTitle>
               <DialogDescription>Adicione um novo cliente à sua base de dados.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSave} className="space-y-4 py-4">
+            <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Nome Completo</Label>
-                <Input placeholder="Ex: João Silva" required />
+                <Input placeholder="Ex: João Silva" required className="bg-background" />
               </div>
               <div className="space-y-2">
                 <Label>Telefone / WhatsApp</Label>
-                <Input placeholder="(11) 99999-9999" required />
+                <Input placeholder="(11) 99999-9999" required className="bg-background" />
               </div>
               <div className="space-y-2">
                 <Label>Preferências Técnicas</Label>
-                <Textarea placeholder="Ex: Gosta de degradê navalhado, usa pomada matte..." />
+                <Textarea placeholder="Ex: Gosta de degradê navalhado, usa pomada matte..." className="bg-background" />
               </div>
-              <DialogFooter>
-                <Button type="submit" className="w-full">Salvar Cliente</Button>
+              <DialogFooter className="pt-4">
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Cliente</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -125,30 +138,32 @@ export default function CustomersPage() {
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
-                <Dialog>
+                <Dialog open={editingId === customer.id} onOpenChange={(open) => setEditingId(open ? customer.id : null)}>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-xs">
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary">
                       <Pencil className="mr-2 h-3 w-3" /> Editar Perfil
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-card border-border">
+                  <DialogContent className="bg-card border-border shadow-2xl">
                     <DialogHeader>
-                      <DialogTitle>Editar Cliente</DialogTitle>
+                      <DialogTitle className="font-headline text-2xl">Editar Cliente</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSave} className="space-y-4 py-4">
+                    <form onSubmit={handleUpdate} className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label>Nome Completo</Label>
-                        <Input defaultValue={customer.name} />
+                        <Input defaultValue={customer.name} className="bg-background" required />
                       </div>
                       <div className="space-y-2">
                         <Label>Telefone</Label>
-                        <Input defaultValue={customer.phone} />
+                        <Input defaultValue={customer.phone} className="bg-background" required />
                       </div>
                       <div className="space-y-2">
                         <Label>Preferências</Label>
-                        <Textarea defaultValue={customer.preferences} />
+                        <Textarea defaultValue={customer.preferences} className="bg-background" />
                       </div>
-                      <Button type="submit" className="w-full">Atualizar</Button>
+                      <DialogFooter className="pt-4">
+                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Atualizar Informações</Button>
+                      </DialogFooter>
                     </form>
                   </DialogContent>
                 </Dialog>

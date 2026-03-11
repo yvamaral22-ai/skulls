@@ -10,17 +10,37 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Scissors, Plus, Pencil, Trash2, Clock, DollarSign } from "lucide-react"
 import { SERVICES } from "../lib/mock-data"
-import { toast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ServicesPage() {
   const [isAddOpen, setIsAddOpen] = React.useState(false)
+  const [editingId, setEditingId] = React.useState<string | null>(null)
+  const { toast } = useToast()
 
-  const handleAction = (msg: string) => {
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault()
     toast({
-      title: "Serviço Atualizado",
-      description: msg,
+      title: "Serviço Adicionado!",
+      description: "O novo item foi incluído no seu catálogo de serviços.",
     })
     setIsAddOpen(false)
+  }
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault()
+    toast({
+      title: "Serviço Atualizado!",
+      description: "As alterações de preço e duração foram salvas com sucesso.",
+    })
+    setEditingId(null)
+  }
+
+  const handleDelete = (name: string) => {
+    toast({
+      variant: "destructive",
+      title: "Serviço Removido",
+      description: `O serviço "${name}" não está mais disponível no catálogo.`,
+    })
   }
 
   return (
@@ -33,30 +53,33 @@ export default function ServicesPage() {
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 text-white">
+            <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
               <Plus className="mr-2 h-4 w-4" /> Novo Serviço
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
-              <DialogTitle>Novo Serviço no Menu</DialogTitle>
+              <DialogTitle className="font-headline text-2xl">Novo Serviço no Menu</DialogTitle>
+              <DialogDescription>Defina o nome, preço e tempo médio do serviço.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); handleAction("Novo serviço adicionado com sucesso."); }} className="space-y-4 py-4">
+            <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Nome do Serviço</Label>
-                <Input placeholder="Ex: Platinado" required />
+                <Input placeholder="Ex: Platinado" required className="bg-background" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Preço (R$)</Label>
-                  <Input type="number" placeholder="50.00" required />
+                  <Input type="number" step="0.01" placeholder="50.00" required className="bg-background" />
                 </div>
                 <div className="space-y-2">
                   <Label>Duração (min)</Label>
-                  <Input type="number" placeholder="40" required />
+                  <Input type="number" placeholder="40" required className="bg-background" />
                 </div>
               </div>
-              <Button type="submit" className="w-full">Cadastrar Serviço</Button>
+              <DialogFooter className="pt-4">
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Cadastrar Serviço</Button>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -80,7 +103,7 @@ export default function ServicesPage() {
               </TableHeader>
               <TableBody>
                 {SERVICES.map((service) => (
-                  <TableRow key={service.id} className="border-border hover:bg-secondary/20">
+                  <TableRow key={service.id} className="border-border hover:bg-secondary/20 transition-colors">
                     <TableCell className="font-semibold">{service.name}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -90,32 +113,34 @@ export default function ServicesPage() {
                     </TableCell>
                     <TableCell className="text-accent font-bold">R$ {service.price.toFixed(2)}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Dialog>
+                      <Dialog open={editingId === service.id} onOpenChange={(open) => setEditingId(open ? service.id : null)}>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-card border-border">
+                        <DialogContent className="bg-card border-border shadow-2xl">
                           <DialogHeader>
-                            <DialogTitle>Editar {service.name}</DialogTitle>
+                            <DialogTitle className="font-headline text-2xl">Editar {service.name}</DialogTitle>
                           </DialogHeader>
-                          <form onSubmit={(e) => { e.preventDefault(); handleAction("Serviço editado com sucesso."); }} className="space-y-4 py-4">
+                          <form onSubmit={handleUpdate} className="space-y-4 py-4">
                             <div className="space-y-2">
-                              <Label>Nome</Label>
-                              <Input defaultValue={service.name} />
+                              <Label>Nome do Serviço</Label>
+                              <Input defaultValue={service.name} className="bg-background" required />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label>Preço</Label>
-                                <Input defaultValue={service.price} type="number" />
+                                <Label>Preço (R$)</Label>
+                                <Input defaultValue={service.price} type="number" step="0.01" className="bg-background" required />
                               </div>
                               <div className="space-y-2">
-                                <Label>Duração</Label>
-                                <Input defaultValue={service.duration} type="number" />
+                                <Label>Duração (min)</Label>
+                                <Input defaultValue={service.duration} type="number" className="bg-background" required />
                               </div>
                             </div>
-                            <Button type="submit" className="w-full">Salvar Alterações</Button>
+                            <DialogFooter className="pt-4">
+                              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Alterações</Button>
+                            </DialogFooter>
                           </form>
                         </DialogContent>
                       </Dialog>
@@ -124,7 +149,7 @@ export default function ServicesPage() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleAction("Serviço removido.")}
+                        onClick={() => handleDelete(service.name)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -137,7 +162,7 @@ export default function ServicesPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-none bg-card shadow-xl">
+          <Card className="border-none bg-card shadow-xl overflow-hidden">
             <CardHeader className="bg-primary/10">
               <CardTitle className="text-lg flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-primary" />
@@ -146,7 +171,7 @@ export default function ServicesPage() {
             </CardHeader>
             <CardContent className="p-6">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Revisar seus preços trimestralmente pode ajudar a manter sua margem de lucro. Considere pacotes mensais para fidelizar clientes.
+                Revisar seus preços trimestralmente pode ajudar a manter sua margem de lucro. Considere criar pacotes mensais (combos) para fidelizar seus clientes e garantir recorrência.
               </p>
             </CardContent>
           </Card>
