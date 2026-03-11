@@ -58,8 +58,9 @@ export default function AgendaPage() {
   const { data: staff } = useCollection(staffQuery);
 
   const getAppointmentStyle = (appt: any, service: any) => {
+    if (!appt.time) return { top: '0px', height: '40px' };
     const [hours, minutes] = appt.time.split(':').map(Number);
-    const startMinutes = (hours - 8) * 60 + minutes;
+    const startMinutes = (hours - 8) * 60 + (minutes || 0);
     const duration = service?.durationMinutes || 30;
     
     return {
@@ -68,10 +69,10 @@ export default function AgendaPage() {
     };
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handleDelete = async (id: string) => {
     if (confirm('Deseja realmente excluir este agendamento?')) {
       await deleteDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', id));
+      setEditingAppointment(null);
     }
   };
 
@@ -118,8 +119,6 @@ export default function AgendaPage() {
 
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon"><Search className="h-5 w-5" /></Button>
-          <Button variant="ghost" size="icon" className="hidden md:flex"><HelpCircle className="h-5 w-5" /></Button>
-          <Button variant="ghost" size="icon" className="hidden md:flex"><Settings className="h-5 w-5" /></Button>
           <div className="h-8 w-px bg-border mx-2 hidden md:block" />
           <Button className="bg-primary text-white font-bold" onClick={() => setIsBookingOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo
@@ -143,8 +142,8 @@ export default function AgendaPage() {
           <div className="inline-flex min-w-full">
             {weekDays.map((day, dayIdx) => {
               const isToday = isSameDay(day, new Date());
-              const isSelected = isSameDay(day, selectedDate);
-              const dayAppts = appointments?.filter(a => a.date === format(day, 'yyyy-MM-dd')) || [];
+              const dateStr = format(day, 'yyyy-MM-dd');
+              const dayAppts = appointments?.filter(a => a.date === dateStr) || [];
 
               return (
                 <div key={dayIdx} className={cn("flex-1 relative border-r border-border last:border-r-0", COLUMN_WIDTH)}>
@@ -177,7 +176,6 @@ export default function AgendaPage() {
                     {/* Agendamentos */}
                     {dayAppts.map(appt => {
                       const service = services?.find(s => s.id === appt.serviceId);
-                      const barber = staff?.find(s => s.id === appt.staffId);
                       const isCompleted = appt.status === 'completed';
                       const style = getAppointmentStyle(appt, service);
 
@@ -222,7 +220,7 @@ export default function AgendaPage() {
 
       {/* Modais */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-        <DialogContent className="sm:max-w-[450px] z-[10000]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle>Novo Registro</DialogTitle>
             <DialogDescription>Agende um novo atendimento.</DialogDescription>
@@ -232,10 +230,10 @@ export default function AgendaPage() {
       </Dialog>
 
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
-        <DialogContent className="sm:max-w-[450px] z-[10000]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>{editingAppointment?.id ? 'Editar Atendimento' : 'Novo Agendamento'}</DialogTitle>
-            <DialogDescription>Confirme os detalhes do horário.</DialogDescription>
+            <DialogTitle>{editingAppointment?.id ? 'Detalhes do Atendimento' : 'Novo Agendamento'}</DialogTitle>
+            <DialogDescription>Gerencie as informações do horário.</DialogDescription>
           </DialogHeader>
           {editingAppointment && (
             <div className="space-y-6">
@@ -258,10 +256,10 @@ export default function AgendaPage() {
                   )}
                   <Button 
                     variant="ghost" 
-                    className="flex-1 text-destructive hover:bg-destructive/10" 
-                    onClick={(e) => handleDelete(e, editingAppointment.id)}
+                    className="flex-1 text-destructive hover:bg-destructive/10 font-bold" 
+                    onClick={() => handleDelete(editingAppointment.id)}
                   >
-                    Excluir Agendamento
+                    Excluir
                   </Button>
                 </div>
               )}
