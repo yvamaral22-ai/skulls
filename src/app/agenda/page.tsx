@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { 
   Plus, ChevronLeft, ChevronRight, 
-  Loader2, Search, CheckCircle2, Clock, Trash2
+  Loader2, Search, CheckCircle2, Clock, Trash2, User
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
@@ -69,9 +69,13 @@ export default function AgendaPage() {
 
   const getAppointmentStyle = (appt: any, service: any) => {
     if (!appt.time) return { top: '0px', height: '40px' };
+    
     const [hours, minutes] = appt.time.split(':').map(Number);
+    // 8:00 é o ponto zero (top 0)
     const startMinutes = (hours - 8) * 60 + (minutes || 0);
-    const duration = service?.durationMinutes || 30;
+    
+    // Força uma duração mínima de 30 minutos para visibilidade no calendário
+    const duration = Math.max(Number(service?.durationMinutes) || 30, 30);
     
     return {
       top: `${(startMinutes / 60) * 80}px`, 
@@ -174,6 +178,7 @@ export default function AgendaPage() {
 
                     {dayAppts.map(appt => {
                       const service = services?.find(s => s.id === appt.serviceId);
+                      const barber = staff?.find(s => s.id === appt.staffId);
                       const isCompleted = appt.status === 'completed';
                       const style = getAppointmentStyle(appt, service);
 
@@ -183,14 +188,21 @@ export default function AgendaPage() {
                           style={style}
                           onClick={(e) => { e.stopPropagation(); setEditingAppointment(appt); }}
                           className={cn(
-                            "absolute left-1 right-1 rounded-lg p-2 text-[9px] md:text-[10px] overflow-hidden transition-all border shadow-md cursor-pointer hover:shadow-xl hover:scale-[1.01] z-10 flex flex-col justify-center",
+                            "absolute left-1 right-1 rounded-lg p-2 text-[9px] md:text-[10px] overflow-hidden transition-all border shadow-md cursor-pointer hover:shadow-xl hover:scale-[1.01] z-10 flex flex-col justify-start gap-0.5",
                             isCompleted 
                               ? "bg-green-500/20 border-green-500/40 text-green-700 dark:text-green-300" 
                               : "bg-primary/20 border-primary/40 text-primary-foreground"
                           )}
                         >
-                          <div className="font-black truncate uppercase leading-tight">{appt.clientName}</div>
-                          <div className="opacity-70 truncate font-bold">{service?.name || 'Serviço'}</div>
+                          <div className="font-black truncate uppercase leading-tight">
+                            {appt.clientName || 'Cliente Indefinido'}
+                          </div>
+                          <div className="opacity-70 truncate font-bold flex items-center gap-1">
+                            <Clock className="h-2 w-2" /> {appt.time} - {service?.name || 'Serviço'}
+                          </div>
+                          <div className="text-[8px] opacity-60 truncate font-bold flex items-center gap-1">
+                            <User className="h-2 w-2" /> Profissional: {barber?.name || 'Não atribuído'}
+                          </div>
                           {isCompleted && <CheckCircle2 className="absolute top-1 right-1 h-3 w-3 text-green-500" />}
                         </div>
                       );
