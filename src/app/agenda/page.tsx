@@ -2,45 +2,50 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogDescription,
 } from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { 
-  Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, 
-  Loader2, Scissors, User as UserIcon, Clock, Pencil
+  Plus, ChevronLeft, ChevronRight, 
+  Loader2, Search, Settings, HelpCircle, 
+  CheckCircle2, Clock
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
-import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
+import { 
+  format, addDays, startOfWeek, isSameDay, 
+  startOfDay, addMinutes, differenceInMinutes,
+  isWithinInterval, endOfDay, parse
+} from 'date-fns';
 import { cn } from '@/lib/utils';
+
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 08:00 às 21:00
+const COLUMN_WIDTH = "min-w-[120px]";
 
 export default function AgendaPage() {
   const db = useFirestore();
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [isBookingOpen, setIsBookingOpen] = React.useState(false);
   const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
+  const [currentTime, setCurrentTime] = React.useState(new Date());
+  
   const barberShopId = "master-barbershop";
 
-  // Gerar dias da semana atual para a visualização estilo Google Calendar
+  // Atualiza a linha de "agora" a cada minuto
+  React.useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   const weekStart = startOfWeek(selectedDate, { locale: ptBR });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -52,13 +57,16 @@ export default function AgendaPage() {
   const { data: services } = useCollection(servicesQuery);
   const { data: staff } = useCollection(staffQuery);
 
-  const dailyAppointments = React.useMemo(() => {
-    if (!appointments) return [];
-    const targetStr = format(selectedDate, 'yyyy-MM-dd');
-    return appointments
-      .filter(a => a.date === targetStr)
-      .sort((a, b) => a.time.localeCompare(b.time));
-  }, [selectedDate, appointments]);
+  const getAppointmentStyle = (appt: any, service: any) => {
+    const [hours, minutes] = appt.time.split(':').map(Number);
+    const startMinutes = (hours - 8) * 60 + minutes;
+    const duration = service?.durationMinutes || 30;
+    
+    return {
+      top: `${(startMinutes / 60) * 80}px`, // 80px por hora
+      height: `${(duration / 60) * 80}px`,
+    };
+  };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -67,190 +75,197 @@ export default function AgendaPage() {
     }
   };
 
+  const handleCellClick = (day: Date, hour: number) => {
+    const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+    setEditingAppointment({ date: format(day, 'yyyy-MM-dd'), time: timeStr });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black font-headline text-primary">Agenda Mestre</h1>
-          <p className="text-muted-foreground">Controle total dos seus horários e equipe.</p>
+    <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden bg-background">
+      {/* Cabeçalho Estilo Google Calendar */}
+      <header className="flex items-center justify-between p-4 border-b border-border bg-card">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 mr-6">
+            <div className="p-2 bg-primary rounded-lg">
+              <Clock className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-xl font-bold hidden md:block">Agenda Mestre</h1>
+          </div>
+          
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="font-bold">Hoje</Button>
+          
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+          
+          <h2 className="text-xl font-medium ml-2">
+            {format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR })}
+          </h2>
         </div>
 
-        <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-          <DialogTrigger asChild>
-            <Button className="h-12 md:h-11 font-bold shadow-lg shadow-primary/20 bg-primary">
-              <Plus className="mr-2 h-5 w-5" /> Novo Agendamento
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[450px] z-[10000]">
-            <DialogHeader>
-              <DialogTitle>Novo Registro Manual</DialogTitle>
-              <DialogDescription>Insira os dados do cliente e escolha o serviço.</DialogDescription>
-            </DialogHeader>
-            <BookingForm onSuccess={() => setIsBookingOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon"><Search className="h-5 w-5" /></Button>
+          <Button variant="ghost" size="icon" className="hidden md:flex"><HelpCircle className="h-5 w-5" /></Button>
+          <Button variant="ghost" size="icon" className="hidden md:flex"><Settings className="h-5 w-5" /></Button>
+          <div className="h-8 w-px bg-border mx-2 hidden md:block" />
+          <Button className="bg-primary text-white font-bold" onClick={() => setIsBookingOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Novo
+          </Button>
+        </div>
       </header>
 
-      {/* Navegação de Calendário Semanal (Estilo Google Calendar) */}
-      <Card className="border-none shadow-xl bg-card overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between pb-4 bg-secondary/10">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold uppercase tracking-tight">
-              {format(selectedDate, 'MMMM yyyy', { locale: ptBR })}
-            </h2>
-            <div className="flex gap-1">
-              <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>Hoje</Button>
+      {/* Grade de Horários */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Eixo de Horários (Fixo) */}
+        <div className="w-16 flex-none bg-card border-r border-border flex flex-col pt-[80px]">
+          {HOURS.map(hour => (
+            <div key={hour} className="h-20 text-[10px] text-muted-foreground text-center pt-2">
+              {`${hour}:00`}
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="grid grid-cols-7 border-b border-border/50">
-            {weekDays.map((day) => {
-              const isSelected = isSameDay(day, selectedDate);
+          ))}
+        </div>
+
+        {/* Scrollable Grid */}
+        <div className="flex-1 overflow-auto relative">
+          <div className="inline-flex min-w-full">
+            {weekDays.map((day, dayIdx) => {
               const isToday = isSameDay(day, new Date());
+              const isSelected = isSameDay(day, selectedDate);
+              const dayAppts = appointments?.filter(a => a.date === format(day, 'yyyy-MM-dd')) || [];
+
               return (
-                <button
-                  key={day.toString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={cn(
-                    "flex flex-col items-center justify-center py-4 transition-all hover:bg-primary/5 border-r border-border/20 last:border-r-0",
-                    isSelected ? "bg-primary/10 border-b-2 border-b-primary" : ""
-                  )}
-                >
-                  <span className="text-[10px] uppercase font-bold opacity-60 mb-1">
-                    {format(day, 'eee', { locale: ptBR })}
-                  </span>
-                  <span className={cn(
-                    "text-xl font-black h-10 w-10 flex items-center justify-center rounded-full transition-colors",
-                    isToday ? "bg-primary text-white" : "",
-                    isSelected && !isToday ? "text-primary border-2 border-primary" : ""
+                <div key={dayIdx} className={cn("flex-1 relative border-r border-border last:border-r-0", COLUMN_WIDTH)}>
+                  {/* Cabeçalho do Dia */}
+                  <div className={cn(
+                    "sticky top-0 z-20 h-20 flex flex-col items-center justify-center border-b border-border bg-card/80 backdrop-blur-sm transition-colors",
+                    isToday ? "text-primary" : ""
                   )}>
-                    {format(day, 'd')}
-                  </span>
-                </button>
+                    <span className="text-[10px] uppercase font-bold opacity-60">
+                      {format(day, 'eee', { locale: ptBR })}
+                    </span>
+                    <span className={cn(
+                      "text-2xl font-black h-12 w-12 flex items-center justify-center rounded-full transition-colors mt-1",
+                      isToday ? "bg-primary text-white shadow-lg shadow-primary/30" : ""
+                    )}>
+                      {format(day, 'd')}
+                    </span>
+                  </div>
+
+                  {/* Células de Hora */}
+                  <div className="relative" style={{ height: `${HOURS.length * 80}px` }}>
+                    {HOURS.map(hour => (
+                      <div 
+                        key={hour} 
+                        className="h-20 border-b border-border/30 hover:bg-primary/5 transition-colors cursor-pointer"
+                        onClick={() => handleCellClick(day, hour)}
+                      />
+                    ))}
+
+                    {/* Agendamentos */}
+                    {dayAppts.map(appt => {
+                      const service = services?.find(s => s.id === appt.serviceId);
+                      const barber = staff?.find(s => s.id === appt.staffId);
+                      const isCompleted = appt.status === 'completed';
+                      const style = getAppointmentStyle(appt, service);
+
+                      return (
+                        <div
+                          key={appt.id}
+                          style={style}
+                          onClick={(e) => { e.stopPropagation(); setEditingAppointment(appt); }}
+                          className={cn(
+                            "absolute left-1 right-1 rounded-md p-2 text-[10px] overflow-hidden transition-all border shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] z-10",
+                            isCompleted 
+                              ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400" 
+                              : "bg-primary/10 border-primary/30 text-primary-foreground"
+                          )}
+                        >
+                          <div className="font-bold truncate uppercase">{appt.clientName}</div>
+                          <div className="opacity-80 truncate">{service?.name || 'Serviço'}</div>
+                          {isCompleted && <CheckCircle2 className="absolute bottom-1 right-1 h-3 w-3 text-green-500" />}
+                        </div>
+                      );
+                    })}
+
+                    {/* Linha de Hora Atual */}
+                    {isToday && (
+                      <div 
+                        className="absolute left-0 right-0 z-30 flex items-center pointer-events-none"
+                        style={{ 
+                          top: `${((differenceInMinutes(currentTime, startOfDay(currentTime)) - 480) / 60) * 80}px` 
+                        }}
+                      >
+                        <div className="h-2 w-2 rounded-full bg-red-500 -ml-1" />
+                        <div className="h-px flex-1 bg-red-500" />
+                      </div>
+                    )}
+                  </div>
+                </div>
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Planilha Diária (Daily View) */}
-      <Card className="border-none shadow-xl">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-primary" />
-              Planilha de Atendimentos
-            </CardTitle>
-            <CardDescription>{format(selectedDate, "dd 'de' MMMM", { locale: ptBR })} • {dailyAppointments.length} registros</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-          ) : (
-            <Table>
-              <TableHeader className="bg-secondary/20">
-                <TableRow className="border-border">
-                  <TableHead className="w-[100px] font-bold">Horário</TableHead>
-                  <TableHead className="font-bold">Cliente</TableHead>
-                  <TableHead className="font-bold">Serviço</TableHead>
-                  <TableHead className="font-bold">Barbeiro</TableHead>
-                  <TableHead className="font-bold">Status</TableHead>
-                  <TableHead className="text-right font-bold">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dailyAppointments.length > 0 ? (
-                  dailyAppointments.map((appt) => {
-                    const service = services?.find(s => s.id === appt.serviceId);
-                    const barber = staff?.find(s => s.id === appt.staffId);
-                    const isCompleted = appt.status === 'completed';
+      {/* Modais */}
+      <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
+        <DialogContent className="sm:max-w-[450px] z-[10000]">
+          <DialogHeader>
+            <DialogTitle>Novo Registro</DialogTitle>
+            <DialogDescription>Agende um novo atendimento.</DialogDescription>
+          </DialogHeader>
+          <BookingForm onSuccess={() => setIsBookingOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
-                    return (
-                      <TableRow 
-                        key={appt.id} 
-                        className="border-border hover:bg-primary/5 transition-colors cursor-pointer group"
-                        onClick={() => setEditingAppointment(appt)}
-                      >
-                        <TableCell className="font-black text-primary">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3 opacity-50" />
-                            {appt.time}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-bold">
-                          <div className="flex items-center gap-2">
-                            <UserIcon className="h-3 w-3 opacity-50" />
-                            {appt.clientName}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Scissors className="h-3 w-3 opacity-50" />
-                            {service?.name || 'Serviço'}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{barber?.name || '-'}</TableCell>
-                        <TableCell>
-                          <Badge variant={isCompleted ? "default" : "secondary"} className={cn(isCompleted ? "bg-green-500 text-white" : "")}>
-                            {isCompleted ? 'Finalizado' : 'Agendado'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          {!isCompleted && (
-                            <CheckoutDialog 
-                              appointmentId={appt.id}
-                              customerName={appt.clientName}
-                              serviceName={service?.name || 'Serviço'}
-                              price={appt.priceAtAppointment || service?.price || 0}
-                              staffId={appt.staffId}
-                              onSuccess={() => {}}
-                            />
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-destructive hover:bg-destructive/10" 
-                            onClick={(e) => handleDelete(e, appt.id)}
-                          >
-                            Excluir
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">
-                      Nenhum agendamento para este dia. Use o botão "Novo Agendamento".
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Modal de Edição de Agendamento */}
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
         <DialogContent className="sm:max-w-[450px] z-[10000]">
           <DialogHeader>
-            <DialogTitle>Editar Registro</DialogTitle>
-            <DialogDescription>Altere os dados do atendimento selecionado.</DialogDescription>
+            <DialogTitle>{editingAppointment?.id ? 'Editar Atendimento' : 'Novo Agendamento'}</DialogTitle>
+            <DialogDescription>Confirme os detalhes do horário.</DialogDescription>
           </DialogHeader>
           {editingAppointment && (
-            <BookingForm 
-              initialData={editingAppointment} 
-              onSuccess={() => setEditingAppointment(null)} 
-            />
+            <div className="space-y-6">
+              <BookingForm 
+                initialData={editingAppointment} 
+                onSuccess={() => setEditingAppointment(null)} 
+              />
+              
+              {editingAppointment.id && (
+                <div className="flex gap-2 pt-4 border-t">
+                  {editingAppointment.status !== 'completed' && (
+                    <CheckoutDialog 
+                      appointmentId={editingAppointment.id}
+                      customerName={editingAppointment.clientName}
+                      serviceName={services?.find(s => s.id === editingAppointment.serviceId)?.name || 'Serviço'}
+                      price={editingAppointment.priceAtAppointment || 0}
+                      staffId={editingAppointment.staffId}
+                      onSuccess={() => setEditingAppointment(null)}
+                    />
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    className="flex-1 text-destructive hover:bg-destructive/10" 
+                    onClick={(e) => handleDelete(e, editingAppointment.id)}
+                  >
+                    Excluir Agendamento
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>
