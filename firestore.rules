@@ -1,10 +1,8 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // REGRA DE ACESSO TOTAL: Sistema de uso exclusivo do barbeiro mestre.
-    // Permite leitura e escrita irrestrita para qualquer operação no banco.
-    // Timestamp de deploy forçado: 2024-05-20T10:00:00Z
+    // REGRA DE PRODUÇÃO: Uso exclusivo do barbeiro mestre.
+    // Permite leitura e escrita total para que os dados sejam salvos sem restrições.
     match /{document=**} {
       allow read, write: if true;
     }

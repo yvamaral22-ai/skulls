@@ -1,11 +1,11 @@
 {
-  "name": "Skull Barber - Gestão de Elite",
+  "name": "Skull Barber",
   "short_name": "Skull Barber",
-  "description": "Sistema de gestão e agendamento para barbearias de elite.",
+  "description": "Gestão de Elite para Barbearias",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0a0f",
-  "theme_color": "#0c0a0f",
+  "theme_color": "#7c3aed",
   "icons": [
     {
       "src": "https://picsum.photos/seed/skull/192/192",
