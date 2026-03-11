@@ -41,6 +41,24 @@
   }
 }
 
+/* Calendar Has Appointment Dot */
+.has-appointment .rdp-day_button::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: hsl(var(--primary));
+  @apply shadow-sm shadow-primary/50;
+}
+
+.rdp-selected.has-appointment .rdp-day_button::after {
+  background-color: hsl(var(--primary-foreground));
+}
+
 /* Calendar Fixes for React Day Picker v9 - GRID FORMAT */
 .rdp-month_grid {
   display: grid !important;

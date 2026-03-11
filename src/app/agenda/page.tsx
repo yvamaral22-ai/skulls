@@ -14,13 +14,13 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Clock, User, Scissors, CalendarDays, Wallet, Loader2, CheckCircle2, History as HistoryIcon } from 'lucide-react';
+import { Plus, Clock, User, Scissors, CalendarDays, Loader2, CheckCircle2, History as HistoryIcon } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export default function AgendaPage() {
@@ -31,19 +31,18 @@ export default function AgendaPage() {
 
   const barberProfileId = user?.uid;
 
-  // Buscar Agendamentos Reais
+  // Buscar Todos os Agendamentos para marcar o calendário
   const appointmentsQuery = useMemoFirebase(() => {
     if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'appointments');
   }, [db, barberProfileId]);
 
-  // Buscar Serviços
+  // Buscar Serviços e Clientes para exibição
   const servicesQuery = useMemoFirebase(() => {
     if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'services');
   }, [db, barberProfileId]);
 
-  // Buscar Clientes
   const clientsQuery = useMemoFirebase(() => {
     if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'clients');
@@ -53,11 +52,24 @@ export default function AgendaPage() {
   const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
   const { data: clients, isLoading: isClientsLoading } = useCollection(clientsQuery);
 
+  // Filtrar agendamentos para o dia selecionado
   const filteredAppointments = React.useMemo(() => {
     if (!date || !appointments) return [];
     const targetDateStr = format(date, 'yyyy-MM-dd');
     return appointments.filter(appt => appt.date === targetDateStr);
   }, [date, appointments]);
+
+  // Identificar dias que possuem agendamentos para o calendário
+  const daysWithAppointments = React.useMemo(() => {
+    if (!appointments) return [];
+    // Criamos um Set de datas únicas em formato string yyyy-MM-dd
+    const uniqueDates = Array.from(new Set(appointments.map(a => a.date)));
+    // Convertemos para objetos Date para o react-day-picker
+    return uniqueDates.map(dateStr => {
+      // Usamos T00:00:00 para evitar problemas de fuso horário local
+      return parseISO(`${dateStr}T00:00:00`);
+    });
+  }, [appointments]);
 
   const activeAppointments = filteredAppointments.filter(a => a.status === 'scheduled');
   const completedAppointments = filteredAppointments.filter(a => a.status === 'completed');
@@ -103,7 +115,7 @@ export default function AgendaPage() {
               <h3 className="font-bold text-lg">{client?.name || 'Cliente'}</h3>
               {isCompleted && (
                 <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 text-[10px]">
-                  <CheckCircle2 className="mr-1 h-3 w-3" /> PAGO via {appt.paymentMethod}
+                  <CheckCircle2 className="mr-1 h-3 w-3" /> FINALIZADO
                 </Badge>
               )}
             </div>
@@ -139,7 +151,7 @@ export default function AgendaPage() {
       <div className="lg:col-span-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold font-headline text-primary">EstiloCerto - Agenda</h1>
+            <h1 className="text-3xl font-bold font-headline text-primary">Skull Barber - Agenda</h1>
             <p className="text-muted-foreground">Gerencie seus horários e atendimentos em tempo real.</p>
           </div>
           
@@ -182,6 +194,12 @@ export default function AgendaPage() {
               onSelect={handleDateSelect}
               locale={ptBR}
               className="rounded-md border-none"
+              modifiers={{
+                hasAppointment: daysWithAppointments
+              }}
+              modifiersClassNames={{
+                hasAppointment: 'has-appointment'
+              }}
             />
           </CardContent>
         </Card>
