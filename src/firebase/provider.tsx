@@ -4,7 +4,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useEffect, useState } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, onAuthStateChanged, signInAnonymously, User } from 'firebase/auth';
+import { Auth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { Loader2, Scissors } from 'lucide-react';
 
@@ -34,13 +34,17 @@ export const FirebaseProvider: React.FC<{
   useEffect(() => {
     setMounted(true);
     
+    // Inicia a escuta da autenticação imediatamente
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
+        // Se não houver usuário, realiza o login anônimo silencioso
         signInAnonymously(auth)
-          .then(() => setIsAuthReady(true))
-          .catch(err => {
-            console.error("Erro na autenticação anônima:", err);
+          .then(() => {
             setIsAuthReady(true);
+          })
+          .catch(err => {
+            console.error("Auth Error:", err);
+            setIsAuthReady(true); // Evita travar a UI em caso de erro, permitindo fallback
           });
       } else {
         setIsAuthReady(true);
@@ -57,18 +61,19 @@ export const FirebaseProvider: React.FC<{
     auth,
   }), [firebaseApp, firestore, auth]);
 
-  // FIX DE HIDRATAÇÃO: Garantimos que o servidor e o cliente renderizem 
-  // o conteúdo principal apenas após a montagem e autenticação estarem prontas.
+  // FIX DE HIDRATAÇÃO E PERMISSÃO: 
+  // 1. O servidor e o cliente rendenrizam o mesmo fallback inicial (mounted === false).
+  // 2. Só exibimos o conteúdo real após 'isAuthReady', evitando requisições sem permissão.
   if (!mounted || !isAuthReady) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6">
-          <div className="h-20 w-20 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/20 animate-pulse">
+          <div className="h-20 w-20 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/20">
             <Scissors className="h-10 w-10 text-white" />
           </div>
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Skull Barber - Iniciando</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Skull Barber</p>
           </div>
         </div>
       </div>
