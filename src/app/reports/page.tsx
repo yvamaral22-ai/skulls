@@ -11,7 +11,7 @@ import {
 } from "recharts"
 import { 
   TrendingUp, DollarSign, ArrowDownRight, 
-  Calendar as CalendarIcon, Briefcase, Loader2, Play, FileBarChart, Clock
+  Calendar as CalendarIcon, Briefcase, Loader2, Play, FileBarChart, Clock, Scissors
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -50,10 +50,12 @@ export default function ReportsPage() {
   const appointmentsQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "appointments"), [db]);
   const staffQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "staff"), [db]);
   const expensesQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "expenses"), [db]);
+  const servicesQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "services"), [db]);
 
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery)
   const { data: staff } = useCollection(staffQuery)
   const { data: expenses } = useCollection(expensesQuery)
+  const { data: services } = useCollection(servicesQuery)
 
   const handleApplyFilters = () => {
     if (!startDate || !endDate) {
@@ -80,14 +82,10 @@ export default function ReportsPage() {
 
     const filteredAppts = appointments.filter(a => {
       const isCompleted = a.status === 'completed';
-      
-      // Criamos strings comparáveis no formato YYYY-MM-DDTHH:mm
       const apptDateTime = `${a.date}T${a.time}`;
       const filterStart = `${aStart}T${tStart || '00:00'}`;
       const filterEnd = `${aEnd}T${tEnd || '23:59'}`;
-      
       const isWithinRange = apptDateTime >= filterStart && apptDateTime <= filterEnd;
-      
       return isCompleted && isWithinRange;
     }).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
@@ -103,11 +101,25 @@ export default function ReportsPage() {
       const revenue = memberAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
       const commission = memberAppts.reduce((sum, a) => sum + (Number(a.commissionAtAppointment) || 0), 0)
       
+      // Detalhamento de serviços por barbeiro
+      const serviceCounts: Record<string, number> = {};
+      memberAppts.forEach(appt => {
+        const service = services?.find(s => s.id === appt.serviceId);
+        const serviceName = service?.name || "Serviço Removido";
+        serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
+      });
+
+      const serviceBreakdown = Object.entries(serviceCounts).map(([name, count]) => ({
+        name,
+        count
+      }));
+      
       return {
         name: member.name,
         count: memberAppts.length,
         revenue,
-        commission
+        commission,
+        serviceBreakdown
       }
     }).sort((a, b) => b.revenue - a.revenue)
 
@@ -128,7 +140,7 @@ export default function ReportsPage() {
       chartData: Object.entries(paymentMethodsMap).map(([name, valor]) => ({ name, valor })), 
       count: filteredAppts.length 
     }
-  }, [appointments, staff, expenses, appliedFilters])
+  }, [appointments, staff, expenses, services, appliedFilters])
 
   if (isApptsLoading && !appointments) {
     return (
@@ -245,7 +257,7 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-1">
             <Card className="border-none bg-card shadow-xl overflow-hidden">
               <CardHeader className="bg-secondary/20">
                 <CardTitle className="font-headline text-lg">Produção por Barbeiro</CardTitle>
@@ -254,8 +266,8 @@ export default function ReportsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border">
-                      <TableHead className="pl-6 font-bold uppercase text-[10px]">Profissional</TableHead>
-                      <TableHead className="font-bold uppercase text-[10px]">Qtd</TableHead>
+                      <TableHead className="pl-6 font-bold uppercase text-[10px]">Profissional / Serviços Detalhados</TableHead>
+                      <TableHead className="font-bold uppercase text-[10px]">Qtd Total</TableHead>
                       <TableHead className="font-bold uppercase text-[10px]">Bruto</TableHead>
                       <TableHead className="text-right pr-6 font-bold uppercase text-[10px] text-blue-400">Comissão</TableHead>
                     </TableRow>
@@ -263,12 +275,23 @@ export default function ReportsPage() {
                   <TableBody>
                     {stats?.staffReport && stats.staffReport.length > 0 ? (
                       stats.staffReport.map((s, idx) => (
-                        <TableRow key={idx} className="border-border hover:bg-primary/5">
-                          <TableCell className="font-bold pl-6">{s.name}</TableCell>
-                          <TableCell>{s.count}</TableCell>
-                          <TableCell>R$ {s.revenue.toFixed(2)}</TableCell>
-                          <TableCell className="text-right pr-6 text-blue-400 font-black">R$ {s.commission.toFixed(2)}</TableCell>
-                        </TableRow>
+                        <React.Fragment key={idx}>
+                          <TableRow className="border-border bg-primary/5 hover:bg-primary/10">
+                            <TableCell className="font-bold pl-6 text-primary">{s.name}</TableCell>
+                            <TableCell className="font-bold">{s.count}</TableCell>
+                            <TableCell className="font-bold">R$ {s.revenue.toFixed(2)}</TableCell>
+                            <TableCell className="text-right pr-6 text-blue-400 font-black">R$ {s.commission.toFixed(2)}</TableCell>
+                          </TableRow>
+                          {s.serviceBreakdown.map((service, sIdx) => (
+                            <TableRow key={`svc-${idx}-${sIdx}`} className="border-border border-l-4 border-l-primary/30">
+                              <TableCell className="pl-12 text-[10px] uppercase text-muted-foreground flex items-center gap-2">
+                                <Scissors className="h-3 w-3" /> {service.name}
+                              </TableCell>
+                              <TableCell className="text-[10px] font-bold">{service.count}</TableCell>
+                              <TableCell colSpan={2}></TableCell>
+                            </TableRow>
+                          ))}
+                        </React.Fragment>
                       ))
                     ) : (
                       <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground italic">Sem registros para este período.</TableCell></TableRow>
@@ -277,7 +300,9 @@ export default function ReportsPage() {
                 </Table>
               </CardContent>
             </Card>
+          </div>
 
+          <div className="grid gap-6 lg:grid-cols-1">
             <Card className="border-none bg-card shadow-xl">
               <CardHeader><CardTitle className="font-headline text-lg">Métodos de Pagamento</CardTitle></CardHeader>
               <CardContent className="h-[300px]">
