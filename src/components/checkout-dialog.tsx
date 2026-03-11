@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -14,9 +15,10 @@ import { Button } from '@/components/ui/button';
 import { CreditCard, Banknote, QrCode, CheckCircle2, ShoppingCart, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { cn } from '@/lib/utils';
 
 interface CheckoutDialogProps {
   appointmentId: string;
@@ -53,19 +55,21 @@ export function CheckoutDialog({
 
     setIsProcessing(true);
     try {
-      // Buscar a taxa de comissão atual do barbeiro
+      // Buscar a taxa de comissão atual do barbeiro no Firestore
       const staffRef = doc(db, 'barberProfiles', user.uid, 'staff', staffId);
       const staffSnap = await getDoc(staffRef);
       const staffData = staffSnap.data();
       const commissionRate = staffData?.commissionRate || 0.4; // Default 40%
-      const commissionAmount = price * commissionRate;
+      
+      const appointmentPrice = Number(price);
+      const commissionAmount = appointmentPrice * commissionRate;
 
       const appointmentRef = doc(db, 'barberProfiles', user.uid, 'appointments', appointmentId);
       
       updateDocumentNonBlocking(appointmentRef, {
         status: 'completed',
         paymentMethod: selectedMethod,
-        priceAtAppointment: price,
+        priceAtAppointment: appointmentPrice,
         commissionAtAppointment: commissionAmount,
         completedAt: new Date().toISOString()
       });
@@ -100,7 +104,7 @@ export function CheckoutDialog({
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl flex items-center gap-2">
             <ShoppingCart className="h-6 w-6 text-primary" />
-            Finalizar Corte
+            Finalizar Atendimento
           </DialogTitle>
           <DialogDescription>
             Confirme os detalhes e receba o pagamento.
@@ -119,7 +123,7 @@ export function CheckoutDialog({
             </div>
             <div className="border-t border-border pt-2 mt-2 flex justify-between items-center">
               <span className="text-lg font-bold">Total:</span>
-              <span className="text-2xl font-black text-primary">R$ {price.toFixed(2)}</span>
+              <span className="text-2xl font-black text-primary">R$ {Number(price).toFixed(2)}</span>
             </div>
           </div>
 
@@ -163,8 +167,4 @@ export function CheckoutDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
 }

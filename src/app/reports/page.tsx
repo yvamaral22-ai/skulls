@@ -15,13 +15,22 @@ import {
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
-import { SERVICES } from "../lib/mock-data"
 
 export default function ReportsPage() {
   const db = useFirestore()
   const { user } = useUser()
-  const [startDate, setStartDate] = React.useState("2025-05-01")
-  const [endDate, setEndDate] = React.useState("2025-05-31")
+  
+  // Inicialização segura para evitar erros de hidratação
+  const [startDate, setStartDate] = React.useState("")
+  const [endDate, setEndDate] = React.useState("")
+
+  React.useEffect(() => {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    setStartDate(firstDay);
+    setEndDate(lastDay);
+  }, []);
 
   const barberProfileId = user?.uid || "loading"
 
@@ -48,7 +57,7 @@ export default function ReportsPage() {
   const { data: expenses, isLoading: isExpensesLoading } = useCollection(expensesQuery)
 
   const stats = React.useMemo(() => {
-    if (!appointments) return null;
+    if (!appointments || !startDate || !endDate) return null;
 
     const filteredAppts = appointments.filter(a => 
       a.date >= startDate && 
@@ -61,16 +70,16 @@ export default function ReportsPage() {
       e.date <= endDate
     ) || []
 
-    const totalRevenue = filteredAppts.reduce((sum, a) => sum + (a.priceAtAppointment || 0), 0)
-    const totalCommissions = filteredAppts.reduce((sum, a) => sum + (a.commissionAtAppointment || 0), 0)
-    const totalExpenses = filteredExps.reduce((sum, e) => sum + (e.amount || 0), 0)
+    const totalRevenue = filteredAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
+    const totalCommissions = filteredAppts.reduce((sum, a) => sum + (Number(a.commissionAtAppointment) || 0), 0)
+    const totalExpenses = filteredExps.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
     const netProfit = totalRevenue - totalCommissions - totalExpenses
 
     // Agrupamento por Barbeiro
     const staffReport = (staff || []).map(member => {
       const memberAppts = filteredAppts.filter(a => a.staffId === member.id)
-      const revenue = memberAppts.reduce((sum, a) => sum + (a.priceAtAppointment || 0), 0)
-      const commission = memberAppts.reduce((sum, a) => sum + (a.commissionAtAppointment || 0), 0)
+      const revenue = memberAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
+      const commission = memberAppts.reduce((sum, a) => sum + (Number(a.commissionAtAppointment) || 0), 0)
       return {
         name: member.name,
         count: memberAppts.length,
@@ -85,7 +94,7 @@ export default function ReportsPage() {
     }
     filteredAppts.forEach(a => {
       if (a.paymentMethod && paymentMethods[a.paymentMethod] !== undefined) {
-        paymentMethods[a.paymentMethod] += (a.priceAtAppointment || 0)
+        paymentMethods[a.paymentMethod] += (Number(a.priceAtAppointment) || 0)
       }
     })
 
@@ -97,7 +106,7 @@ export default function ReportsPage() {
     return { totalRevenue, totalCommissions, totalExpenses, netProfit, staffReport, chartData, count: filteredAppts.length }
   }, [appointments, staff, expenses, startDate, endDate])
 
-  if (isApptsLoading || isStaffLoading || isExpensesLoading) {
+  if (isApptsLoading || isStaffLoading || isExpensesLoading || !startDate || !endDate) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -109,8 +118,8 @@ export default function ReportsPage() {
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-primary">Relatórios Skull Barber</h1>
-          <p className="text-muted-foreground">Visão detalhada de faturamento, comissões e lucro real.</p>
+          <h1 className="text-3xl font-bold font-headline text-primary">Relatórios EstiloCerto</h1>
+          <p className="text-muted-foreground">Visão detalhada de faturamento e comissões.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 bg-card p-2 rounded-xl border border-border">
           <Calendar className="h-4 w-4 text-primary ml-2" />
@@ -151,7 +160,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R$ {stats?.totalCommissions.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Valor a pagar à equipe</p>
+            <p className="text-xs text-muted-foreground">Valor total para equipe</p>
           </CardContent>
         </Card>
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-red-500">
@@ -161,7 +170,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R$ {stats?.totalExpenses.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Custos fixos e variáveis</p>
+            <p className="text-xs text-muted-foreground">Custos do período</p>
           </CardContent>
         </Card>
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-green-500">
@@ -171,7 +180,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R$ {stats?.netProfit.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Resultado final do período</p>
+            <p className="text-xs text-muted-foreground">Resultado após comissões e despesas</p>
           </CardContent>
         </Card>
       </div>
@@ -181,7 +190,7 @@ export default function ReportsPage() {
           <CardHeader className="bg-secondary/20">
             <CardTitle className="font-headline text-lg flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-primary" />
-              Desempenho da Equipe no Período
+              Produção por Barbeiro
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -190,8 +199,8 @@ export default function ReportsPage() {
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="pl-6">Barbeiro</TableHead>
                   <TableHead>Qtd. Cortes</TableHead>
-                  <TableHead>Total Produzido</TableHead>
-                  <TableHead className="text-right pr-6 text-blue-400">Sua Comissão</TableHead>
+                  <TableHead>Faturamento</TableHead>
+                  <TableHead className="text-right pr-6 text-blue-400">Comissão</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -205,10 +214,10 @@ export default function ReportsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {stats?.staffReport.length === 0 && (
+                {(!stats || stats.staffReport.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-10 text-muted-foreground italic">
-                      Nenhum dado de produção encontrado para este período.
+                      Nenhum atendimento finalizado neste período.
                     </TableCell>
                   </TableRow>
                 )}
@@ -221,9 +230,8 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle className="font-headline text-lg flex items-center gap-2">
               <Wallet className="h-5 w-5 text-accent" />
-              Entradas por Tipo
+              Entradas por Pagamento
             </CardTitle>
-            <CardDescription>Volume financeiro por método de pagamento.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] mt-4">
             <ResponsiveContainer width="100%" height="100%">
