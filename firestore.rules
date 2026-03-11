@@ -2,7 +2,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permissão total para o sistema de uso exclusivo do barbeiro
+    // Permissão total para o sistema de uso exclusivo do barbeiro (Single-User)
+    // Este comentário força o redeployment das regras para garantir a aplicação.
     match /{document=**} {
       allow read, write: if true;
     }
