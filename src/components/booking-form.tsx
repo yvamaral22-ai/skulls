@@ -106,7 +106,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
     }
     
     setIsSubmitting(true);
-    console.log("Iniciando checkout para:", data.clientName);
 
     try {
       const targetDate = format(data.date, 'yyyy-MM-dd');
@@ -127,7 +126,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
         const clientRef = doc(collection(db, 'barberProfiles', user.uid, 'clients'));
         const appointmentRef = doc(collection(db, 'barberProfiles', user.uid, 'appointments'));
         
-        // Persistência Atômica Simulada
         await setDoc(clientRef, {
           id: clientRef.id,
           barberProfileId: user.uid,
@@ -158,11 +156,11 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       form.reset();
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error("Erro no Checkout:", error);
+      console.error("Erro no Agendamento:", error);
       toast({
         variant: 'destructive',
-        title: 'Falha no Checkout',
-        description: 'Ocorreu um erro ao gravar no banco. Verifique sua conexão.',
+        title: 'Falha no Agendamento',
+        description: 'Ocorreu um erro ao gravar no banco.',
       });
     } finally {
       setIsSubmitting(false);

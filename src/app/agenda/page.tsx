@@ -12,11 +12,22 @@ import {
   DialogTrigger,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Clock, User, Scissors, CalendarDays, Loader2, 
-  History as HistoryIcon, Briefcase, Menu
+  History as HistoryIcon, Briefcase, Menu, Pencil, Trash2
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
@@ -26,12 +37,16 @@ import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AgendaPage() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [isBookingOpen, setIsBookingOpen] = React.useState(false);
+  const [editingAppt, setEditingAppt] = React.useState<any | null>(null);
 
   const barberProfileId = user?.uid;
 
@@ -66,6 +81,17 @@ export default function AgendaPage() {
     return appointments.filter(appt => appt.date === targetDateStr);
   }, [date, appointments]);
 
+  const handleDelete = (apptId: string) => {
+    if (!barberProfileId) return;
+    const apptRef = doc(db, 'barberProfiles', barberProfileId, 'appointments', apptId);
+    deleteDocumentNonBlocking(apptRef);
+    toast({
+      variant: "destructive",
+      title: "Agendamento Removido",
+      description: "O horário foi excluído com sucesso.",
+    });
+  };
+
   if (isAuthLoading || isApptsLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -96,15 +122,37 @@ export default function AgendaPage() {
           <p className="text-[10px] md:text-xs text-muted-foreground truncate">{service?.name || 'Serviço'}</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
           {!isCompleted && (
-            <CheckoutDialog 
-              appointmentId={appt.id}
-              customerName={client?.name || 'Cliente'}
-              serviceName={service?.name || 'Serviço'}
-              price={Number(appt.priceAtAppointment) || Number(service?.price) || 0}
-              staffId={appt.staffId}
-            />
+            <>
+              <CheckoutDialog 
+                appointmentId={appt.id}
+                customerName={client?.name || 'Cliente'}
+                serviceName={service?.name || 'Serviço'}
+                price={Number(appt.priceAtAppointment) || Number(service?.price) || 0}
+                staffId={appt.staffId}
+              />
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingAppt(appt)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir Agendamento?</AlertDialogTitle>
+                    <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDelete(appt.id)} className="bg-destructive text-white">Excluir</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </div>
       </div>
@@ -124,7 +172,7 @@ export default function AgendaPage() {
           return (
             <div key={member.id} className="space-y-3">
               <div className="flex items-center justify-between border-b pb-1">
-                <h3 className="font-bold text-primary flex items-center gap-2">
+                <h3 className="font-bold text-primary flex items-center gap-2 text-sm md:text-base">
                   <Briefcase className="h-4 w-4" /> {member.name}
                 </h3>
                 <Badge variant="secondary" className="text-[10px]">{memberAppts.length} horários</Badge>
@@ -158,18 +206,36 @@ export default function AgendaPage() {
           </div>
         </div>
 
-        <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
+        <Dialog open={isBookingOpen || !!editingAppt} onOpenChange={(open) => {
+          if (!open) {
+            setIsBookingOpen(false);
+            setEditingAppt(null);
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button className="w-full md:w-auto h-12 md:h-11 font-bold shadow-lg shadow-primary/20">
+            <Button className="w-full md:w-auto h-12 md:h-11 font-bold shadow-lg shadow-primary/20" onClick={() => setIsBookingOpen(true)}>
               <Plus className="mr-2 h-5 w-5" /> Novo Horário
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
-              <DialogTitle>Novo Agendamento</DialogTitle>
-              <DialogDescription>Preencha os dados do cliente e serviço.</DialogDescription>
+              <DialogTitle>{editingAppt ? 'Editar Agendamento' : 'Novo Agendamento'}</DialogTitle>
+              <DialogDescription>Preencha os dados para organizar sua agenda.</DialogDescription>
             </DialogHeader>
-            <BookingForm onSuccess={() => setIsBookingOpen(false)} />
+            <BookingForm 
+              initialData={editingAppt ? {
+                id: editingAppt.id,
+                clientName: clients?.find(c => c.id === editingAppt.clientId)?.name || '',
+                staffId: editingAppt.staffId,
+                serviceId: editingAppt.serviceId,
+                time: editingAppt.time,
+                date: editingAppt.date
+              } : null}
+              onSuccess={() => {
+                setIsBookingOpen(false);
+                setEditingAppt(null);
+              }} 
+            />
           </DialogContent>
         </Dialog>
       </header>
@@ -189,6 +255,7 @@ export default function AgendaPage() {
                 onSelect={(d) => d && setDate(d)}
                 locale={ptBR}
                 className="w-full"
+                disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
               />
             </CardContent>
           </Card>
