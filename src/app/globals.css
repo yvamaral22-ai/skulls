@@ -41,24 +41,29 @@
   }
 }
 
-/* Ensure Radix UI Popovers are interactive and correctly positioned */
+/* FIX CRÍTICO: Garante que Popovers dentro de Modais sejam clicáveis */
 [data-radix-popper-content-wrapper] {
-  z-index: 1000 !important;
+  z-index: 10000 !important;
   pointer-events: auto !important;
 }
 
-/* Calendar Fixes for unclickable elements */
+/* Garante que o corpo não bloqueie interações em portais quando um modal está aberto */
+body[style*="pointer-events: none"] [data-radix-popper-content-wrapper] {
+  pointer-events: auto !important;
+}
+
+/* Estilização dos botões do calendário v9 */
 .rdp-day_button {
   cursor: pointer !important;
   pointer-events: auto !important;
+  @apply relative flex items-center justify-center w-full h-full rounded-md transition-colors !important;
 }
 
-.rdp-nav_button {
-  cursor: pointer !important;
-  pointer-events: auto !important;
+.rdp-day_button:hover {
+  @apply bg-primary/20 !important;
 }
 
-/* Appointment Indicator */
+/* Indicador de agendamento no calendário */
 .has-appointment .rdp-day_button::after {
   content: '';
   @apply absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary !important;

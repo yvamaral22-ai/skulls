@@ -159,62 +159,13 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="staffId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Escolha o Profissional</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-12 bg-background">
-                      <SelectValue placeholder="Selecione o barbeiro" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="serviceId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>O que vamos fazer?</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-12 bg-background">
-                      <SelectValue placeholder="Selecione o serviço" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {services?.map(s => (
-                      <SelectItem key={s.id} value={s.id}>
-                        <div className="flex justify-between w-full gap-8">
-                          <span>{s.name}</span>
-                          <span className="font-bold text-primary">R$ {Number(s.price).toFixed(2)}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Quando?</FormLabel>
+                <FormLabel>Data</FormLabel>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -222,16 +173,22 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                         type="button"
                         variant={"outline"}
                         className={cn(
-                          "w-full text-left font-normal h-12 bg-background",
-                          !field.value && "text-muted-foreground"
+                          "w-full text-left font-normal h-12 bg-background border-2",
+                          !field.value && "text-muted-foreground",
+                          isCalendarOpen && "border-primary ring-2 ring-primary/20"
                         )}
                       >
-                        {field.value ? format(field.value, "PPP", { locale: ptBR }) : "Escolha a data"}
+                        {field.value ? format(field.value, "dd/MM/yyyy") : "Escolha a data"}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[1001]" align="start">
+                  <PopoverContent 
+                    className="w-auto p-0 z-[10001] pointer-events-auto" 
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                  >
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -253,50 +210,94 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             )}
           />
 
-          {selectedDate && selectedStaffId ? (
-            <FormField
-              control={form.control}
-              name="time"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Horários Disponíveis</FormLabel>
-                  <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto p-2 border rounded-lg bg-secondary/10">
+          <FormField
+            control={form.control}
+            name="time"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Horário</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDate || !selectedStaffId}>
+                  <FormControl>
+                    <SelectTrigger className="h-12 bg-background border-2">
+                      <SelectValue placeholder={!selectedStaffId ? "Selecione o profissional" : "Escolha o horário"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="max-h-[300px] z-[10001]">
                     {TIME_SLOTS.map((slot) => {
                       const isOccupied = occupiedSlots.includes(slot);
-                      const isSelected = field.value === slot;
                       return (
-                        <Button
-                          key={slot}
-                          type="button"
-                          variant={isSelected ? "default" : "outline"}
-                          disabled={isOccupied}
-                          className={cn(
-                            "text-xs font-bold h-10 px-0",
-                            isOccupied && "opacity-20 cursor-not-allowed bg-secondary",
-                            isSelected && "bg-primary text-primary-foreground"
-                          )}
-                          onClick={() => field.onChange(slot)}
-                        >
-                          {slot}
-                        </Button>
+                        <SelectItem key={slot} value={slot} disabled={isOccupied}>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            {slot}
+                            {isOccupied && <span className="text-[10px] text-destructive ml-2">(Ocupado)</span>}
+                          </div>
+                        </SelectItem>
                       );
                     })}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          ) : (
-            <div className="p-4 rounded-lg bg-secondary/20 border border-dashed text-center text-xs text-muted-foreground">
-              Selecione um barbeiro e uma data para ver os horários.
-            </div>
-          )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="staffId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Profissional</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="h-12 bg-background border-2">
+                      <SelectValue placeholder="Selecione o barbeiro" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="z-[10001]">
+                    {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="serviceId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Serviço</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="h-12 bg-background border-2">
+                      <SelectValue placeholder="Selecione o serviço" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="z-[10001]">
+                    {services?.map(s => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <div className="flex justify-between w-full gap-8">
+                          <span>{s.name}</span>
+                          <span className="font-bold text-primary">R$ {Number(s.price).toFixed(2)}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <Button 
           type="submit" 
           disabled={isSubmitting || !form.watch('time')}
-          className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90"
+          className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4"
         >
           {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
           Confirmar Agendamento
