@@ -171,56 +171,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="staffId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Barbeiro</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Escolha o profissional" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {staff?.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="serviceId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Serviço</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Selecione o serviço" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {services?.map(s => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name} - R$ {s.price.toFixed(2)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
+        {/* Movido Data e Hora para cima para evitar sobreposição de cliques com o Popover */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -247,15 +198,15 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[200] pointer-events-auto" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
                       onSelect={(date) => {
                         if (date) {
                           field.onChange(date);
-                          // Adicionamos um pequeno delay para garantir que o formulário pegue o valor
-                          setTimeout(() => setIsCalendarOpen(false), 100);
+                          // Delay mínimo para garantir o registro antes de fechar
+                          setTimeout(() => setIsCalendarOpen(false), 150);
                         }
                       }}
                       locale={ptBR}
@@ -263,7 +214,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                         date < new Date(new Date().setHours(0,0,0,0))
                       }
                       initialFocus
-                      className="bg-card"
+                      className="bg-card shadow-2xl border-primary/20"
                     />
                   </PopoverContent>
                 </Popover>
@@ -289,6 +240,56 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                     Término previsto: {endTime}
                   </FormDescription>
                 )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="staffId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Barbeiro</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Escolha o profissional" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="z-[150]">
+                    {staff?.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="serviceId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Serviço</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Selecione o serviço" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="z-[150]">
+                    {services?.map(s => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name} - R$ {s.price.toFixed(2)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
