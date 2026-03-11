@@ -1,13 +1,12 @@
-
 'use client';
 
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, addMinutes, parseISO, startOfDay } from 'date-fns';
+import { format, parseISO, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Clock, Loader2, Check, User } from 'lucide-react';
+import { CalendarIcon, Clock, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -16,7 +15,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/form';
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -26,11 +25,10 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
-import { toast } from '@/hooks/use-toast';
+import { collection, doc, setDoc, serverTimestamp, query, where, getDocs, limit } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 const bookingSchema = z.object({
   staffId: z.string().min(1, 'Selecione um barbeiro'),
@@ -58,21 +56,22 @@ const TIME_SLOTS = [
 export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const { user, role } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [targetBarberShopId, setTargetBarberShopId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (role === 'BARBER' || role === 'ADMIN') {
-      setTargetBarberShopId(user?.uid || null);
-    } else {
-      async function fetchShop() {
+    async function fetchShop() {
+      if (role === 'BARBER' || role === 'ADMIN') {
+        setTargetBarberShopId(user?.uid || null);
+      } else {
         const q = query(collection(db, 'barberProfiles'), limit(1));
         const snap = await getDocs(q);
         if (!snap.empty) setTargetBarberShopId(snap.docs[0].id);
       }
-      fetchShop();
     }
+    fetchShop();
   }, [user, role, db]);
 
   const servicesQuery = useMemoFirebase(() => {
@@ -169,7 +168,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                 <FormLabel>Escolha o Profissional</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className="h-12 bg-background">
                       <SelectValue placeholder="Selecione o barbeiro" />
                     </SelectTrigger>
                   </FormControl>
@@ -190,7 +189,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                 <FormLabel>O que vamos fazer?</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className="h-12 bg-background">
                       <SelectValue placeholder="Selecione o serviço" />
                     </SelectTrigger>
                   </FormControl>
@@ -220,9 +219,10 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
+                        type="button"
                         variant={"outline"}
                         className={cn(
-                          "w-full text-left font-normal h-12",
+                          "w-full text-left font-normal h-12 bg-background",
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -231,7 +231,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[1001]" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -260,7 +260,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Horários Disponíveis</FormLabel>
-                  <div className="grid grid-cols-4 md:grid-cols-5 gap-2 max-h-[200px] overflow-y-auto p-1 border rounded-lg bg-secondary/10">
+                  <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto p-2 border rounded-lg bg-secondary/10">
                     {TIME_SLOTS.map((slot) => {
                       const isOccupied = occupiedSlots.includes(slot);
                       const isSelected = field.value === slot;
@@ -273,7 +273,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                           className={cn(
                             "text-xs font-bold h-10 px-0",
                             isOccupied && "opacity-20 cursor-not-allowed bg-secondary",
-                            isSelected && "bg-primary text-primary-foreground scale-105 transition-transform"
+                            isSelected && "bg-primary text-primary-foreground"
                           )}
                           onClick={() => field.onChange(slot)}
                         >
