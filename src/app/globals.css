@@ -41,7 +41,7 @@
   }
 }
 
-/* Calendar Fixes */
+/* Calendar Fixes for React Day Picker v9 */
 .calendar-custom .rdp-month_grid {
   @apply w-full border-collapse;
 }
@@ -60,4 +60,20 @@
 
 .calendar-custom .rdp-day_button:hover:not(.rdp-selected) {
   @apply bg-secondary text-secondary-foreground;
+}
+
+/* Force grid layout for shadcn calendars */
+.rdp-month_grid {
+  display: table !important;
+  width: 100% !important;
+}
+
+.rdp-week {
+  display: flex !important;
+}
+
+.rdp-day {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
