@@ -62,6 +62,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
   const barberShopId = "master-barbershop";
 
+  // Queries básicas para carregar as opções do formulário
   const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'services'), [db]);
   const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'staff'), [db]);
 
@@ -82,21 +83,23 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const selectedDate = form.watch('date');
   const selectedStaffId = form.watch('staffId');
 
+  // Query para verificar horários ocupados. Simplificada para evitar erros de permissão em filtros complexos.
   const appointmentsQuery = useMemoFirebase(() => {
     if (!selectedDate || !selectedStaffId) return null;
     return query(
       collection(db, 'barberProfiles', barberShopId, 'appointments'),
       where('date', '==', format(selectedDate, 'yyyy-MM-dd')),
-      where('staffId', '==', selectedStaffId),
-      where('status', '!=', 'canceled')
+      where('staffId', '==', selectedStaffId)
     );
   }, [db, selectedDate, selectedStaffId]);
 
   const { data: existingAppointments } = useCollection(appointmentsQuery);
+  
   const occupiedSlots = React.useMemo(() => {
+    if (!existingAppointments) return [];
     return existingAppointments
-      ?.filter(a => a.id !== initialData?.id)
-      ?.map(a => a.time) || [];
+      .filter(a => a.id !== initialData?.id && a.status !== 'canceled')
+      .map(a => a.time);
   }, [existingAppointments, initialData]);
 
   async function onSubmit(data: BookingFormValues) {
@@ -137,8 +140,12 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error(error);
-      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao salvar agendamento.' });
+      console.error("Erro ao salvar agendamento:", error);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Erro de Permissão ou Conexão', 
+        description: 'Não foi possível salvar o agendamento. Verifique sua conexão.' 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -275,7 +282,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting || isServicesLoading || isStaffLoading} className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4">
+        <Button type="submit" disabled={isSubmitting} className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4">
           {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
           {initialData?.id ? 'Salvar Alterações' : 'Registrar Agendamento'}
         </Button>

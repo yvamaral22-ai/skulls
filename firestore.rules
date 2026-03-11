@@ -2,8 +2,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permissão total para o sistema de uso exclusivo do barbeiro (Single-User)
-    // Este comentário força o redeployment das regras para garantir a aplicação.
+    // REGRA DE ACESSO TOTAL: Sistema de uso exclusivo do barbeiro mestre.
+    // Permite leitura e escrita irrestrita para qualquer operação no banco.
+    // Timestamp de deploy forçado: 2024-05-20T10:00:00Z
     match /{document=**} {
       allow read, write: if true;
     }

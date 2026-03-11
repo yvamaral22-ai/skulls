@@ -34,13 +34,16 @@ export const FirebaseProvider: React.FC<{
   useEffect(() => {
     setMounted(true);
     
+    // Inicia a sessão anônima silenciosamente para garantir as permissões do Firestore
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
         signInAnonymously(auth)
-          .then(() => setIsAuthReady(true))
-          .catch(err => {
-            console.error("Auth Error:", err);
+          .then(() => {
             setIsAuthReady(true);
+          })
+          .catch(err => {
+            console.error("Erro Crítico de Auth:", err);
+            setIsAuthReady(true); // Tenta prosseguir mesmo com erro para não travar a UI
           });
       } else {
         setIsAuthReady(true);
@@ -57,7 +60,7 @@ export const FirebaseProvider: React.FC<{
     auth,
   }), [firebaseApp, firestore, auth]);
 
-  // FIX DE HIDRATAÇÃO: Texto consistente entre Servidor e Cliente.
+  // Previne erro de hidratação: servidor e cliente renderizam o mesmo estado inicial (null/loader)
   if (!mounted || !isAuthReady) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -88,8 +91,15 @@ export const useFirebase = () => {
   return context;
 };
 
-export const useFirestore = () => useFirebase().firestore!;
-export const useAuth = () => useFirebase().auth!;
+export const useFirestore = () => {
+  const context = useFirebase();
+  return context.firestore!;
+};
+
+export const useAuth = () => {
+  const context = useFirebase();
+  return context.auth!;
+};
 
 export const useUser = () => {
   const { auth } = useFirebase();
