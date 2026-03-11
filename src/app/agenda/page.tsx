@@ -62,7 +62,6 @@ export default function AgendaPage() {
   // Identificar APENAS dias que possuem agendamentos ATIVOS (status scheduled)
   const daysWithAppointments = React.useMemo(() => {
     if (!appointments) return [];
-    // Filtrar apenas os que estão marcados como 'scheduled'
     const scheduledOnly = appointments.filter(a => a.status === 'scheduled');
     const uniqueDates = Array.from(new Set(scheduledOnly.map(a => a.date)));
     return uniqueDates.map(dateStr => parseISO(`${dateStr}T00:00:00`));
@@ -184,13 +183,13 @@ export default function AgendaPage() {
               Calendário
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 flex justify-center calendar-custom">
+          <CardContent className="p-0 calendar-custom">
             <Calendar
               mode="single"
               selected={date}
               onSelect={handleDateSelect}
               locale={ptBR}
-              className="rounded-md border-none"
+              className="rounded-md border-none w-full"
               modifiers={{
                 hasAppointment: daysWithAppointments
               }}
