@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -28,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp, query, where, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 const bookingSchema = z.object({
@@ -94,7 +95,11 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   }, [db, selectedDate, selectedStaffId]);
 
   const { data: existingAppointments } = useCollection(appointmentsQuery);
-  const occupiedSlots = React.useMemo(() => existingAppointments?.map(a => a.time) || [], [existingAppointments]);
+  const occupiedSlots = React.useMemo(() => {
+    return existingAppointments
+      ?.filter(a => a.id !== initialData?.id) // Não bloquear o próprio slot ao editar
+      ?.map(a => a.time) || [];
+  }, [existingAppointments, initialData]);
 
   async function onSubmit(data: BookingFormValues) {
     setIsSubmitting(true);
@@ -102,6 +107,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
     try {
       const selectedService = services?.find(s => s.id === data.serviceId);
+      const isUpdate = !!initialData?.id;
       const apptId = initialData?.id || doc(collection(db, 'barberProfiles', barberShopId, 'appointments')).id;
       
       const appointmentData = {
@@ -112,16 +118,23 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
         serviceId: data.serviceId,
         date: targetDateStr,
         time: data.time,
-        status: 'scheduled',
+        status: initialData?.status || 'scheduled',
         priceAtAppointment: Number(selectedService?.price) || 0,
-        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       };
 
-      await setDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', apptId), appointmentData);
+      if (isUpdate) {
+        await updateDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', apptId), appointmentData);
+      } else {
+        await setDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', apptId), {
+          ...appointmentData,
+          createdAt: serverTimestamp(),
+        });
+      }
 
       toast({
-        title: 'Agendamento Salvo!',
-        description: `${data.clientName} agendado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
+        title: isUpdate ? 'Agendamento Atualizado!' : 'Agendamento Salvo!',
+        description: `${data.clientName} para ${format(data.date, 'dd/MM')} às ${data.time}.`,
       });
       
       if (onSuccess) onSuccess();
@@ -176,7 +189,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[10001]">
+                  <PopoverContent className="w-auto p-0 z-[10001] pointer-events-auto">
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -278,7 +291,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4"
         >
           {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
-          Registrar Agendamento
+          {initialData?.id ? 'Salvar Alterações' : 'Registrar Agendamento'}
         </Button>
       </form>
     </Form>

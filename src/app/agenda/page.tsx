@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -22,7 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { 
   Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, 
-  Search, Loader2, Scissors, User as UserIcon, Clock
+  Loader2, Scissors, User as UserIcon, Clock, Pencil
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
@@ -36,6 +37,7 @@ export default function AgendaPage() {
   const db = useFirestore();
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [isBookingOpen, setIsBookingOpen] = React.useState(false);
+  const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
   const barberShopId = "master-barbershop";
 
   // Gerar dias da semana atual
@@ -58,7 +60,8 @@ export default function AgendaPage() {
       .sort((a, b) => a.time.localeCompare(b.time));
   }, [selectedDate, appointments]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
     if (confirm('Deseja realmente excluir este agendamento?')) {
       await deleteDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', id));
     }
@@ -78,7 +81,7 @@ export default function AgendaPage() {
               <Plus className="mr-2 h-5 w-5" /> Novo Registro
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[450px]">
+          <DialogContent className="sm:max-w-[450px] z-[10000]">
             <DialogHeader>
               <DialogTitle>Novo Agendamento Manual</DialogTitle>
               <DialogDescription>Insira os dados do cliente e horário.</DialogDescription>
@@ -171,7 +174,11 @@ export default function AgendaPage() {
                     const isCompleted = appt.status === 'completed';
 
                     return (
-                      <TableRow key={appt.id} className="border-border hover:bg-primary/5 transition-colors">
+                      <TableRow 
+                        key={appt.id} 
+                        className="border-border hover:bg-primary/5 transition-colors cursor-pointer"
+                        onClick={() => setEditingAppointment(appt)}
+                      >
                         <TableCell className="font-black text-primary">
                           <div className="flex items-center gap-2">
                             <Clock className="h-3 w-3 opacity-50" />
@@ -207,7 +214,14 @@ export default function AgendaPage() {
                               onSuccess={() => {}}
                             />
                           )}
-                          <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(appt.id)}>Excluir</Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-destructive hover:bg-destructive/10" 
+                            onClick={(e) => handleDelete(e, appt.id)}
+                          >
+                            Excluir
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -224,6 +238,22 @@ export default function AgendaPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Edição */}
+      <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
+        <DialogContent className="sm:max-w-[450px] z-[10000]">
+          <DialogHeader>
+            <DialogTitle>Editar Agendamento</DialogTitle>
+            <DialogDescription>Altere as informações do atendimento selecionado.</DialogDescription>
+          </DialogHeader>
+          {editingAppointment && (
+            <BookingForm 
+              initialData={editingAppointment} 
+              onSuccess={() => setEditingAppointment(null)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
