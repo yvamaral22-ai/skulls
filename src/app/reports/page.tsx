@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
-import { format, startOfMonth, endOfMonth } from "date-fns"
+import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ReportsPage() {
@@ -30,7 +30,7 @@ export default function ReportsPage() {
   const [isGenerating, setIsGenerating] = React.useState(false)
   const [hasGenerated, setHasGenerated] = React.useState(false)
 
-  // Inicializa as datas com o mês atual na carga inicial para evitar campos vazios
+  // Inicializa as datas com o mês atual na carga inicial
   React.useEffect(() => {
     const now = new Date();
     const start = format(startOfMonth(now), 'yyyy-MM-dd');
@@ -57,38 +57,41 @@ export default function ReportsPage() {
   }, [db, barberProfileId])
 
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery)
-  const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery)
-  const { data: expenses, isLoading: isExpensesLoading } = useCollection(expensesQuery)
+  const { data: staff } = useCollection(staffQuery)
+  const { data: expenses } = useCollection(expensesQuery)
 
   const handleApplyFilters = () => {
     if (!startDate || !endDate) {
       toast({
         variant: "destructive",
-        title: "Datas incompletas",
-        description: "Por favor, selecione o início e o fim do período.",
+        title: "Datas inválidas",
+        description: "Verifique se as datas existem (ex: Abril tem apenas 30 dias).",
       })
       return;
     }
     
     setIsGenerating(true);
-    // Aplica as datas instantaneamente para o useMemo processar
     setAppliedStartDate(startDate);
     setAppliedEndDate(endDate);
     setHasGenerated(true);
     
-    // Pequeno feedback visual no botão
-    setTimeout(() => setIsGenerating(false), 300);
+    setTimeout(() => {
+      setIsGenerating(false);
+      toast({
+        title: "Relatório Gerado",
+        description: `Dados de ${startDate} até ${endDate} calculados.`,
+      })
+    }, 400);
   }
 
   const stats = React.useMemo(() => {
-    // Se o usuário ainda não clicou em gerar ou não temos dados, retorna null
     if (!hasGenerated || !appointments || !appliedStartDate || !appliedEndDate) return null;
 
+    // Filtro rigoroso: Status finalizado E dentro do período
     const filteredAppts = appointments.filter(a => {
-      const apptDate = (a.date || "").trim(); 
+      const apptDate = a.date || ""; 
       const status = (a.status || "").toLowerCase();
       
-      // Captura atendimentos FINALIZADOS dentro do período exato de strings yyyy-MM-dd
       const isCompleted = status === 'completed';
       const isWithinRange = apptDate >= appliedStartDate && apptDate <= appliedEndDate;
       
@@ -96,17 +99,15 @@ export default function ReportsPage() {
     })
 
     const filteredExps = (expenses || []).filter(e => {
-      const expDate = (e.date || "").trim();
+      const expDate = e.date || "";
       return expDate >= appliedStartDate && expDate <= appliedEndDate;
     })
 
-    // Conversão forçada para Number para garantir soma matemática correta
     const totalRevenue = filteredAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
     const totalCommissions = filteredAppts.reduce((sum, a) => sum + (Number(a.commissionAtAppointment) || 0), 0)
     const totalExpenses = filteredExps.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
     const netProfit = totalRevenue - totalCommissions - totalExpenses
 
-    // Relatório de produtividade da equipe
     const staffReport = (staff || []).map(member => {
       const memberAppts = filteredAppts.filter(a => a.staffId === member.id)
       const revenue = memberAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
@@ -159,7 +160,6 @@ export default function ReportsPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold font-headline text-primary">Relatórios Skull Barber</h1>
-            {isApptsLoading && <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />}
           </div>
           <p className="text-muted-foreground">Financeiro consolidado com sincronização em tempo real.</p>
         </div>
@@ -201,8 +201,8 @@ export default function ReportsPage() {
       {!hasGenerated ? (
         <div className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-border rounded-3xl opacity-60">
           <FileBarChart className="h-16 w-16 text-muted-foreground mb-4 opacity-20" />
-          <h3 className="text-xl font-bold">Relatório Pronto</h3>
-          <p className="text-muted-foreground italic text-sm">Ajuste o período acima e clique no botão para calcular.</p>
+          <h3 className="text-xl font-bold">Pronto para Gerar</h3>
+          <p className="text-muted-foreground italic text-sm">Selecione o período e clique no botão para ler os dados do Firestore.</p>
         </div>
       ) : (
         <>
@@ -236,7 +236,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">R$ {(stats?.totalExpenses ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Custos fixos e operacionais</p>
+                <p className="text-xs text-muted-foreground mt-1">Custos operacionais</p>
               </CardContent>
             </Card>
 
@@ -247,7 +247,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black text-green-500">R$ {(stats?.netProfit ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Resultado final (Bruto - Custos)</p>
+                <p className="text-xs text-muted-foreground mt-1">Resultado final no período</p>
               </CardContent>
             </Card>
           </div>
@@ -255,25 +255,22 @@ export default function ReportsPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2 border-none bg-card shadow-xl overflow-hidden">
               <CardHeader className="bg-secondary/20">
-                <CardTitle className="font-headline text-lg flex items-center gap-2">
-                  <Briefcase className="h-5 w-5 text-primary" />
-                  Produção da Equipe
-                </CardTitle>
+                <CardTitle className="font-headline text-lg">Produção da Equipe</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="pl-6 font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Profissional</TableHead>
-                      <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Serviços</TableHead>
-                      <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Bruto</TableHead>
-                      <TableHead className="text-right pr-6 font-bold uppercase text-[10px] tracking-widest text-blue-400">Comissão</TableHead>
+                      <TableHead className="pl-6 font-bold uppercase text-[10px]">Profissional</TableHead>
+                      <TableHead className="font-bold uppercase text-[10px]">Serviços</TableHead>
+                      <TableHead className="font-bold uppercase text-[10px]">Bruto</TableHead>
+                      <TableHead className="text-right pr-6 font-bold uppercase text-[10px] text-blue-400">Comissão</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {stats?.staffReport && stats.staffReport.some(s => s.count > 0) ? (
                       stats.staffReport.filter(s => s.count > 0).map((s, idx) => (
-                        <TableRow key={idx} className="border-border hover:bg-primary/5 transition-colors">
+                        <TableRow key={idx} className="border-border hover:bg-primary/5">
                           <TableCell className="font-bold pl-6">{s.name}</TableCell>
                           <TableCell>{s.count} atendimentos</TableCell>
                           <TableCell>R$ {s.revenue.toFixed(2)}</TableCell>
@@ -296,10 +293,7 @@ export default function ReportsPage() {
 
             <Card className="border-none bg-card shadow-xl">
               <CardHeader>
-                <CardTitle className="font-headline text-lg flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-accent" />
-                  Divisão de Pagamentos
-                </CardTitle>
+                <CardTitle className="font-headline text-lg">Pagamentos</CardTitle>
               </CardHeader>
               <CardContent className="h-[350px] mt-4">
                 {stats && stats.count > 0 ? (
@@ -317,7 +311,7 @@ export default function ReportsPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm italic border border-dashed border-border/50 rounded-xl">
-                    <p>Sem dados gráficos para o período</p>
+                    <p>Sem dados para o período</p>
                   </div>
                 )}
               </CardContent>
