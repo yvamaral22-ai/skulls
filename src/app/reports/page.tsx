@@ -11,7 +11,7 @@ import {
 } from "recharts"
 import { 
   TrendingUp, DollarSign, ArrowDownRight, 
-  Calendar as CalendarIcon, Briefcase, Wallet, Loader2, Play, FileBarChart
+  Calendar as CalendarIcon, Briefcase, Wallet, Loader2, Play, FileBarChart, RefreshCw
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -60,39 +60,41 @@ export default function ReportsPage() {
 
   const handleApplyFilters = () => {
     setIsGenerating(true);
-    // Definimos as datas aplicadas para disparar o useMemo de estatísticas
     setAppliedStartDate(startDate);
     setAppliedEndDate(endDate);
     setHasGenerated(true);
     
-    // Simulamos um tempo de processamento para feedback visual
+    // Feedback visual de processamento
     setTimeout(() => {
       setIsGenerating(false);
-    }, 600);
+    }, 800);
   }
 
   const stats = React.useMemo(() => {
-    // Só calcula se houver datas aplicadas
+    // Só calcula se houver datas aplicadas e dados carregados
     if (!appointments || !appliedStartDate || !appliedEndDate) return null;
 
     // Filtro rigoroso por data e status concluído
     const filteredAppts = appointments.filter(a => {
-      const apptDate = a.date; // Esperado yyyy-MM-dd
-      const statusMatch = a.status?.toLowerCase() === 'completed';
-      const dateMatch = apptDate >= appliedStartDate && apptDate <= appliedEndDate;
-      return statusMatch && dateMatch;
+      const apptDate = (a.date || "").trim(); 
+      const status = (a.status || "").toLowerCase();
+      const isCompleted = status === 'completed';
+      const isWithinRange = apptDate >= appliedStartDate && apptDate <= appliedEndDate;
+      return isCompleted && isWithinRange;
     })
 
-    const filteredExps = (expenses || []).filter(e => 
-      e.date >= appliedStartDate && 
-      e.date <= appliedEndDate
-    )
+    const filteredExps = (expenses || []).filter(e => {
+      const expDate = (e.date || "").trim();
+      return expDate >= appliedStartDate && expDate <= appliedEndDate;
+    })
 
+    // Somas forçadas para Number para evitar erros de tipagem
     const totalRevenue = filteredAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
     const totalCommissions = filteredAppts.reduce((sum, a) => sum + (Number(a.commissionAtAppointment) || 0), 0)
     const totalExpenses = filteredExps.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
     const netProfit = totalRevenue - totalCommissions - totalExpenses
 
+    // Relatório de equipe (inclui até quem não produziu se estiver no período)
     const staffReport = (staff || []).map(member => {
       const memberAppts = filteredAppts.filter(a => a.staffId === member.id)
       const revenue = memberAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
@@ -145,8 +147,11 @@ export default function ReportsPage() {
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-primary">Relatórios Skull Barber</h1>
-          <p className="text-muted-foreground">Consolidação financeira por período.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold font-headline text-primary">Relatórios Skull Barber</h1>
+            {isApptsLoading && <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />}
+          </div>
+          <p className="text-muted-foreground">Consolidação financeira em tempo real.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 bg-card p-3 rounded-2xl border border-border shadow-xl">
           <div className="flex items-center gap-2 px-2 border-r border-border pr-4">
@@ -167,7 +172,7 @@ export default function ReportsPage() {
           </div>
           <Button 
             onClick={handleApplyFilters} 
-            disabled={isGenerating}
+            disabled={isGenerating || !startDate || !endDate}
             className="bg-primary hover:bg-primary/90 text-white h-10 px-6 ml-2 font-bold shadow-lg shadow-primary/20"
           >
             {isGenerating ? (
@@ -185,8 +190,8 @@ export default function ReportsPage() {
       {!hasGenerated ? (
         <div className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-border rounded-3xl opacity-60">
           <FileBarChart className="h-16 w-16 text-muted-foreground mb-4 opacity-20" />
-          <h3 className="text-xl font-bold">Relatório Pronto para Processar</h3>
-          <p className="text-muted-foreground italic text-sm">Selecione o período e clique em Gerar para sincronizar com o banco.</p>
+          <h3 className="text-xl font-bold">Aguardando Período</h3>
+          <p className="text-muted-foreground italic text-sm">Selecione o intervalo de datas e clique em Gerar.</p>
         </div>
       ) : (
         <>
@@ -269,7 +274,7 @@ export default function ReportsPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic">
-                          Nenhum atendimento finalizado neste período.
+                          Nenhum dado financeiro para o período e profissionais selecionados.
                         </TableCell>
                       </TableRow>
                     )}
@@ -301,7 +306,7 @@ export default function ReportsPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm italic border border-dashed border-border/50 rounded-xl">
-                    <p>Sem dados financeiros para exibir</p>
+                    <p>Sem dados gráficos disponíveis</p>
                   </div>
                 )}
               </CardContent>
