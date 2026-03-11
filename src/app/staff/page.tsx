@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
-  Briefcase, Plus, TrendingUp, Scissors, CalendarDays, CheckCircle2, Clock, Pencil, Loader2, History
+  Briefcase, Plus, TrendingUp, Scissors, CalendarDays, CheckCircle2, Clock, Pencil, Loader2
 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
@@ -19,30 +19,26 @@ import { cn } from "@/lib/utils"
 
 export default function StaffPage() {
   const db = useFirestore()
-  const { user, isUserLoading: isAuthLoading } = useUser()
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingStaff, setEditingStaff] = React.useState<any | null>(null)
   
-  const barberProfileId = user?.uid || "loading"
+  const barberShopId = "master-barbershop";
 
   // Buscar Equipe
   const staffQuery = useMemoFirebase(() => {
-    if (barberProfileId === "loading") return null;
-    return collection(db, "barberProfiles", barberProfileId, "staff")
-  }, [db, barberProfileId])
+    return collection(db, "barberProfiles", barberShopId, "staff")
+  }, [db, barberShopId])
 
   // Buscar Agendamentos para calcular métricas
   const appointmentsQuery = useMemoFirebase(() => {
-    if (barberProfileId === "loading") return null;
-    return collection(db, "barberProfiles", barberProfileId, "appointments")
-  }, [db, barberProfileId])
+    return collection(db, "barberProfiles", barberShopId, "appointments")
+  }, [db, barberShopId])
 
   // Buscar Serviços para traduzir IDs em nomes no histórico
   const servicesQuery = useMemoFirebase(() => {
-    if (barberProfileId === "loading") return null;
-    return collection(db, "barberProfiles", barberProfileId, "services")
-  }, [db, barberProfileId])
+    return collection(db, "barberProfiles", barberShopId, "services")
+  }, [db, barberShopId])
 
   const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery)
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery)
@@ -52,20 +48,17 @@ export default function StaffPage() {
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!user) return;
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
-    const email = formData.get("email") as string
     const commissionRate = parseFloat(formData.get("commissionRate") as string) / 100
 
-    const staffRef = doc(collection(db, "barberProfiles", user.uid, "staff"))
+    const staffRef = doc(collection(db, "barberProfiles", barberShopId, "staff"))
     
     setDoc(staffRef, {
       id: staffRef.id,
-      barberProfileId: user.uid,
+      barberProfileId: barberShopId,
       name,
-      email,
       commissionRate,
       isActive: true,
       createdAt: serverTimestamp()
@@ -80,13 +73,13 @@ export default function StaffPage() {
 
   const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!editingStaff || !user) return
+    if (!editingStaff) return
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const commissionRate = parseFloat(formData.get("commissionRate") as string) / 100
 
-    const staffRef = doc(db, "barberProfiles", user.uid, "staff", editingStaff.id)
+    const staffRef = doc(db, "barberProfiles", barberShopId, "staff", editingStaff.id)
     
     updateDocumentNonBlocking(staffRef, {
       name,
@@ -100,7 +93,7 @@ export default function StaffPage() {
     setEditingStaff(null)
   }
 
-  if (isAuthLoading || isStaffLoading || isApptsLoading || isServicesLoading) {
+  if (isStaffLoading || isApptsLoading || isServicesLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -131,10 +124,6 @@ export default function StaffPage() {
               <div className="space-y-2">
                 <Label>Nome Artístico</Label>
                 <Input name="name" placeholder="Ex: Rick Navalha" required className="bg-background" />
-              </div>
-              <div className="space-y-2">
-                <Label>E-mail</Label>
-                <Input name="email" type="email" placeholder="barbeiro@skullbarber.com" required className="bg-background" />
               </div>
               <div className="space-y-2">
                 <Label>Taxa de Comissão (%)</Label>
