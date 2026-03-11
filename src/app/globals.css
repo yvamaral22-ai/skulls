@@ -89,7 +89,14 @@
   @apply pointer-events-auto z-20 cursor-pointer;
 }
 
-/* Fix for Popover overlapping Dialog */
+/* Fix for Popover overlapping Dialog and absorbing clicks */
 [data-radix-popper-content-wrapper] {
   z-index: 100 !important;
+}
+
+.calendar-custom .rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-background-color: hsl(var(--secondary));
+  margin: 0;
 }
