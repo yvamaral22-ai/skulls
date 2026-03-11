@@ -41,7 +41,7 @@
   }
 }
 
-/* FIX CRÍTICO: Garante que Popovers dentro de Modais sejam clicáveis */
+/* FIX CRÍTICO: Garante que Popovers dentro de Modais sejam clicáveis e fiquem acima de tudo */
 [data-radix-popper-content-wrapper] {
   z-index: 10000 !important;
   pointer-events: auto !important;
@@ -52,11 +52,15 @@ body[style*="pointer-events: none"] [data-radix-popper-content-wrapper] {
   pointer-events: auto !important;
 }
 
-/* Estilização dos botões do calendário v9 */
+/* Estilização específica do calendário para evitar quebras de layout */
+.rdp-month {
+  width: 100%;
+}
+
 .rdp-day_button {
   cursor: pointer !important;
   pointer-events: auto !important;
-  @apply relative flex items-center justify-center w-full h-full rounded-md transition-colors !important;
+  @apply flex items-center justify-center rounded-md transition-colors !important;
 }
 
 .rdp-day_button:hover {
