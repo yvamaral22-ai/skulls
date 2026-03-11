@@ -4,78 +4,26 @@ service cloud.firestore {
 
     /**
      * BARBER APP SECURITY RULES - PROTOTYPING MODE
-     * 
-     * CORE PHILOSOPHY:
-     * This ruleset implements a strict "Barber-as-Owner" authorization model. Access is entirely 
-     * determined by the top-level 'barberProfileId', which corresponds directly to the 
-     * Firebase Authentication UID (request.auth.uid). 
-     * 
-     * DATA STRUCTURE:
-     * The database is organized hierarchically. All resources (Clients, Services, Appointments, 
-     * and Availability Blocks) are stored as subcollections under a specific Barber Profile:
-     * /barberProfiles/{barberProfileId}/[subcollection]/{documentId}
-     * 
-     * KEY SECURITY DECISIONS:
-     * 1. Path-Based Authorization: The 'barberProfileId' in the document path is the primary 
-     *    authorizer. If the authenticated user's UID does not match the 'barberProfileId' 
-     *    in the URL, access is denied.
-     * 2. Denormalization for Integrity: Every document within a subcollection is expected 
-     *    to contain a 'barberProfileId' field. The rules enforce that this internal field 
-     *    matches the path ID during creation and remains immutable during updates.
-     * 3. Privacy by Default: There are no public collections. All data is private to the 
-     *    barber who owns the profile.
-     * 4. Prototyping Flexibility: While ownership and relational integrity (IDs) are 
-     *    strictly enforced, data types and specific schema shapes for content fields 
-     *    (like names, notes, or prices) are not validated to allow for rapid UI iteration.
      */
 
-    // --- GLOBAL HELPER FUNCTIONS ---
-
-    /**
-     * @description Checks if the request is made by an authenticated user.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the provided userId matches the authenticated user's UID.
-     * @param userId The ID to compare against the current user's UID.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * @description Combines ownership check with document existence check for updates and deletes.
-     * @param userId The ID of the owner of the document.
-     */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    // --- COLLECTION RULES ---
-
-    /**
-     * @description Rules for the root BarberProfile entity.
-     * @path /barberProfiles/{barberProfileId}
-     * @allow (create) User with UID 'abc' creating /barberProfiles/abc.
-     * @deny (get) User with UID 'abc' trying to read /barberProfiles/xyz.
-     * @principle Ownership: Only the barber can manage their own profile.
-     */
     match /barberProfiles/{barberProfileId} {
       allow get, list: if isOwner(barberProfileId);
       allow create: if isOwner(barberProfileId) && request.resource.data.id == barberProfileId;
       allow update: if isExistingOwner(barberProfileId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(barberProfileId);
 
-      /**
-       * @description Rules for Clients managed by a specific barber.
-       * @path /barberProfiles/{barberProfileId}/clients/{clientId}
-       * @allow (list) Barber 'abc' listing /barberProfiles/abc/clients.
-       * @deny (create) Barber 'abc' creating a client for Barber 'xyz'.
-       * @principle Relational Integrity: Enforces that the client belongs to the correct barber path.
-       */
       match /clients/{clientId} {
         allow get, list: if isOwner(barberProfileId);
         allow create: if isOwner(barberProfileId) && request.resource.data.barberProfileId == barberProfileId;
@@ -83,13 +31,6 @@ service cloud.firestore {
         allow delete: if isExistingOwner(barberProfileId);
       }
 
-      /**
-       * @description Rules for Services offered by a specific barber.
-       * @path /barberProfiles/{barberProfileId}/services/{serviceId}
-       * @allow (update) Barber 'abc' changing price of /barberProfiles/abc/services/cut1.
-       * @deny (delete) Barber 'abc' trying to delete /barberProfiles/xyz/services/cut2.
-       * @principle Authorization Independence: Uses denormalized ID for fast ownership checks.
-       */
       match /services/{serviceId} {
         allow get, list: if isOwner(barberProfileId);
         allow create: if isOwner(barberProfileId) && request.resource.data.barberProfileId == barberProfileId;
@@ -97,13 +38,13 @@ service cloud.firestore {
         allow delete: if isExistingOwner(barberProfileId);
       }
 
-      /**
-       * @description Rules for Appointments scheduled for a specific barber.
-       * @path /barberProfiles/{barberProfileId}/appointments/{appointmentId}
-       * @allow (create) Barber 'abc' creating /barberProfiles/abc/appointments/app1.
-       * @deny (update) Barber 'abc' trying to move an appointment to Barber 'xyz' (immutable barberProfileId).
-       * @principle Immutability: Prevents transferring appointments between barbers.
-       */
+      match /staff/{staffId} {
+        allow get, list: if isOwner(barberProfileId);
+        allow create: if isOwner(barberProfileId) && request.resource.data.barberProfileId == barberProfileId;
+        allow update: if isExistingOwner(barberProfileId) && request.resource.data.barberProfileId == resource.data.barberProfileId;
+        allow delete: if isExistingOwner(barberProfileId);
+      }
+
       match /appointments/{appointmentId} {
         allow get, list: if isOwner(barberProfileId);
         allow create: if isOwner(barberProfileId) && request.resource.data.barberProfileId == barberProfileId;
@@ -111,14 +52,7 @@ service cloud.firestore {
         allow delete: if isExistingOwner(barberProfileId);
       }
 
-      /**
-       * @description Rules for AvailabilityBlocks (unavailability) for a specific barber.
-       * @path /barberProfiles/{barberProfileId}/availabilityBlocks/{availabilityBlockId}
-       * @allow (get) Barber 'abc' viewing their own break /barberProfiles/abc/availabilityBlocks/lunch.
-       * @deny (list) Anonymous user trying to list availability blocks.
-       * @principle Ownership: Protects the barber's private schedule.
-       */
-      match /availabilityBlocks/{availabilityBlockId} {
+      match /expenses/{expenseId} {
         allow get, list: if isOwner(barberProfileId);
         allow create: if isOwner(barberProfileId) && request.resource.data.barberProfileId == barberProfileId;
         allow update: if isExistingOwner(barberProfileId) && request.resource.data.barberProfileId == resource.data.barberProfileId;

@@ -3,6 +3,8 @@ import './globals.css';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { FirebaseClientProvider } from '@/firebase';
+import { AuthInitializer } from '@/components/auth-initializer';
+import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
   title: 'Skull Barber Agenda',
@@ -23,6 +25,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
+          <AuthInitializer />
           <SidebarProvider>
             <div className="flex min-h-screen w-full bg-background">
               <AppSidebar />
@@ -31,6 +34,7 @@ export default function RootLayout({
               </SidebarInset>
             </div>
           </SidebarProvider>
+          <Toaster />
         </FirebaseClientProvider>
       </body>
     </html>

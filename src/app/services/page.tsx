@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -9,37 +8,41 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Scissors, Plus, Pencil, Trash2, Clock, DollarSign, Loader2 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, setDoc, deleteDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function ServicesPage() {
   const db = useFirestore()
+  const { user, isUserLoading: isAuthLoading } = useUser()
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingService, setEditingService] = React.useState<any | null>(null)
   
-  const barberProfileId = "skull-barber-admin"
+  const barberProfileId = user?.uid || "loading"
 
   const servicesQuery = useMemoFirebase(() => {
+    if (barberProfileId === "loading") return null;
     return collection(db, "barberProfiles", barberProfileId, "services")
   }, [db, barberProfileId])
 
-  const { data: services, isLoading } = useCollection(servicesQuery)
+  const { data: services, isLoading: isDataLoading } = useCollection(servicesQuery)
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!user) return;
+
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const price = parseFloat(formData.get("price") as string)
     const durationMinutes = parseInt(formData.get("duration") as string)
 
-    const serviceRef = doc(collection(db, "barberProfiles", barberProfileId, "services"))
+    const serviceRef = doc(collection(db, "barberProfiles", user.uid, "services"))
     
     setDoc(serviceRef, {
       id: serviceRef.id,
-      barberProfileId,
+      barberProfileId: user.uid,
       name,
       price,
       durationMinutes
@@ -54,14 +57,14 @@ export default function ServicesPage() {
 
   const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!editingService) return
+    if (!editingService || !user) return
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const price = parseFloat(formData.get("price") as string)
     const durationMinutes = parseInt(formData.get("duration") as string)
 
-    const serviceRef = doc(db, "barberProfiles", barberProfileId, "services", editingService.id)
+    const serviceRef = doc(db, "barberProfiles", user.uid, "services", editingService.id)
     
     updateDocumentNonBlocking(serviceRef, {
       name,
@@ -77,7 +80,8 @@ export default function ServicesPage() {
   }
 
   const handleDelete = (id: string, name: string) => {
-    const serviceRef = doc(db, "barberProfiles", barberProfileId, "services", id)
+    if (!user) return;
+    const serviceRef = doc(db, "barberProfiles", user.uid, "services", id)
     deleteDocumentNonBlocking(serviceRef)
     toast({
       variant: "destructive",
@@ -86,7 +90,7 @@ export default function ServicesPage() {
     })
   }
 
-  if (isLoading) {
+  if (isAuthLoading || isDataLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

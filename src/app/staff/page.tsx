@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -11,38 +10,42 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { 
   Briefcase, Plus, Mail, Phone, TrendingUp, Scissors, CalendarDays, Users, BarChart2, Clock, Pencil, Loader2
 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
-import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates"
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function StaffPage() {
   const db = useFirestore()
+  const { user, isUserLoading: isAuthLoading } = useUser()
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingStaff, setEditingStaff] = React.useState<any | null>(null)
   
-  // No mundo real, barberProfileId viria do contexto do usuário logado.
-  const barberProfileId = "skull-barber-admin"
+  // O barberProfileId agora é o UID do usuário logado
+  const barberProfileId = user?.uid || "loading"
 
   const staffQuery = useMemoFirebase(() => {
+    if (barberProfileId === "loading") return null;
     return collection(db, "barberProfiles", barberProfileId, "staff")
   }, [db, barberProfileId])
 
-  const { data: staff, isLoading } = useCollection(staffQuery)
+  const { data: staff, isLoading: isDataLoading } = useCollection(staffQuery)
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!user) return;
+
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const email = formData.get("email") as string
     const commissionRate = parseFloat(formData.get("commissionRate") as string) / 100
 
-    const staffRef = doc(collection(db, "barberProfiles", barberProfileId, "staff"))
+    const staffRef = doc(collection(db, "barberProfiles", user.uid, "staff"))
     
     setDoc(staffRef, {
       id: staffRef.id,
-      barberProfileId,
+      barberProfileId: user.uid,
       name,
       email,
       commissionRate,
@@ -59,13 +62,13 @@ export default function StaffPage() {
 
   const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!editingStaff) return
+    if (!editingStaff || !user) return
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const commissionRate = parseFloat(formData.get("commissionRate") as string) / 100
 
-    const staffRef = doc(db, "barberProfiles", barberProfileId, "staff", editingStaff.id)
+    const staffRef = doc(db, "barberProfiles", user.uid, "staff", editingStaff.id)
     
     updateDocumentNonBlocking(staffRef, {
       name,
@@ -79,7 +82,7 @@ export default function StaffPage() {
     setEditingStaff(null)
   }
 
-  if (isLoading) {
+  if (isAuthLoading || isDataLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
