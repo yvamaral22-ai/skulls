@@ -2,25 +2,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Função auxiliar para verificar autenticação
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Regras simplificadas para uso interno (Single-User)
-    // Permite leitura e escrita em qualquer documento se o usuário estiver autenticado (mesmo anonimamente)
-    match /barberProfiles/{profileId} {
-      allow read, write: if isSignedIn();
-
-      match /{allSubcollections=**} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
-    // Coleção global de usuários (Metadata)
-    match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    // Regras para sistema de uso interno exclusivo (Single-User)
+    // Permite que o barbeiro (autenticado anonimamente ou via social) tenha controle total
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

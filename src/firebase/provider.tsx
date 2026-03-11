@@ -6,7 +6,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, onAuthStateChanged, signInAnonymously, User } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Scissors } from 'lucide-react';
 
 export interface FirebaseContextState {
   areServicesAvailable: boolean;
@@ -28,20 +28,18 @@ export const FirebaseProvider: React.FC<{
   firestore,
   auth,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Garante que o usuário esteja autenticado anonimamente antes de liberar o app
-    // Isso é crucial para que as regras de segurança isSignedIn() funcionem
+    // Garante que o usuário esteja autenticado anonimamente ANTES de liberar o app
+    // Isso evita erros de "insufficient permissions" no carregamento inicial
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
         signInAnonymously(auth).catch(err => {
-          console.error("Falha na autenticação silenciosa:", err);
+          console.error("Erro na autenticação silenciosa:", err);
           setLoading(false);
         });
       } else {
-        setUser(currentUser);
         setLoading(false);
       }
     });
@@ -56,13 +54,18 @@ export const FirebaseProvider: React.FC<{
     auth,
   }), [firebaseApp, firestore, auth]);
 
-  // Bloqueia a renderização até que o Firebase esteja pronto e autenticado
+  // Bloqueia a renderização de qualquer dado até que o Firebase esteja identificado
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse">Iniciando Skull Barber...</p>
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-6">
+          <div className="h-20 w-20 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/20 animate-pulse">
+            <Scissors className="h-10 w-10 text-white" />
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Skull Barber</p>
+          </div>
         </div>
       </div>
     );
@@ -96,7 +99,7 @@ export const useUser = () => {
       if (u) {
         setUser({
           uid: u.uid,
-          displayName: u.displayName || 'Barbeiro Master',
+          displayName: u.displayName || 'Barbeiro Mestre',
           email: u.email
         });
       }

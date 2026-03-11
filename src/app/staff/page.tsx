@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -9,10 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
-  Briefcase, Plus, TrendingUp, Scissors, CalendarDays, CheckCircle2, Clock, Pencil, Loader2
+  Briefcase, Plus, TrendingUp, Scissors, CalendarDays, CheckCircle2, Clock, Pencil, Loader2, Trash2
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
+import { collection, doc, setDoc, serverTimestamp, deleteDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 import { cn } from "@/lib/utils"
@@ -35,7 +36,7 @@ export default function StaffPage() {
     return collection(db, "barberProfiles", barberShopId, "appointments")
   }, [db, barberShopId])
 
-  // Buscar Serviços para traduzir IDs em nomes no histórico
+  // Buscar Serviços
   const servicesQuery = useMemoFirebase(() => {
     return collection(db, "barberProfiles", barberShopId, "services")
   }, [db, barberShopId])
@@ -88,9 +89,20 @@ export default function StaffPage() {
 
     toast({
       title: "Perfil Atualizado",
-      description: "As informações do profissional foram sincronizadas no Firestore.",
+      description: "As informações do profissional foram sincronizadas.",
     })
     setEditingStaff(null)
+  }
+
+  const handleDelete = async (id: string, name: string) => {
+    if (confirm(`Deseja realmente remover ${name} da equipe?`)) {
+      await deleteDoc(doc(db, "barberProfiles", barberShopId, "staff", id));
+      toast({
+        variant: "destructive",
+        title: "Profissional Removido",
+        description: `${name} não faz mais parte da equipe ativa.`,
+      })
+    }
   }
 
   if (isStaffLoading || isApptsLoading || isServicesLoading) {
@@ -105,20 +117,20 @@ export default function StaffPage() {
     <div className="space-y-8 animate-in fade-in duration-700 pb-20 md:pb-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-primary">Skull Barber - Equipe</h1>
-          <p className="text-muted-foreground">Análise de produtividade e agenda individual.</p>
+          <h1 className="text-3xl font-bold font-headline text-primary">Equipe de Barbeiros</h1>
+          <p className="text-muted-foreground">Gestão de profissionais e comissões.</p>
         </div>
 
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
-              <Plus className="mr-2 h-4 w-4" /> Adicionar Barbeiro
+              <Plus className="mr-2 h-4 w-4" /> Novo Barbeiro
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl">Novo Profissional</DialogTitle>
-              <DialogDescription>Cadastre um novo barbeiro e defina sua comissão.</DialogDescription>
+              <DialogTitle className="font-headline text-2xl">Cadastrar Barbeiro</DialogTitle>
+              <DialogDescription>Apenas nome e taxa de comissão são necessários.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -126,11 +138,11 @@ export default function StaffPage() {
                 <Input name="name" placeholder="Ex: Rick Navalha" required className="bg-background" />
               </div>
               <div className="space-y-2">
-                <Label>Taxa de Comissão (%)</Label>
+                <Label>Comissão (%)</Label>
                 <Input name="commissionRate" type="number" placeholder="40" required className="bg-background" />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Cadastrar Profissional</Button>
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Barbeiro</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -156,12 +168,9 @@ export default function StaffPage() {
                     </div>
                     <div>
                       <CardTitle className="font-headline text-2xl">{member.name}</CardTitle>
-                      <div className="flex gap-2 mt-1">
-                        <Badge variant="secondary" className="bg-primary/10 text-primary uppercase text-[10px]">Senior</Badge>
-                        <Badge variant="outline" className={cn("text-[10px] uppercase", member.isActive ? "border-green-500/30 text-green-500" : "border-red-500/30 text-red-500")}>
-                          {member.isActive ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </div>
+                      <Badge variant="outline" className="text-[10px] uppercase mt-1 border-primary/30 text-primary">
+                        {member.isActive ? "Disponível" : "Indisponível"}
+                      </Badge>
                     </div>
                   </div>
                   <div className="text-right">
@@ -183,62 +192,15 @@ export default function StaffPage() {
                     <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
                       <CalendarDays className="h-3 w-3" /> Hoje
                     </p>
-                    <p className="text-xl font-bold">{todayAppts.length} agendados</p>
+                    <p className="text-xl font-bold">{todayAppts.length} pendentes</p>
                   </div>
                 </div>
-
-                <Tabs defaultValue="upcoming" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 bg-secondary/50">
-                    <TabsTrigger value="upcoming" className="text-xs">Próximos Hoje</TabsTrigger>
-                    <TabsTrigger value="history" className="text-xs">Histórico</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="upcoming" className="space-y-3 pt-4">
-                    {todayAppts.length > 0 ? (
-                      todayAppts.map((appt) => {
-                        const service = services?.find(s => s.id === appt.serviceId)
-                        return (
-                          <div key={appt.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 border border-border/20">
-                            <div className="flex items-center gap-3">
-                              <Clock className="h-3 w-3 text-primary" />
-                              <span className="text-xs font-medium">{appt.time} - {service?.name || 'Serviço'}</span>
-                            </div>
-                            <Badge variant="outline" className="text-[9px] border-primary/20 text-primary">AGENDADO</Badge>
-                          </div>
-                        )
-                      })
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic text-center py-2">Sem agendamentos para hoje.</p>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="history" className="space-y-3 pt-4">
-                    {completedAppts.length > 0 ? (
-                      completedAppts.slice(0, 5).map((appt) => {
-                        const service = services?.find(s => s.id === appt.serviceId)
-                        return (
-                          <div key={appt.id} className="flex items-center justify-between p-2 rounded-lg bg-green-500/5 border border-green-500/10">
-                            <div className="flex items-center gap-3">
-                              <CheckCircle2 className="h-3 w-3 text-green-500" />
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(appt.date).toLocaleDateString('pt-BR')} - {service?.name || 'Serviço'}
-                              </span>
-                            </div>
-                            <span className="text-[10px] font-bold text-green-500">R$ {appt.priceAtAppointment?.toFixed(2)}</span>
-                          </div>
-                        )
-                      })
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic text-center py-2">Nenhum serviço finalizado ainda.</p>
-                    )}
-                  </TabsContent>
-                </Tabs>
 
                 <div className="pt-2 flex gap-2">
                   <Dialog open={editingStaff?.id === member.id} onOpenChange={(open) => setEditingStaff(open ? member : null)}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 border-primary/20 text-xs hover:bg-primary/10">
-                        <Pencil className="mr-2 h-3 w-3" /> Editar Perfil
+                      <Button variant="outline" className="flex-1 border-primary/20 text-xs hover:bg-primary/10 h-11">
+                        <Pencil className="mr-2 h-4 w-4" /> Editar Dados
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="bg-card border-border shadow-2xl">
@@ -260,6 +222,10 @@ export default function StaffPage() {
                       </form>
                     </DialogContent>
                   </Dialog>
+                  
+                  <Button variant="ghost" size="icon" className="h-11 w-11 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(member.id, member.name)}>
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -268,7 +234,7 @@ export default function StaffPage() {
         {staff?.length === 0 && (
           <div className="lg:col-span-2 text-center py-20 bg-card rounded-xl border border-dashed border-border">
             <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-            <p className="text-muted-foreground">Nenhum barbeiro cadastrado no momento.</p>
+            <p className="text-muted-foreground">Cadastre seu primeiro barbeiro para começar.</p>
           </div>
         )}
       </div>
