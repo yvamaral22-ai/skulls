@@ -7,7 +7,22 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { FirebaseClientProvider } from '@/firebase';
 import { Toaster } from '@/components/ui/toaster';
 import { BottomNav } from '@/components/bottom-nav';
-import { Scissors } from 'lucide-react';
+
+const BarberPoleIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M10 2h4M10 22h4" />
+    <rect x="8" y="4" width="8" height="16" rx="1" />
+    <path d="M8 7l8 3M8 11l8 3M8 15l8 3" />
+  </svg>
+);
 
 export default function RootLayout({
   children,
@@ -43,7 +58,7 @@ export default function RootLayout({
                 <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card sticky top-0 z-40">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-primary rounded-md">
-                      <Scissors className="h-4 w-4 text-black" />
+                      <BarberPoleIcon className="h-4 w-4 text-black" />
                     </div>
                     <span className="font-headline text-primary text-sm uppercase tracking-tighter">Barbearia Skull's</span>
                   </div>

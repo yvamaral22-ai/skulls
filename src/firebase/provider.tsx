@@ -6,7 +6,23 @@ import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { Loader2, Scissors } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+
+const BarberPoleIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M10 2h4M10 22h4" />
+    <rect x="8" y="4" width="8" height="16" rx="1" />
+    <path d="M8 7l8 3M8 11l8 3M8 15l8 3" />
+  </svg>
+);
 
 export interface FirebaseContextState {
   areServicesAvailable: boolean;
@@ -66,11 +82,11 @@ export const FirebaseProvider: React.FC<{
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6">
           <div className="h-20 w-20 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/20">
-            <Scissors className="h-10 w-10 text-white" />
+            <BarberPoleIcon className="h-10 w-10 text-black" />
           </div>
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Skull Barber</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Barbearia Skull's</p>
           </div>
         </div>
       </div>

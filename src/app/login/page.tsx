@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,10 +6,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Scissors, Mail, Lock, Chrome, Loader2 } from 'lucide-react';
+import { Mail, Lock, Chrome, Loader2 } from 'lucide-react';
 import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn, initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
 import { useRouter } from 'next/navigation';
+
+const BarberPoleIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M10 2h4M10 22h4" />
+    <rect x="8" y="4" width="8" height="16" rx="1" />
+    <path d="M8 7l8 3M8 11l8 3M8 15l8 3" />
+  </svg>
+);
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -62,12 +79,12 @@ export default function LoginPage() {
       <Card className="w-full max-w-[400px] border-border shadow-2xl bg-card/50 backdrop-blur-xl border-t-4 border-t-primary">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary shadow-2xl shadow-primary/20 transform -rotate-6">
-            <Scissors className="h-10 w-10 text-black" />
+            <BarberPoleIcon className="h-10 w-10 text-black" />
           </div>
           <div>
             <CardTitle className="text-4xl font-headline text-primary">Barbearia Skull's</CardTitle>
             <CardDescription className="text-muted-foreground uppercase tracking-widest text-[10px]">
-              {isSignUp ? 'Recrutamento de Elite' : 'Acesso ao Quartel General'}
+              {isSignUp ? 'Criar Cadastro' : 'Acesso ao Sistema'}
             </CardDescription>
           </div>
         </CardHeader>

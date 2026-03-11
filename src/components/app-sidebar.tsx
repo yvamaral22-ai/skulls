@@ -15,6 +15,22 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
+const BarberPoleIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M10 2h4M10 22h4" />
+    <rect x="8" y="4" width="8" height="16" rx="1" />
+    <path d="M8 7l8 3M8 11l8 3M8 15l8 3" />
+  </svg>
+);
+
 export function AppSidebar() {
   const pathname = usePathname()
 
@@ -32,7 +48,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2 px-2">
           <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-primary text-black">
-            <Scissors className="size-6" />
+            <BarberPoleIcon className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
             <span className="font-headline text-primary text-xl leading-none">Barbearia Skull's</span>
