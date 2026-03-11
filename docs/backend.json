@@ -26,7 +26,6 @@
         "id": { "type": "string" },
         "barberProfileId": { "type": "string" },
         "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
         "phone": { "type": "string" },
         "photoUrl": { "type": "string" },
         "commissionRate": { "type": "number" },
@@ -71,17 +70,17 @@
         "id": { "type": "string" },
         "barberProfileId": { "type": "string" },
         "staffId": { "type": "string" },
-        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
         "serviceId": { "type": "string" },
-        "startTime": { "type": "string", "format": "date-time" },
-        "endTime": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Scheduled", "Completed", "Canceled"] },
+        "date": { "type": "string", "format": "date" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["scheduled", "completed", "canceled"] },
         "paymentMethod": { "type": "string", "enum": ["Cash", "Credit", "Debit", "PIX"] },
         "priceAtAppointment": { "type": "number" },
         "commissionAtAppointment": { "type": "number" },
         "notes": { "type": "string" }
       },
-      "required": ["id", "barberProfileId", "staffId", "clientId", "serviceId", "startTime", "status"]
+      "required": ["id", "barberProfileId", "staffId", "clientName", "serviceId", "date", "time", "status"]
     },
     "Expense": {
       "title": "Expense",
@@ -102,31 +101,29 @@
     "providers": ["password", "google"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/barberProfiles/{barberProfileId}",
-        "definition": { "entityName": "BarberProfile" }
-      },
-      {
-        "path": "/barberProfiles/{barberProfileId}/staff/{staffId}",
-        "definition": { "entityName": "Staff" }
-      },
-      {
-        "path": "/barberProfiles/{barberProfileId}/clients/{clientId}",
-        "definition": { "entityName": "Client" }
-      },
-      {
-        "path": "/barberProfiles/{barberProfileId}/services/{serviceId}",
-        "definition": { "entityName": "Service" }
-      },
-      {
-        "path": "/barberProfiles/{barberProfileId}/appointments/{appointmentId}",
-        "definition": { "entityName": "Appointment" }
-      },
-      {
-        "path": "/barberProfiles/{barberProfileId}/expenses/{expenseId}",
-        "definition": { "entityName": "Expense" }
-      }
-    ]
+    "/barberProfiles/{barberProfileId}": {
+      "schema": "#/entities/BarberProfile",
+      "description": "Perfil principal da barbearia."
+    },
+    "/barberProfiles/{barberProfileId}/staff/{staffId}": {
+      "schema": "#/entities/Staff",
+      "description": "Membros da equipe de barbeiros."
+    },
+    "/barberProfiles/{barberProfileId}/clients/{clientId}": {
+      "schema": "#/entities/Client",
+      "description": "Base de clientes da barbearia."
+    },
+    "/barberProfiles/{barberProfileId}/services/{serviceId}": {
+      "schema": "#/entities/Service",
+      "description": "Catálogo de serviços e preços."
+    },
+    "/barberProfiles/{barberProfileId}/appointments/{appointmentId}": {
+      "schema": "#/entities/Appointment",
+      "description": "Histórico de agendamentos e vendas."
+    },
+    "/barberProfiles/{barberProfileId}/expenses/{expenseId}": {
+      "schema": "#/entities/Expense",
+      "description": "Controle de saídas financeiras."
+    }
   }
 }

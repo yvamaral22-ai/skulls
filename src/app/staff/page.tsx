@@ -8,15 +8,13 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
-  Briefcase, Plus, TrendingUp, Scissors, CalendarDays, CheckCircle2, Clock, Pencil, Loader2, Trash2
+  Briefcase, Plus, TrendingUp, CalendarDays, Pencil, Loader2, Trash2
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, doc, setDoc, serverTimestamp, deleteDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
-import { cn } from "@/lib/utils"
 
 export default function StaffPage() {
   const db = useFirestore()
@@ -36,18 +34,12 @@ export default function StaffPage() {
     return collection(db, "barberProfiles", barberShopId, "appointments")
   }, [db, barberShopId])
 
-  // Buscar Serviços
-  const servicesQuery = useMemoFirebase(() => {
-    return collection(db, "barberProfiles", barberShopId, "services")
-  }, [db, barberShopId])
-
   const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery)
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery)
-  const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery)
 
   const todayStr = new Date().toISOString().split('T')[0]
 
-  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const formData = new FormData(e.currentTarget)
@@ -56,7 +48,7 @@ export default function StaffPage() {
 
     const staffRef = doc(collection(db, "barberProfiles", barberShopId, "staff"))
     
-    setDoc(staffRef, {
+    await setDoc(staffRef, {
       id: staffRef.id,
       barberProfileId: barberShopId,
       name,
@@ -105,7 +97,7 @@ export default function StaffPage() {
     }
   }
 
-  if (isStaffLoading || isApptsLoading || isServicesLoading) {
+  if (isStaffLoading || isApptsLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -114,7 +106,7 @@ export default function StaffPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20 md:pb-8">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-headline text-primary">Equipe de Barbeiros</h1>
@@ -130,7 +122,7 @@ export default function StaffPage() {
           <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl">Cadastrar Barbeiro</DialogTitle>
-              <DialogDescription>Apenas nome e taxa de comissão são necessários.</DialogDescription>
+              <DialogDescription>Insira o nome artístico e a taxa de comissão.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -231,7 +223,7 @@ export default function StaffPage() {
             </Card>
           )
         })}
-        {staff?.length === 0 && (
+        {staff?.length === 0 && !isStaffLoading && (
           <div className="lg:col-span-2 text-center py-20 bg-card rounded-xl border border-dashed border-border">
             <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
             <p className="text-muted-foreground">Cadastre seu primeiro barbeiro para começar.</p>

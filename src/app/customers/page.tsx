@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -20,23 +21,21 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { User, Search, Plus, Phone, Info, Pencil, Trash2, Loader2 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function CustomersPage() {
-  const { user, isUserLoading: isAuthLoading } = useUser()
   const db = useFirestore()
   const [searchTerm, setSearchTerm] = React.useState("")
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const { toast } = useToast()
 
-  const barberProfileId = user?.uid
+  const barberProfileId = "master-barbershop"
 
   const clientsQuery = useMemoFirebase(() => {
-    if (!barberProfileId) return null;
     return collection(db, "barberProfiles", barberProfileId, "clients")
   }, [db, barberProfileId])
 
@@ -52,18 +51,17 @@ export default function CustomersPage() {
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!user) return
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const phone = formData.get("phone") as string
     const preferences = formData.get("preferences") as string
 
-    const clientRef = doc(collection(db, "barberProfiles", user.uid, "clients"))
+    const clientRef = doc(collection(db, "barberProfiles", barberProfileId, "clients"))
     
     await setDoc(clientRef, {
       id: clientRef.id,
-      barberProfileId: user.uid,
+      barberProfileId: barberProfileId,
       name,
       phone,
       preferences,
@@ -79,14 +77,14 @@ export default function CustomersPage() {
 
   const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!editingId || !user) return
+    if (!editingId) return
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const phone = formData.get("phone") as string
     const preferences = formData.get("preferences") as string
 
-    const clientRef = doc(db, "barberProfiles", user.uid, "clients", editingId)
+    const clientRef = doc(db, "barberProfiles", barberShopId, "clients", editingId)
     
     updateDocumentNonBlocking(clientRef, {
       name,
@@ -102,8 +100,7 @@ export default function CustomersPage() {
   }
 
   const handleDelete = (clientId: string, clientName: string) => {
-    if (!user) return
-    const clientRef = doc(db, "barberProfiles", user.uid, "clients", clientId)
+    const clientRef = doc(db, "barberProfiles", barberProfileId, "clients", clientId)
     deleteDocumentNonBlocking(clientRef)
     toast({
       variant: "destructive",
@@ -112,7 +109,7 @@ export default function CustomersPage() {
     })
   }
 
-  if (isAuthLoading || isDataLoading) {
+  if (isDataLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -124,8 +121,8 @@ export default function CustomersPage() {
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-primary">EstiloCerto - Clientes</h1>
-          <p className="text-muted-foreground">Seu banco de dados real de clientes.</p>
+          <h1 className="text-3xl font-bold font-headline text-primary">Skull Barber - Clientes</h1>
+          <p className="text-muted-foreground">Seu banco de dados de clientes.</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -187,13 +184,13 @@ export default function CustomersPage() {
                     </div>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-primary/30 text-primary">Real</Badge>
+                <Badge variant="outline" className="border-primary/30 text-primary">Ativo</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
                 <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-                  <Info className="h-3 w-3" /> Preferências
+                  <Info className="h-3 w-3" /> Notas Técnicas
                 </p>
                 <p className="text-sm italic text-muted-foreground bg-secondary/30 p-2 rounded-md border border-border/50">
                   {customer.preferences || "Nenhuma nota técnica cadastrada."}
@@ -204,7 +201,7 @@ export default function CustomersPage() {
                 <Dialog open={editingId === customer.id} onOpenChange={(open) => setEditingId(open ? customer.id : null)}>
                   <DialogTrigger asChild>
                     <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary">
-                      <Pencil className="mr-2 h-3 w-3" /> Editar Perfil
+                      <Pencil className="mr-2 h-3 w-3" /> Editar
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="bg-card border-border shadow-2xl">
@@ -225,7 +222,7 @@ export default function CustomersPage() {
                         <Textarea name="preferences" defaultValue={customer.preferences} className="bg-background" />
                       </div>
                       <DialogFooter className="pt-4">
-                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Atualizar Informações</Button>
+                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Alterações</Button>
                       </DialogFooter>
                     </form>
                   </DialogContent>
@@ -259,7 +256,7 @@ export default function CustomersPage() {
         {filteredCustomers.length === 0 && !isDataLoading && (
           <div className="col-span-full py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-60">
             <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-20" />
-            <p className="text-muted-foreground italic">Nenhum cliente encontrado na sua base de dados.</p>
+            <p className="text-muted-foreground italic">Nenhum cliente encontrado.</p>
           </div>
         )}
       </div>
