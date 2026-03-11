@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -35,7 +36,7 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
             <span className="font-headline text-primary text-xl leading-none">Barbearia Skull's</span>
-            <span className="text-[10px] uppercase tracking-widest opacity-60">Elite Management</span>
+            <span className="text-[10px] uppercase tracking-widest opacity-60">Gestão de Barbearia</span>
           </div>
         </div>
       </SidebarHeader>

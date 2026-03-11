@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -62,7 +63,7 @@ export default function AgendaPage() {
   const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'services'), [db]);
   const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'staff'), [db]);
 
-  const { data: appointments, isLoading } = useCollection(appointmentsQuery);
+  const { data: appointments, isLoading: isLoading } = useCollection(appointmentsQuery);
   const { data: services } = useCollection(servicesQuery);
   const { data: staff } = useCollection(staffQuery);
 
@@ -84,8 +85,8 @@ export default function AgendaPage() {
     setEditingAppointment(null);
     toast({
       variant: "destructive",
-      title: "Registro Eliminado",
-      description: "O agendamento foi removido da grade tática.",
+      title: "Agendamento Excluído",
+      description: "O horário foi removido da agenda com sucesso.",
     });
   };
 
@@ -123,7 +124,7 @@ export default function AgendaPage() {
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button className="flex-1 sm:flex-none bg-primary text-black font-bold h-9" onClick={() => setIsBookingOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Novo
+            <Plus className="mr-2 h-4 w-4" /> Novo Horário
           </Button>
         </div>
       </header>
@@ -217,8 +218,8 @@ export default function AgendaPage() {
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>Novo Registro</DialogTitle>
-            <DialogDescription>Agende um novo atendimento.</DialogDescription>
+            <DialogTitle>Novo Agendamento</DialogTitle>
+            <DialogDescription>Marque um novo horário para atendimento.</DialogDescription>
           </DialogHeader>
           <BookingForm onSuccess={() => setIsBookingOpen(false)} />
         </DialogContent>
@@ -227,8 +228,8 @@ export default function AgendaPage() {
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>{editingAppointment?.id ? 'Detalhes do Atendimento' : 'Novo Agendamento'}</DialogTitle>
-            <DialogDescription>Gerencie as informações do horário.</DialogDescription>
+            <DialogTitle>{editingAppointment?.id ? 'Detalhes do Agendamento' : 'Novo Horário'}</DialogTitle>
+            <DialogDescription>Gerencie as informações do horário na agenda.</DialogDescription>
           </DialogHeader>
           {editingAppointment && (
             <div className="space-y-6">
@@ -261,13 +262,13 @@ export default function AgendaPage() {
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase tracking-widest">Remover Registro?</AlertDialogTitle>
+                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase tracking-widest">Excluir Agendamento?</AlertDialogTitle>
                         <AlertDialogDescription className="uppercase tracking-tighter text-[10px]">
-                          Esta operação removerá permanentemente o agendamento de {editingAppointment.clientName} do arsenal.
+                          Esta operação removerá permanentemente o agendamento de {editingAppointment.clientName}.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Abortar</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Cancelar</AlertDialogCancel>
                         <AlertDialogAction 
                           onClick={() => handleDelete(editingAppointment.id)} 
                           className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold"

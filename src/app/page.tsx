@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -45,11 +46,11 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-headline text-primary">Barbearia Skull's</h1>
-          <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em]">Painel de Comando Central</p>
+          <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em]">Visão Geral do Sistema</p>
         </div>
         <Button className="h-12 font-bold bg-primary text-black shadow-xl shadow-primary/20" asChild>
           <Link href="/agenda">
-            <Plus className="mr-2 h-5 w-5" /> Novo Registro
+            <Plus className="mr-2 h-5 w-5" /> Novo Agendamento
           </Link>
         </Button>
       </div>
@@ -88,7 +89,7 @@ export default function DashboardPage() {
             <Briefcase className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-headline text-green-500 tracking-widest">OPEN</div>
+            <div className="text-3xl font-bold font-headline text-green-500 tracking-widest">ABERTO</div>
           </CardContent>
         </Card>
       </div>
@@ -96,7 +97,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border border-primary/10 bg-card shadow-lg overflow-hidden">
           <CardHeader className="bg-primary/5 border-b border-primary/10">
-            <CardTitle className="text-xl font-headline text-primary">Próximos Alvos</CardTitle>
+            <CardTitle className="text-xl font-headline text-primary">Próximos Clientes</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/50">
@@ -121,7 +122,7 @@ export default function DashboardPage() {
                   )
                 })
               ) : (
-                <p className="text-center py-12 text-muted-foreground italic text-sm">Nenhum atendimento para hoje.</p>
+                <p className="text-center py-12 text-muted-foreground italic text-sm">Nenhum agendamento para hoje.</p>
               )}
             </div>
           </CardContent>
@@ -129,15 +130,15 @@ export default function DashboardPage() {
 
         <Card className="border border-primary/10 bg-card shadow-lg">
           <CardHeader className="bg-primary/5 border-b border-primary/10">
-            <CardTitle className="text-xl font-headline text-primary">Operações Rápidas</CardTitle>
+            <CardTitle className="text-xl font-headline text-primary">Acesso Rápido</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 pt-6">
             <Button variant="outline" className="h-16 justify-start gap-4 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all" asChild>
               <Link href="/agenda">
                 <Calendar className="h-6 w-6 text-primary" /> 
                 <div className="text-left">
-                  <p className="font-headline text-base">Calendário Semanal</p>
-                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Logística de horários</p>
+                  <p className="font-headline text-base">Agenda Semanal</p>
+                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Gestão de horários</p>
                 </div>
               </Link>
             </Button>
@@ -145,8 +146,8 @@ export default function DashboardPage() {
               <Link href="/reports">
                 <TrendingUp className="h-6 w-6 text-primary" /> 
                 <div className="text-left">
-                  <p className="font-headline text-base">Relatório Tático</p>
-                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Inteligência financeira</p>
+                  <p className="font-headline text-base">Relatório Financeiro</p>
+                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Resumo de faturamento</p>
                 </div>
               </Link>
             </Button>
@@ -154,8 +155,8 @@ export default function DashboardPage() {
               <Link href="/services">
                 <Scissors className="h-6 w-6 text-primary" /> 
                 <div className="text-left">
-                  <p className="font-headline text-base">Menu de Combate</p>
-                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Gestão de serviços</p>
+                  <p className="font-headline text-base">Serviços</p>
+                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Gestão do catálogo</p>
                 </div>
               </Link>
             </Button>

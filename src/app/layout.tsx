@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -16,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <head>
-        <title>Barbearia Skull's | Gestão Underground</title>
+        <title>Barbearia Skull's | Gestão Profissional</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
         
         {/* PWA Meta Tags */}

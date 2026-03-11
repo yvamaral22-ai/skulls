@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -57,8 +58,8 @@ export default function ServicesPage() {
     })
 
     toast({
-      title: "Arsenal Atualizado!",
-      description: `O serviço "${name}" foi incluído no menu tático.`,
+      title: "Serviço Adicionado",
+      description: `O serviço "${name}" foi incluído no catálogo.`,
     })
     setIsAddOpen(false)
   }
@@ -81,8 +82,8 @@ export default function ServicesPage() {
     })
 
     toast({
-      title: "Arsenal Modificado!",
-      description: "As especificações do serviço foram sincronizadas.",
+      title: "Serviço Atualizado",
+      description: "As informações do serviço foram sincronizadas.",
     })
     setEditingService(null)
   }
@@ -92,8 +93,8 @@ export default function ServicesPage() {
     deleteDocumentNonBlocking(serviceRef)
     toast({
       variant: "destructive",
-      title: "Serviço Eliminado",
-      description: `O item "${name}" foi removido do arsenal.`,
+      title: "Serviço Removido",
+      description: `O serviço "${name}" foi excluído do catálogo.`,
     })
   }
 
@@ -109,8 +110,8 @@ export default function ServicesPage() {
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-headline text-primary">Menu de Combate</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px]">Catálogo de serviços Barbearia Skull's</p>
+          <h1 className="text-4xl font-headline text-primary">Serviços</h1>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px]">Catálogo de Serviços Barbearia Skull's</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -121,8 +122,8 @@ export default function ServicesPage() {
           </DialogTrigger>
           <DialogContent className="bg-card border-primary/20 shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-3xl text-primary">Adicionar ao Arsenal</DialogTitle>
-              <DialogDescription className="uppercase tracking-widest text-[10px]">Defina as regras do novo serviço Skull's.</DialogDescription>
+              <DialogTitle className="font-headline text-3xl text-primary">Novo Serviço</DialogTitle>
+              <DialogDescription className="uppercase tracking-widest text-[10px]">Defina as regras do novo serviço.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -131,7 +132,7 @@ export default function ServicesPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="uppercase text-[10px] font-bold tracking-widest">Custo (R$)</Label>
+                  <Label className="uppercase text-[10px] font-bold tracking-widest">Preço (R$)</Label>
                   <Input name="price" type="number" step="0.01" placeholder="50.00" required className="h-12 bg-background border-primary/20" />
                 </div>
                 <div className="space-y-2">
@@ -140,7 +141,7 @@ export default function ServicesPage() {
                 </div>
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Sincronizar Arsenal</Button>
+                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Salvar Serviço</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -151,17 +152,17 @@ export default function ServicesPage() {
         <CardHeader className="bg-primary/5 border-b border-primary/10">
           <CardTitle className="font-headline text-2xl flex items-center gap-3 text-primary">
             <Scissors className="h-6 w-6" />
-            Arsenal de Serviços
+            Catálogo de Serviços
           </CardTitle>
-          <CardDescription className="uppercase tracking-tighter text-[10px]">Manutenção do menu tático Skull's.</CardDescription>
+          <CardDescription className="uppercase tracking-tighter text-[10px]">Gerenciamento de serviços e preços.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-primary/5">
               <TableRow className="border-primary/10 hover:bg-transparent">
-                <TableHead className="pl-6 font-bold uppercase text-[10px] tracking-widest">Designação</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest">Tempo de Operação</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest text-primary">Valor de Resgate</TableHead>
+                <TableHead className="pl-6 font-bold uppercase text-[10px] tracking-widest">Serviço</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest">Duração</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest text-primary">Preço</TableHead>
                 <TableHead className="text-right pr-6 font-bold uppercase text-[10px] tracking-widest">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -186,7 +187,7 @@ export default function ServicesPage() {
                         </DialogTrigger>
                         <DialogContent className="bg-card border-primary/20 shadow-2xl">
                           <DialogHeader>
-                            <DialogTitle className="font-headline text-3xl text-primary">Ajustar Arsenal</DialogTitle>
+                            <DialogTitle className="font-headline text-3xl text-primary">Editar Serviço</DialogTitle>
                           </DialogHeader>
                           <form onSubmit={handleUpdate} className="space-y-4 py-4">
                             <div className="space-y-2">
@@ -195,11 +196,11 @@ export default function ServicesPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label className="uppercase text-[10px] font-bold tracking-widest">Custo (R$)</Label>
+                                <Label className="uppercase text-[10px] font-bold tracking-widest">Preço (R$)</Label>
                                 <Input name="price" defaultValue={service.price} type="number" step="0.01" className="h-12 bg-background border-primary/20" required />
                               </div>
                               <div className="space-y-2">
-                                <Label className="uppercase text-[10px] font-bold tracking-widest">Tempo (min)</Label>
+                                <Label className="uppercase text-[10px] font-bold tracking-widest">Duração (min)</Label>
                                 <Input name="duration" defaultValue={service.durationMinutes} type="number" className="h-12 bg-background border-primary/20" required />
                               </div>
                             </div>
@@ -218,13 +219,13 @@ export default function ServicesPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                           <AlertDialogHeader>
-                            <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Remover Serviço?</AlertDialogTitle>
+                            <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Excluir Serviço?</AlertDialogTitle>
                             <AlertDialogDescription className="uppercase tracking-tighter text-[10px]">
-                              Esta ação removerá "{service.name}" do catálogo tático permanentemente.
+                              Esta ação removerá "{service.name}" do catálogo permanentemente.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Abortar</AlertDialogCancel>
+                            <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Cancelar</AlertDialogCancel>
                             <AlertDialogAction 
                               onClick={() => handleDelete(service.id, service.name)} 
                               className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold"
@@ -240,7 +241,7 @@ export default function ServicesPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-24 text-muted-foreground italic uppercase font-headline tracking-widest text-xl opacity-20">
-                    Arsenal vazio
+                    Nenhum serviço cadastrado
                   </TableCell>
                 </TableRow>
               )}

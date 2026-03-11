@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -68,8 +69,8 @@ export default function CustomersPage() {
     })
 
     toast({
-      title: "Alvo Identificado!",
-      description: `${name} foi adicionado à base Skull's.`,
+      title: "Cliente Cadastrado",
+      description: `${name} foi adicionado à base de dados.`,
     })
     setIsAddOpen(false)
   }
@@ -92,8 +93,8 @@ export default function CustomersPage() {
     })
 
     toast({
-      title: "Ficha Atualizada!",
-      description: "As informações foram sincronizadas no QG.",
+      title: "Dados Atualizados",
+      description: "As informações do cliente foram sincronizadas.",
     })
     setEditingId(null)
   }
@@ -103,8 +104,8 @@ export default function CustomersPage() {
     deleteDocumentNonBlocking(clientRef)
     toast({
       variant: "destructive",
-      title: "Alvo Removido",
-      description: `${clientName} foi excluído da base tática.`,
+      title: "Cliente Removido",
+      description: `${clientName} foi excluído do sistema.`,
     })
   }
 
@@ -120,36 +121,36 @@ export default function CustomersPage() {
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-headline text-primary">Esquadrão de Clientes</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px]">Gestão de alistamento Skull's</p>
+          <h1 className="text-4xl font-headline text-primary">Clientes</h1>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px]">Gestão de Clientes da Barbearia</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary text-black font-bold hover:bg-primary/90 shadow-lg shadow-primary/20">
-              <Plus className="mr-2 h-4 w-4" /> Recrutar Alvo
+              <Plus className="mr-2 h-4 w-4" /> Novo Cliente
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-primary/20 shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-3xl text-primary">Alistamento de Cliente</DialogTitle>
-              <DialogDescription className="uppercase tracking-tighter text-[10px]">Insira os dados para o banco de dados underground.</DialogDescription>
+              <DialogTitle className="font-headline text-3xl text-primary">Cadastrar Cliente</DialogTitle>
+              <DialogDescription className="uppercase tracking-tighter text-[10px]">Insira os dados para o banco de dados.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label className="uppercase text-[10px] font-bold tracking-widest">Nome Completo</Label>
-                <Input name="name" placeholder="Ex: John Doe" required className="bg-background border-primary/20 focus:border-primary" />
+                <Input name="name" placeholder="Ex: João Silva" required className="bg-background border-primary/20 focus:border-primary" />
               </div>
               <div className="space-y-2">
                 <Label className="uppercase text-[10px] font-bold tracking-widest">Telefone / WhatsApp</Label>
                 <Input name="phone" placeholder="(11) 99999-9999" className="bg-background border-primary/20 focus:border-primary" />
               </div>
               <div className="space-y-2">
-                <Label className="uppercase text-[10px] font-bold tracking-widest">Notas Técnicas</Label>
-                <Textarea name="preferences" placeholder="Ex: Estilo Mohawk, Navalhado..." className="bg-background border-primary/20 focus:border-primary" />
+                <Label className="uppercase text-[10px] font-bold tracking-widest">Preferências e Notas</Label>
+                <Textarea name="preferences" placeholder="Ex: Gosta de degradê navalhado..." className="bg-background border-primary/20 focus:border-primary" />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full bg-primary text-black font-headline text-xl">Confirmar Alistamento</Button>
+                <Button type="submit" className="w-full bg-primary text-black font-headline text-xl">Confirmar Cadastro</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -159,7 +160,7 @@ export default function CustomersPage() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
         <Input 
-          placeholder="Rastrear alvo por nome ou telefone..." 
+          placeholder="Pesquisar cliente por nome ou telefone..." 
           className="pl-10 bg-card border-primary/20 focus:border-primary placeholder:text-muted-foreground/30" 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -189,10 +190,10 @@ export default function CustomersPage() {
             <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase text-primary/60 flex items-center gap-2 tracking-widest">
-                  <Info className="h-3 w-3" /> Observações Táticas
+                  <Info className="h-3 w-3" /> Notas e Preferências
                 </p>
                 <p className="text-sm italic text-muted-foreground bg-background p-3 rounded-lg border border-primary/10">
-                  {customer.preferences || "Nenhuma nota técnica registrada."}
+                  {customer.preferences || "Nenhuma nota registrada."}
                 </p>
               </div>
 
@@ -205,7 +206,7 @@ export default function CustomersPage() {
                   </DialogTrigger>
                   <DialogContent className="bg-card border-primary/20 shadow-2xl">
                     <DialogHeader>
-                      <DialogTitle className="font-headline text-3xl text-primary">Alterar Dados</DialogTitle>
+                      <DialogTitle className="font-headline text-3xl text-primary">Editar Cliente</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleUpdate} className="space-y-4 py-4">
                       <div className="space-y-2">
@@ -217,7 +218,7 @@ export default function CustomersPage() {
                         <Input name="phone" defaultValue={customer.phone} className="bg-background border-primary/20" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="uppercase text-[10px] font-bold tracking-widest">Notas</Label>
+                        <Label className="uppercase text-[10px] font-bold tracking-widest">Preferências</Label>
                         <Textarea name="preferences" defaultValue={customer.preferences} className="bg-background border-primary/20" />
                       </div>
                       <DialogFooter className="pt-4">
@@ -230,18 +231,18 @@ export default function CustomersPage() {
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground hover:text-destructive hover:bg-destructive/5">
-                      <Trash2 className="mr-2 h-3 w-3" /> Eliminar
+                      <Trash2 className="mr-2 h-3 w-3" /> Excluir
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                     <AlertDialogHeader>
-                      <AlertDialogTitle className="font-headline text-2xl text-destructive">Remover do Esquadrão?</AlertDialogTitle>
+                      <AlertDialogTitle className="font-headline text-2xl text-destructive">Excluir Cliente?</AlertDialogTitle>
                       <AlertDialogDescription className="uppercase tracking-tighter text-[10px]">
-                        Esta operação é irreversível. Todos os dados de {customer.name} serão destruídos.
+                        Esta operação é irreversível. Todos os dados de {customer.name} serão removidos.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Abortar</AlertDialogCancel>
+                      <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Cancelar</AlertDialogCancel>
                       <AlertDialogAction onClick={() => handleDelete(customer.id, customer.name)} className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold">
                         Confirmar Exclusão
                       </AlertDialogAction>
@@ -255,7 +256,7 @@ export default function CustomersPage() {
         {filteredCustomers.length === 0 && !isDataLoading && (
           <div className="col-span-full py-24 text-center border-2 border-dashed border-primary/10 rounded-3xl opacity-60">
             <User className="h-16 w-16 mx-auto mb-4 text-primary opacity-20" />
-            <p className="text-muted-foreground uppercase font-headline tracking-widest text-xl">Sem alvos detectados</p>
+            <p className="text-muted-foreground uppercase font-headline tracking-widest text-xl">Nenhum cliente encontrado</p>
           </div>
         )}
       </div>
