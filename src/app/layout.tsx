@@ -20,11 +20,18 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isUserLoading) {
+      // Rotas exclusivas de gestão
       const adminRoutes = ['/', '/agenda', '/customers', '/services', '/staff', '/reports'];
       const isTryingAdmin = adminRoutes.includes(pathname);
 
+      // Se for cliente tentando acessar gestão, manda para área de cliente
       if (user && role === 'CLIENT' && isTryingAdmin) {
         router.push('/client');
+      }
+      
+      // Se for barbeiro tentando acessar área de cliente, manda para dashboard
+      if (user && (role === 'BARBER' || role === 'ADMIN') && pathname === '/client') {
+        router.push('/');
       }
     }
   }, [user, role, isUserLoading, pathname, router]);

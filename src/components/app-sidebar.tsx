@@ -1,8 +1,7 @@
-
 "use client"
 
 import * as React from "react"
-import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase, Home } from "lucide-react"
+import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase, Home, User } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -32,6 +31,8 @@ export function AppSidebar() {
       { title: "Relatórios", url: "/reports", icon: BarChart3 },
     ] : [
       { title: "Início", url: "/client", icon: Home },
+      { title: "Meus Agendamentos", url: "/agenda", icon: CalendarDays },
+      { title: "Perfil", url: "/client/profile", icon: User },
     ]),
   ]
 
@@ -56,11 +57,11 @@ export function AppSidebar() {
                 asChild
                 isActive={pathname === item.url}
                 tooltip={item.title}
-                className="hover:bg-primary/10 hover:text-primary transition-all text-sidebar-foreground"
+                className="hover:bg-primary/10 hover:text-primary transition-all text-sidebar-foreground h-11"
               >
                 <Link href={item.url}>
-                  <item.icon className="size-4" />
-                  <span>{item.title}</span>
+                  <item.icon className="size-5" />
+                  <span className="font-medium">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
