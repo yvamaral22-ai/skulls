@@ -45,7 +45,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-headline text-primary">Barbearia Skull's</h1>
-          <p className="text-muted-foreground text-xs uppercase tracking-widest">Painel de Comando Central</p>
+          <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em]">Painel de Comando Central</p>
         </div>
         <Button className="h-12 font-bold bg-primary text-black shadow-xl shadow-primary/20" asChild>
           <Link href="/agenda">
@@ -57,38 +57,38 @@ export default function DashboardPage() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-widest">Agenda Hoje</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">Agenda Hoje</CardTitle>
             <Calendar className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-headline">{todayAppointments.length}</div>
+            <div className="text-3xl font-bold font-headline tracking-widest">{todayAppointments.length}</div>
           </CardContent>
         </Card>
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-widest">Bruto Hoje</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">Bruto Hoje</CardTitle>
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-headline text-primary">R$ {totalRevenueToday.toFixed(0)}</div>
+            <div className="text-3xl font-bold font-headline text-primary tracking-widest">R$ {totalRevenueToday.toFixed(0)}</div>
           </CardContent>
         </Card>
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-widest">Serviços</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">Serviços</CardTitle>
             <Scissors className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-headline">{services?.length || 0}</div>
+            <div className="text-3xl font-bold font-headline tracking-widest">{services?.length || 0}</div>
           </CardContent>
         </Card>
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-widest">Status</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">Status</CardTitle>
             <Briefcase className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-headline text-green-500">OPEN</div>
+            <div className="text-3xl font-bold font-headline text-green-500 tracking-widest">OPEN</div>
           </CardContent>
         </Card>
       </div>
@@ -105,12 +105,12 @@ export default function DashboardPage() {
                   const service = services?.find(s => s.id === appt.serviceId)
                   return (
                     <div key={appt.id} className="flex items-center gap-4 p-4 hover:bg-primary/5 transition-colors">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-black font-headline text-lg">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-black font-headline text-lg tracking-normal">
                         {appt.time}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold truncate text-sm uppercase">{appt.clientName}</p>
-                        <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">{service?.name || 'Serviço'}</p>
+                        <p className="font-bold truncate text-sm uppercase tracking-wide">{appt.clientName}</p>
+                        <p className="text-[10px] text-muted-foreground truncate uppercase tracking-[0.1em]">{service?.name || 'Serviço'}</p>
                       </div>
                       <div className="text-right">
                         <Badge variant={appt.status === 'completed' ? 'default' : 'outline'} className={appt.status === 'completed' ? 'bg-primary text-black' : 'border-primary/30 text-primary'}>
@@ -136,8 +136,8 @@ export default function DashboardPage() {
               <Link href="/agenda">
                 <Calendar className="h-6 w-6 text-primary" /> 
                 <div className="text-left">
-                  <p className="font-headline text-sm">Calendário Semanal</p>
-                  <p className="text-[10px] uppercase opacity-50">Logística de horários</p>
+                  <p className="font-headline text-base">Calendário Semanal</p>
+                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Logística de horários</p>
                 </div>
               </Link>
             </Button>
@@ -145,8 +145,8 @@ export default function DashboardPage() {
               <Link href="/reports">
                 <TrendingUp className="h-6 w-6 text-primary" /> 
                 <div className="text-left">
-                  <p className="font-headline text-sm">Relatório Tático</p>
-                  <p className="text-[10px] uppercase opacity-50">Inteligência financeira</p>
+                  <p className="font-headline text-base">Relatório Tático</p>
+                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Inteligência financeira</p>
                 </div>
               </Link>
             </Button>
@@ -154,8 +154,8 @@ export default function DashboardPage() {
               <Link href="/services">
                 <Scissors className="h-6 w-6 text-primary" /> 
                 <div className="text-left">
-                  <p className="font-headline text-sm">Menu de Combate</p>
-                  <p className="text-[10px] uppercase opacity-50">Gestão de serviços</p>
+                  <p className="font-headline text-base">Menu de Combate</p>
+                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Gestão de serviços</p>
                 </div>
               </Link>
             </Button>
