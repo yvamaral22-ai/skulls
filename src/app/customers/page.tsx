@@ -6,13 +6,24 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { User, Search, Plus, Phone, History, Info, Pencil, Loader2 } from "lucide-react"
+import { User, Search, Plus, Phone, Info, Pencil, Trash2, Loader2 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function CustomersPage() {
   const { user, isUserLoading: isAuthLoading } = useUser()
@@ -88,6 +99,17 @@ export default function CustomersPage() {
       description: "As informações do cliente foram sincronizadas.",
     })
     setEditingId(null)
+  }
+
+  const handleDelete = (clientId: string, clientName: string) => {
+    if (!user) return
+    const clientRef = doc(db, "barberProfiles", user.uid, "clients", clientId)
+    deleteDocumentNonBlocking(clientRef)
+    toast({
+      variant: "destructive",
+      title: "Cliente Removido",
+      description: `${clientName} foi excluído da sua base de dados.`,
+    })
   }
 
   if (isAuthLoading || isDataLoading) {
@@ -208,6 +230,28 @@ export default function CustomersPage() {
                     </form>
                   </DialogContent>
                 </Dialog>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-destructive">
+                      <Trash2 className="mr-2 h-3 w-3" /> Remover
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-card border-border shadow-2xl">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remover Cliente?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Todas as informações de {customer.name} serão apagadas.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="bg-secondary">Voltar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(customer.id, customer.name)} className="bg-destructive text-white hover:bg-destructive/90">
+                        Sim, Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
           </Card>
