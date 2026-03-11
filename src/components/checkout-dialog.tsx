@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -12,23 +11,27 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Banknote, QrCode, CheckCircle2, ShoppingCart } from 'lucide-react';
+import { CreditCard, Banknote, QrCode, CheckCircle2, ShoppingCart, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface CheckoutDialogProps {
   appointmentId: string;
   customerName: string;
   serviceName: string;
   price: number;
+  staffId: string;
   onSuccess?: () => void;
 }
 
 const PAYMENT_METHODS = [
   { id: 'Cash', label: 'Dinheiro', icon: Banknote, color: 'text-green-500' },
   { id: 'PIX', label: 'PIX', icon: QrCode, color: 'text-cyan-500' },
-  { id: 'Credit', label: 'Cartão de Crédito', icon: CreditCard, color: 'text-blue-500' },
-  { id: 'Debit', label: 'Cartão de Débito', icon: CreditCard, color: 'text-orange-500' },
+  { id: 'Credit', label: 'Crédito', icon: CreditCard, color: 'text-blue-500' },
+  { id: 'Debit', label: 'Débito', icon: CreditCard, color: 'text-orange-500' },
 ];
 
 export function CheckoutDialog({
@@ -36,21 +39,35 @@ export function CheckoutDialog({
   customerName,
   serviceName,
   price,
+  staffId,
   onSuccess,
 }: CheckoutDialogProps) {
+  const { user } = useUser();
+  const db = useFirestore();
   const [selectedMethod, setSelectedMethod] = React.useState<string | null>(null);
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
 
-  const handleCheckout = () => {
-    if (!selectedMethod) return;
+  const handleCheckout = async () => {
+    if (!selectedMethod || !user) return;
 
     setIsProcessing(true);
-    // Simulação de delay de processamento
-    setTimeout(() => {
-      console.log('Finalizando atendimento:', {
-        appointmentId,
+    try {
+      // Buscar a taxa de comissão atual do barbeiro
+      const staffRef = doc(db, 'barberProfiles', user.uid, 'staff', staffId);
+      const staffSnap = await getDoc(staffRef);
+      const staffData = staffSnap.data();
+      const commissionRate = staffData?.commissionRate || 0.4; // Default 40%
+      const commissionAmount = price * commissionRate;
+
+      const appointmentRef = doc(db, 'barberProfiles', user.uid, 'appointments', appointmentId);
+      
+      updateDocumentNonBlocking(appointmentRef, {
+        status: 'completed',
         paymentMethod: selectedMethod,
-        finalPrice: price,
+        priceAtAppointment: price,
+        commissionAtAppointment: commissionAmount,
+        completedAt: new Date().toISOString()
       });
 
       toast({
@@ -58,15 +75,24 @@ export function CheckoutDialog({
         description: `O checkout de ${customerName} foi realizado com sucesso via ${selectedMethod}.`,
       });
 
-      setIsProcessing(false);
+      setIsOpen(false);
       if (onSuccess) onSuccess();
-    }, 1500);
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro no Checkout',
+        description: 'Não foi possível finalizar o atendimento.',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white font-bold">
+        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white font-bold shadow-lg">
           <CheckCircle2 className="mr-2 h-4 w-4" /> Finalizar
         </Button>
       </DialogTrigger>
@@ -74,10 +100,10 @@ export function CheckoutDialog({
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl flex items-center gap-2">
             <ShoppingCart className="h-6 w-6 text-primary" />
-            Checkout
+            Finalizar Corte
           </DialogTitle>
           <DialogDescription>
-            Selecione a forma de pagamento para concluir o atendimento.
+            Confirme os detalhes e receba o pagamento.
           </DialogDescription>
         </DialogHeader>
 
@@ -89,10 +115,10 @@ export function CheckoutDialog({
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Serviço:</span>
-              <Badge variant="secondary">{serviceName}</Badge>
+              <Badge variant="secondary" className="bg-primary/20 text-primary">{serviceName}</Badge>
             </div>
             <div className="border-t border-border pt-2 mt-2 flex justify-between items-center">
-              <span className="text-lg font-bold">Total a pagar:</span>
+              <span className="text-lg font-bold">Total:</span>
               <span className="text-2xl font-black text-primary">R$ {price.toFixed(2)}</span>
             </div>
           </div>
@@ -103,6 +129,7 @@ export function CheckoutDialog({
               return (
                 <button
                   key={method.id}
+                  type="button"
                   onClick={() => setSelectedMethod(method.id)}
                   className={cn(
                     "flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 gap-2",
@@ -125,7 +152,12 @@ export function CheckoutDialog({
             disabled={!selectedMethod || isProcessing}
             onClick={handleCheckout}
           >
-            {isProcessing ? 'Processando...' : 'Confirmar Recebimento'}
+            {isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processando...
+              </>
+            ) : 'Confirmar Pagamento'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -133,7 +165,6 @@ export function CheckoutDialog({
   );
 }
 
-// Utility to merge classes
 function cn(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
 }

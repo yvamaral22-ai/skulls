@@ -14,26 +14,57 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Clock, User, Scissors, Sparkles, CalendarDays, CheckCircle2, Wallet } from 'lucide-react';
-import { APPOINTMENTS, CUSTOMERS, SERVICES, TRENDING_SERVICES, TRENDING_PRODUCTS, PRODUCTS } from '../lib/mock-data';
-import { AiUpsellDialog } from '@/components/ai-upsell-dialog';
+import { Plus, Clock, User, Scissors, CalendarDays, Wallet, Loader2 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { ptBR } from 'date-fns/locale';
+import { format } from 'date-fns';
 
 export default function AgendaPage() {
-  const [date, setDate] = React.useState<Date | undefined>(undefined);
+  const { user } = useUser();
+  const db = useFirestore();
+  const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [isBookingOpen, setIsBookingOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    // Initialize date after mount to avoid hydration mismatch
-    setDate(new Date('2025-05-20T00:00:00'));
-  }, []);
+  const barberProfileId = user?.uid || 'loading';
+
+  // Buscar Agendamentos Reais
+  const appointmentsQuery = useMemoFirebase(() => {
+    if (barberProfileId === 'loading') return null;
+    return collection(db, 'barberProfiles', barberProfileId, 'appointments');
+  }, [db, barberProfileId]);
+
+  // Buscar Serviços (para nomes e preços)
+  const servicesQuery = useMemoFirebase(() => {
+    if (barberProfileId === 'loading') return null;
+    return collection(db, 'barberProfiles', barberProfileId, 'services');
+  }, [db, barberProfileId]);
+
+  // Buscar Clientes
+  const clientsQuery = useMemoFirebase(() => {
+    if (barberProfileId === 'loading') return null;
+    return collection(db, 'barberProfiles', barberProfileId, 'clients');
+  }, [db, barberProfileId]);
+
+  const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery);
+  const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
+  const { data: clients, isLoading: isClientsLoading } = useCollection(clientsQuery);
 
   const filteredAppointments = React.useMemo(() => {
-    if (!date) return [];
-    const targetDateStr = date.toISOString().split('T')[0];
-    return APPOINTMENTS.filter(appt => appt.date === targetDateStr);
-  }, [date]);
+    if (!date || !appointments) return [];
+    const targetDateStr = format(date, 'yyyy-MM-dd');
+    return appointments.filter(appt => appt.date === targetDateStr);
+  }, [date, appointments]);
+
+  if (isApptsLoading || isServicesLoading || isClientsLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-12 animate-in slide-in-from-bottom-4 duration-500">
@@ -41,7 +72,7 @@ export default function AgendaPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold font-headline">Skull Barber - Agenda</h1>
-            <p className="text-muted-foreground">Gerencie o fluxo de atendimentos da equipe.</p>
+            <p className="text-muted-foreground">Gerencie o fluxo de atendimentos da sua barbearia.</p>
           </div>
           
           <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
@@ -78,6 +109,7 @@ export default function AgendaPage() {
               mode="single"
               selected={date}
               onSelect={setDate}
+              locale={ptBR}
               className="rounded-md"
             />
           </CardContent>
@@ -85,13 +117,13 @@ export default function AgendaPage() {
 
         <Card className="border-none shadow-xl bg-card overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-lg">Dica do Líder</CardTitle>
+            <CardTitle className="text-lg">Dica Financeira</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 p-4 rounded-xl bg-accent/10 border border-accent/20">
               <Wallet className="h-6 w-6 text-accent shrink-0" />
               <p className="text-sm leading-relaxed text-accent-foreground">
-                Não esqueça de realizar o <strong>Checkout</strong> após cada serviço para que as comissões e o lucro do dia sejam computados corretamente.
+                Finalize cada atendimento após a conclusão para que o lucro e as comissões entrem nos relatórios.
               </p>
             </div>
           </CardContent>
@@ -103,7 +135,7 @@ export default function AgendaPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="font-headline">
-                Agenda de {date ? date.toLocaleDateString('pt-BR') : '...'}
+                Agenda de {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : '...'}
               </CardTitle>
               <CardDescription>{filteredAppointments.length} horários ocupados.</CardDescription>
             </div>
@@ -118,8 +150,8 @@ export default function AgendaPage() {
             <div className="space-y-6">
               {filteredAppointments.length > 0 ? (
                 filteredAppointments.sort((a, b) => a.time.localeCompare(b.time)).map((appt) => {
-                  const customer = CUSTOMERS.find(c => c.id === appt.customerId);
-                  const service = SERVICES.find(s => s.id === appt.serviceId);
+                  const client = clients?.find(c => c.id === appt.clientId);
+                  const service = services?.find(s => s.id === appt.serviceId);
                   const isCompleted = appt.status === 'completed';
 
                   return (
@@ -138,7 +170,7 @@ export default function AgendaPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <User className="h-4 w-4 text-accent" />
-                            <h3 className="font-bold text-lg">{customer?.name}</h3>
+                            <h3 className="font-bold text-lg">{client?.name || 'Cliente'}</h3>
                             {isCompleted && (
                               <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px]">
                                 PAGO: {appt.paymentMethod}
@@ -147,28 +179,20 @@ export default function AgendaPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Scissors className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">{service?.name}</span>
+                            <span className="text-muted-foreground">{service?.name || 'Serviço'}</span>
                           </div>
                         </div>
 
                         <div className="flex flex-col items-end gap-2">
-                          <span className="text-xl font-bold text-primary">R$ {service?.price.toFixed(2)}</span>
+                          <span className="text-xl font-bold text-primary">R$ {(appt.priceAtAppointment || service?.price || 0).toFixed(2)}</span>
                           <div className="flex gap-2">
-                            <AiUpsellDialog 
-                              clientHistory={customer?.history || []}
-                              clientPreferences={customer?.preferences || ''}
-                              currentServices={[service?.name || '']}
-                              availableServices={SERVICES.map(s => s.name)}
-                              availableProducts={PRODUCTS}
-                              trendingServices={TRENDING_SERVICES}
-                              trendingProducts={TRENDING_PRODUCTS}
-                            />
                             {!isCompleted && (
                               <CheckoutDialog 
                                 appointmentId={appt.id}
-                                customerName={customer?.name || ''}
-                                serviceName={service?.name || ''}
-                                price={service?.price || 0}
+                                customerName={client?.name || 'Cliente'}
+                                serviceName={service?.name || 'Serviço'}
+                                price={appt.priceAtAppointment || service?.price || 0}
+                                staffId={appt.staffId}
                               />
                             )}
                           </div>
