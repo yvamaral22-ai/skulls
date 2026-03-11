@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -16,6 +17,13 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <head>
+        <title>Skull Barber | Gestão de Elite</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#0c0a0f" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="https://picsum.photos/seed/skull/192/192" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
