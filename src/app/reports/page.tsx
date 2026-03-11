@@ -16,10 +16,12 @@ import {
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { format, startOfMonth, endOfMonth } from "date-fns"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ReportsPage() {
   const db = useFirestore()
   const { user } = useUser()
+  const { toast } = useToast()
   
   const [startDate, setStartDate] = React.useState("")
   const [endDate, setEndDate] = React.useState("")
@@ -28,7 +30,7 @@ export default function ReportsPage() {
   const [isGenerating, setIsGenerating] = React.useState(false)
   const [hasGenerated, setHasGenerated] = React.useState(false)
 
-  // Inicializa as datas com o mês atual na carga inicial
+  // Inicializa as datas com o mês atual na carga inicial para evitar campos vazios
   React.useEffect(() => {
     const now = new Date();
     const start = format(startOfMonth(now), 'yyyy-MM-dd');
@@ -59,28 +61,34 @@ export default function ReportsPage() {
   const { data: expenses, isLoading: isExpensesLoading } = useCollection(expensesQuery)
 
   const handleApplyFilters = () => {
-    if (!startDate || !endDate) return;
+    if (!startDate || !endDate) {
+      toast({
+        variant: "destructive",
+        title: "Datas incompletas",
+        description: "Por favor, selecione o início e o fim do período.",
+      })
+      return;
+    }
     
     setIsGenerating(true);
-    // Usamos um pequeno timeout apenas para feedback visual de que algo foi "processado"
-    setTimeout(() => {
-      setAppliedStartDate(startDate);
-      setAppliedEndDate(endDate);
-      setHasGenerated(true);
-      setIsGenerating(false);
-    }, 500);
+    // Aplica as datas instantaneamente para o useMemo processar
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
+    setHasGenerated(true);
+    
+    // Pequeno feedback visual no botão
+    setTimeout(() => setIsGenerating(false), 300);
   }
 
   const stats = React.useMemo(() => {
-    // Se o usuário ainda não clicou em gerar, não mostramos nada
+    // Se o usuário ainda não clicou em gerar ou não temos dados, retorna null
     if (!hasGenerated || !appointments || !appliedStartDate || !appliedEndDate) return null;
 
-    // Filtro reativo: sempre que os agendamentos no Firestore mudarem, isso recalcula
     const filteredAppts = appointments.filter(a => {
       const apptDate = (a.date || "").trim(); 
       const status = (a.status || "").toLowerCase();
       
-      // Consideramos apenas o que foi FINALIZADO (checkout concluído)
+      // Captura atendimentos FINALIZADOS dentro do período exato de strings yyyy-MM-dd
       const isCompleted = status === 'completed';
       const isWithinRange = apptDate >= appliedStartDate && apptDate <= appliedEndDate;
       
@@ -92,13 +100,13 @@ export default function ReportsPage() {
       return expDate >= appliedStartDate && expDate <= appliedEndDate;
     })
 
-    // Conversão forçada para Number para garantir soma correta
+    // Conversão forçada para Number para garantir soma matemática correta
     const totalRevenue = filteredAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
     const totalCommissions = filteredAppts.reduce((sum, a) => sum + (Number(a.commissionAtAppointment) || 0), 0)
     const totalExpenses = filteredExps.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
     const netProfit = totalRevenue - totalCommissions - totalExpenses
 
-    // Relatório de equipe
+    // Relatório de produtividade da equipe
     const staffReport = (staff || []).map(member => {
       const memberAppts = filteredAppts.filter(a => a.staffId === member.id)
       const revenue = memberAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
@@ -137,9 +145,7 @@ export default function ReportsPage() {
     }
   }, [appointments, staff, expenses, appliedStartDate, appliedEndDate, hasGenerated])
 
-  const isInitialLoading = isApptsLoading && !appointments;
-
-  if (isInitialLoading) {
+  if (isApptsLoading && !appointments) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -155,7 +161,7 @@ export default function ReportsPage() {
             <h1 className="text-3xl font-bold font-headline text-primary">Relatórios Skull Barber</h1>
             {isApptsLoading && <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-muted-foreground">Consolidação financeira baseada em atendimentos finalizados.</p>
+          <p className="text-muted-foreground">Financeiro consolidado com sincronização em tempo real.</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-2 bg-card p-3 rounded-2xl border border-border shadow-xl">
@@ -177,7 +183,7 @@ export default function ReportsPage() {
           </div>
           <Button 
             onClick={handleApplyFilters} 
-            disabled={isGenerating || !startDate || !endDate}
+            disabled={isGenerating}
             className="bg-primary hover:bg-primary/90 text-white h-10 px-6 ml-2 font-bold shadow-lg shadow-primary/20"
           >
             {isGenerating ? (
@@ -195,8 +201,8 @@ export default function ReportsPage() {
       {!hasGenerated ? (
         <div className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-border rounded-3xl opacity-60">
           <FileBarChart className="h-16 w-16 text-muted-foreground mb-4 opacity-20" />
-          <h3 className="text-xl font-bold">Aguardando Período</h3>
-          <p className="text-muted-foreground italic text-sm">Selecione o intervalo de datas e clique em Gerar Relatório.</p>
+          <h3 className="text-xl font-bold">Relatório Pronto</h3>
+          <p className="text-muted-foreground italic text-sm">Ajuste o período acima e clique no botão para calcular.</p>
         </div>
       ) : (
         <>
@@ -208,7 +214,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">R$ {(stats?.totalRevenue ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{stats?.count ?? 0} atendimentos finalizados no período</p>
+                <p className="text-xs text-muted-foreground mt-1">{stats?.count ?? 0} finalizados no período</p>
               </CardContent>
             </Card>
             
@@ -230,7 +236,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">R$ {(stats?.totalExpenses ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Custos operacionais registrados</p>
+                <p className="text-xs text-muted-foreground mt-1">Custos fixos e operacionais</p>
               </CardContent>
             </Card>
 
@@ -241,7 +247,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black text-green-500">R$ {(stats?.netProfit ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Resultado líquido final</p>
+                <p className="text-xs text-muted-foreground mt-1">Resultado final (Bruto - Custos)</p>
               </CardContent>
             </Card>
           </div>
@@ -251,7 +257,7 @@ export default function ReportsPage() {
               <CardHeader className="bg-secondary/20">
                 <CardTitle className="font-headline text-lg flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-primary" />
-                  Produção por Barbeiro
+                  Produção da Equipe
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -279,7 +285,7 @@ export default function ReportsPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic">
-                          Nenhum atendimento finalizado no período selecionado.
+                          Nenhum atendimento finalizado neste período.
                         </TableCell>
                       </TableRow>
                     )}
@@ -292,7 +298,7 @@ export default function ReportsPage() {
               <CardHeader>
                 <CardTitle className="font-headline text-lg flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-accent" />
-                  Formas de Pagamento
+                  Divisão de Pagamentos
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-[350px] mt-4">
@@ -311,7 +317,7 @@ export default function ReportsPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm italic border border-dashed border-border/50 rounded-xl">
-                    <p>Sem dados gráficos para exibir</p>
+                    <p>Sem dados gráficos para o período</p>
                   </div>
                 )}
               </CardContent>
