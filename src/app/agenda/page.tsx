@@ -4,7 +4,6 @@ import * as React from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -14,13 +13,14 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Clock, User, Scissors, CalendarDays, Wallet, Loader2 } from 'lucide-react';
+import { Plus, Clock, User, Scissors, CalendarDays, Wallet, Loader2, CheckCircle2 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function AgendaPage() {
   const { user } = useUser();
@@ -36,7 +36,7 @@ export default function AgendaPage() {
     return collection(db, 'barberProfiles', barberProfileId, 'appointments');
   }, [db, barberProfileId]);
 
-  // Buscar Serviços (para nomes e preços)
+  // Buscar Serviços
   const servicesQuery = useMemoFirebase(() => {
     if (barberProfileId === 'loading') return null;
     return collection(db, 'barberProfiles', barberProfileId, 'services');
@@ -71,8 +71,8 @@ export default function AgendaPage() {
       <div className="lg:col-span-12">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold font-headline">Skull Barber - Agenda</h1>
-            <p className="text-muted-foreground">Gerencie o fluxo de atendimentos da sua barbearia.</p>
+            <h1 className="text-3xl font-bold font-headline text-primary">EstiloCerto - Agenda</h1>
+            <p className="text-muted-foreground">Gerencie seus horários e atendimentos.</p>
           </div>
           
           <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
@@ -88,7 +88,7 @@ export default function AgendaPage() {
                   Agendar Cliente
                 </DialogTitle>
                 <DialogDescription>
-                  Preencha os dados abaixo para reservar o horário.
+                  Selecione o profissional, serviço e horário desejado.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
@@ -102,7 +102,7 @@ export default function AgendaPage() {
       <div className="lg:col-span-4 space-y-6">
         <Card className="border-none shadow-xl bg-card overflow-hidden">
           <CardHeader className="bg-primary/10">
-            <CardTitle className="text-lg">Filtro por Data</CardTitle>
+            <CardTitle className="text-lg">Calendário</CardTitle>
           </CardHeader>
           <CardContent className="p-4 flex justify-center calendar-custom">
             <Calendar
@@ -110,20 +110,20 @@ export default function AgendaPage() {
               selected={date}
               onSelect={setDate}
               locale={ptBR}
-              className="rounded-md"
+              className="rounded-md border-none"
             />
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-xl bg-card overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-lg">Dica Financeira</CardTitle>
+            <CardTitle className="text-lg">Resumo Financeiro</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 p-4 rounded-xl bg-accent/10 border border-accent/20">
               <Wallet className="h-6 w-6 text-accent shrink-0" />
               <p className="text-sm leading-relaxed text-accent-foreground">
-                Finalize cada atendimento após a conclusão para que o lucro e as comissões entrem nos relatórios.
+                Lembre-se de finalizar os atendimentos para que o lucro entre nos relatórios mensais.
               </p>
             </div>
           </CardContent>
@@ -132,19 +132,11 @@ export default function AgendaPage() {
 
       <div className="lg:col-span-8">
         <Card className="border-none shadow-xl bg-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="font-headline">
-                Agenda de {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : '...'}
-              </CardTitle>
-              <CardDescription>{filteredAppointments.length} horários ocupados.</CardDescription>
-            </div>
-            <Tabs defaultValue="list">
-              <TabsList className="bg-secondary">
-                <TabsTrigger value="list">Lista</TabsTrigger>
-                <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <CardHeader>
+            <CardTitle className="font-headline">
+              Agenda de {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : '...'}
+            </CardTitle>
+            <CardDescription>{filteredAppointments.length} horários reservados.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -157,13 +149,13 @@ export default function AgendaPage() {
                   return (
                     <div key={appt.id} className="group relative">
                       <div className={cn(
-                        "flex items-center gap-6 p-5 rounded-2xl border transition-all duration-300",
+                        "flex flex-col md:flex-row md:items-center gap-6 p-5 rounded-2xl border transition-all duration-300",
                         isCompleted 
-                          ? "bg-secondary/10 border-green-500/20 opacity-80" 
+                          ? "bg-green-500/5 border-green-500/20" 
                           : "bg-secondary/20 border-border/50 hover:bg-secondary/40 hover:border-primary/30"
                       )}>
-                        <div className="flex flex-col items-center justify-center min-w-[70px] py-2 border-r border-border">
-                          <Clock className="h-4 w-4 text-primary mb-1" />
+                        <div className="flex flex-row md:flex-col items-center justify-center min-w-[70px] py-2 border-b md:border-b-0 md:border-r border-border gap-2 md:gap-0">
+                          <Clock className="h-4 w-4 text-primary" />
                           <span className="font-bold text-lg">{appt.time}</span>
                         </div>
                         
@@ -172,8 +164,8 @@ export default function AgendaPage() {
                             <User className="h-4 w-4 text-accent" />
                             <h3 className="font-bold text-lg">{client?.name || 'Cliente'}</h3>
                             {isCompleted && (
-                              <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px]">
-                                PAGO: {appt.paymentMethod}
+                              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 text-[10px]">
+                                <CheckCircle2 className="mr-1 h-3 w-3" /> PAGO via {appt.paymentMethod}
                               </Badge>
                             )}
                           </div>
@@ -183,10 +175,10 @@ export default function AgendaPage() {
                           </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-2">
                           <span className="text-xl font-bold text-primary">R$ {(appt.priceAtAppointment || service?.price || 0).toFixed(2)}</span>
                           <div className="flex gap-2">
-                            {!isCompleted && (
+                            {!isCompleted ? (
                               <CheckoutDialog 
                                 appointmentId={appt.id}
                                 customerName={client?.name || 'Cliente'}
@@ -194,6 +186,8 @@ export default function AgendaPage() {
                                 price={appt.priceAtAppointment || service?.price || 0}
                                 staffId={appt.staffId}
                               />
+                            ) : (
+                              <Badge variant="secondary" className="bg-primary/10 text-primary">Concluído</Badge>
                             )}
                           </div>
                         </div>
@@ -205,6 +199,7 @@ export default function AgendaPage() {
                 <div className="py-20 text-center flex flex-col items-center gap-4">
                   <Clock className="h-12 w-12 text-muted-foreground opacity-20" />
                   <p className="text-muted-foreground italic">Nenhum agendamento para este dia.</p>
+                  <Button variant="outline" onClick={() => setIsBookingOpen(true)}>Agendar agora</Button>
                 </div>
               )}
             </div>
@@ -213,8 +208,4 @@ export default function AgendaPage() {
       </div>
     </div>
   );
-}
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
 }

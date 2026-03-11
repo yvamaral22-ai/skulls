@@ -4,8 +4,9 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, addMinutes, parseISO } from 'date-fns';
-import { CalendarIcon, Clock, Scissors, User, UserPlus, Loader2 } from 'lucide-react';
+import { format, addMinutes } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { CalendarIcon, Clock, UserPlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -30,7 +31,6 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const bookingSchema = z.object({
   clientName: z.string().min(2, 'Informe o nome do cliente'),
@@ -51,7 +51,6 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const barberProfileId = user?.uid || 'loading';
 
-  // Queries reais do Firestore
   const servicesQuery = useMemoFirebase(() => {
     if (barberProfileId === 'loading') return null;
     return collection(db, 'barberProfiles', barberProfileId, 'services');
@@ -97,21 +96,19 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
     try {
       const targetDate = format(data.date, 'yyyy-MM-dd');
       
-      // 1. Criar/Verificar Cliente (Simples para o MVP: sempre cria ou associa por nome no futuro)
       const clientRef = doc(collection(db, 'barberProfiles', user.uid, 'clients'));
       const clientId = clientRef.id;
       
-      setDoc(clientRef, {
+      await setDoc(clientRef, {
         id: clientId,
         barberProfileId: user.uid,
         name: data.clientName,
         createdAt: serverTimestamp(),
       });
 
-      // 2. Criar Agendamento
       const appointmentRef = doc(collection(db, 'barberProfiles', user.uid, 'appointments'));
       
-      setDoc(appointmentRef, {
+      await setDoc(appointmentRef, {
         id: appointmentRef.id,
         barberProfileId: user.uid,
         clientId,
@@ -126,8 +123,8 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
       });
 
       toast({
-        title: 'Sucesso!',
-        description: `Agendamento para ${data.clientName} realizado com sucesso.`,
+        title: 'Agendamento Realizado!',
+        description: `${data.clientName} marcado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
       });
       
       if (onSuccess) onSuccess();
@@ -136,7 +133,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
       toast({
         variant: 'destructive',
         title: 'Erro ao agendar',
-        description: 'Não foi possível salvar o agendamento.',
+        description: 'Verifique sua conexão e tente novamente.',
       });
     } finally {
       setIsSubmitting(false);
@@ -164,7 +161,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormControl>
                 <div className="relative">
                   <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input {...field} placeholder="Digite o nome do cliente" className="pl-10 bg-background border-border" />
+                  <Input {...field} placeholder="Digite o nome para cadastro rápido" className="pl-10 bg-background" />
                 </div>
               </FormControl>
               <FormMessage />
@@ -181,7 +178,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                 <FormLabel>Barbeiro</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-background border-border">
+                    <SelectTrigger className="bg-background">
                       <SelectValue placeholder="Escolha o profissional" />
                     </SelectTrigger>
                   </FormControl>
@@ -204,8 +201,8 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                 <FormLabel>Serviço</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-background border-border">
-                      <SelectValue placeholder="O que vamos fazer?" />
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Selecione o serviço" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -216,11 +213,6 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                     ))}
                   </SelectContent>
                 </Select>
-                {selectedService && (
-                  <FormDescription className="text-accent text-xs">
-                    Duração estimada: {selectedService.durationMinutes} min
-                  </FormDescription>
-                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -240,12 +232,12 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal border-border bg-background",
+                          "w-full pl-3 text-left font-normal bg-background",
                           !field.value && "text-muted-foreground"
                         )}
                       >
                         {field.value ? (
-                          format(field.value, "dd/MM/yyyy")
+                          format(field.value, "dd/MM/yyyy", { locale: ptBR })
                         ) : (
                           <span>Escolha a data</span>
                         )}
@@ -258,11 +250,12 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                       mode="single"
                       selected={field.value}
                       onSelect={(date) => field.onChange(date || new Date())}
+                      locale={ptBR}
                       disabled={(date) =>
                         date < new Date(new Date().setHours(0,0,0,0))
                       }
                       initialFocus
-                      className="bg-card border-border"
+                      className="bg-card"
                     />
                   </PopoverContent>
                 </Popover>
@@ -276,11 +269,11 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
             name="time"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Horário de Início</FormLabel>
+                <FormLabel>Horário</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input {...field} type="time" className="pl-10 bg-background border-border" />
+                    <Input {...field} type="time" className="pl-10 bg-background" />
                   </div>
                 </FormControl>
                 {endTime && (
@@ -299,12 +292,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
           className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-12 rounded-xl"
           disabled={isSubmitting}
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Agendando...
-            </>
-          ) : 'Confirmar Agendamento'}
+          {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Confirmar Agendamento'}
         </Button>
       </form>
     </Form>
