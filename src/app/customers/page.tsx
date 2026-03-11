@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -9,47 +8,102 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { User, Search, Plus, Phone, History, Info, Pencil } from "lucide-react"
-import { CUSTOMERS } from "../lib/mock-data"
+import { User, Search, Plus, Phone, History, Info, Pencil, Loader2 } from "lucide-react"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
+import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function CustomersPage() {
+  const { user, isUserLoading: isAuthLoading } = useUser()
+  const db = useFirestore()
   const [searchTerm, setSearchTerm] = React.useState("")
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const { toast } = useToast()
 
-  const filteredCustomers = CUSTOMERS.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.phone.includes(searchTerm)
-  )
+  const barberProfileId = user?.uid
 
-  const handleCreate = (e: React.FormEvent) => {
+  const clientsQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, "barberProfiles", barberProfileId, "clients")
+  }, [db, barberProfileId])
+
+  const { data: clients, isLoading: isDataLoading } = useCollection(clientsQuery)
+
+  const filteredCustomers = React.useMemo(() => {
+    if (!clients) return []
+    return clients.filter(c => 
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (c.phone && c.phone.includes(searchTerm))
+    )
+  }, [clients, searchTerm])
+
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    // Lógica de salvamento no Firestore viria aqui
+    if (!user) return
+
+    const formData = new FormData(e.currentTarget)
+    const name = formData.get("name") as string
+    const phone = formData.get("phone") as string
+    const preferences = formData.get("preferences") as string
+
+    const clientRef = doc(collection(db, "barberProfiles", user.uid, "clients"))
+    
+    await setDoc(clientRef, {
+      id: clientRef.id,
+      barberProfileId: user.uid,
+      name,
+      phone,
+      preferences,
+      createdAt: serverTimestamp(),
+    })
+
     toast({
       title: "Cliente Cadastrado!",
-      description: "O novo cliente foi adicionado à sua base de dados com sucesso.",
+      description: `${name} foi adicionado à sua base de dados.`,
     })
     setIsAddOpen(false)
   }
 
-  const handleUpdate = (e: React.FormEvent) => {
+  const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    // Lógica de atualização no Firestore viria aqui
+    if (!editingId || !user) return
+
+    const formData = new FormData(e.currentTarget)
+    const name = formData.get("name") as string
+    const phone = formData.get("phone") as string
+    const preferences = formData.get("preferences") as string
+
+    const clientRef = doc(db, "barberProfiles", user.uid, "clients", editingId)
+    
+    updateDocumentNonBlocking(clientRef, {
+      name,
+      phone,
+      preferences
+    })
+
     toast({
       title: "Perfil Atualizado!",
-      description: "As informações do cliente foram sincronizadas com sucesso.",
+      description: "As informações do cliente foram sincronizadas.",
     })
     setEditingId(null)
+  }
+
+  if (isAuthLoading || isDataLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-primary">Skull Barber - Clientes</h1>
-          <p className="text-muted-foreground">Seu banco de dados de clientes e preferências.</p>
+          <h1 className="text-3xl font-bold font-headline text-primary">EstiloCerto - Clientes</h1>
+          <p className="text-muted-foreground">Seu banco de dados real de clientes.</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -66,15 +120,15 @@ export default function CustomersPage() {
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Nome Completo</Label>
-                <Input placeholder="Ex: João Silva" required className="bg-background" />
+                <Input name="name" placeholder="Ex: João Silva" required className="bg-background" />
               </div>
               <div className="space-y-2">
                 <Label>Telefone / WhatsApp</Label>
-                <Input placeholder="(11) 99999-9999" required className="bg-background" />
+                <Input name="phone" placeholder="(11) 99999-9999" className="bg-background" />
               </div>
               <div className="space-y-2">
                 <Label>Preferências Técnicas</Label>
-                <Textarea placeholder="Ex: Gosta de degradê navalhado, usa pomada matte..." className="bg-background" />
+                <Textarea name="preferences" placeholder="Ex: Gosta de degradê navalhado..." className="bg-background" />
               </div>
               <DialogFooter className="pt-4">
                 <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Cliente</Button>
@@ -107,11 +161,11 @@ export default function CustomersPage() {
                     <CardTitle className="font-headline text-lg">{customer.name}</CardTitle>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Phone className="h-3 w-3" />
-                      {customer.phone}
+                      {customer.phone || 'N/A'}
                     </div>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-accent text-accent">Vip</Badge>
+                <Badge variant="outline" className="border-primary/30 text-primary">Real</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
@@ -120,21 +174,8 @@ export default function CustomersPage() {
                   <Info className="h-3 w-3" /> Preferências
                 </p>
                 <p className="text-sm italic text-muted-foreground bg-secondary/30 p-2 rounded-md border border-border/50">
-                  "{customer.preferences}"
+                  {customer.preferences || "Nenhuma nota técnica cadastrada."}
                 </p>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-                  <History className="h-3 w-3" /> Últimos Serviços
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {customer.history.slice(0, 3).map((h, i) => (
-                    <Badge key={i} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                      {h}
-                    </Badge>
-                  ))}
-                </div>
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
@@ -151,15 +192,15 @@ export default function CustomersPage() {
                     <form onSubmit={handleUpdate} className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label>Nome Completo</Label>
-                        <Input defaultValue={customer.name} className="bg-background" required />
+                        <Input name="name" defaultValue={customer.name} className="bg-background" required />
                       </div>
                       <div className="space-y-2">
                         <Label>Telefone</Label>
-                        <Input defaultValue={customer.phone} className="bg-background" required />
+                        <Input name="phone" defaultValue={customer.phone} className="bg-background" />
                       </div>
                       <div className="space-y-2">
                         <Label>Preferências</Label>
-                        <Textarea defaultValue={customer.preferences} className="bg-background" />
+                        <Textarea name="preferences" defaultValue={customer.preferences} className="bg-background" />
                       </div>
                       <DialogFooter className="pt-4">
                         <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Atualizar Informações</Button>
@@ -171,6 +212,12 @@ export default function CustomersPage() {
             </CardContent>
           </Card>
         ))}
+        {filteredCustomers.length === 0 && !isDataLoading && (
+          <div className="col-span-full py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-60">
+            <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-20" />
+            <p className="text-muted-foreground italic">Nenhum cliente encontrado na sua base de dados.</p>
+          </div>
+        )}
       </div>
     </div>
   )

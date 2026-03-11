@@ -50,15 +50,15 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
-  const barberProfileId = user?.uid || 'loading';
+  const barberProfileId = user?.uid;
 
   const servicesQuery = useMemoFirebase(() => {
-    if (barberProfileId === 'loading') return null;
+    if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'services');
   }, [db, barberProfileId]);
 
   const staffQuery = useMemoFirebase(() => {
-    if (barberProfileId === 'loading') return null;
+    if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'staff');
   }, [db, barberProfileId]);
 
@@ -78,7 +78,6 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const selectedServiceId = form.watch('serviceId');
   const selectedTime = form.watch('time');
-  const selectedDate = form.watch('date');
 
   const selectedService = React.useMemo(() => 
     services?.find(s => s.id === selectedServiceId),
@@ -90,17 +89,25 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
     const [hours, minutes] = selectedTime.split(':').map(Number);
     const start = new Date();
     start.setHours(hours, minutes, 0, 0);
-    const end = addMinutes(start, selectedService.durationMinutes);
+    const end = addMinutes(start, Number(selectedService.durationMinutes) || 30);
     return format(end, 'HH:mm');
   }, [selectedService, selectedTime]);
 
   async function onSubmit(data: BookingFormValues) {
-    if (!user) return;
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Erro de autenticação', description: 'Você precisa estar logado.' });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
       const targetDate = format(data.date, 'yyyy-MM-dd');
       
+      // Garantir que o perfil do barbeiro exista
+      const barberRef = doc(db, 'barberProfiles', user.uid);
+      await setDoc(barberRef, { id: user.uid, lastActivity: serverTimestamp() }, { merge: true });
+
+      // Cadastro rápido do cliente
       const clientRef = doc(collection(db, 'barberProfiles', user.uid, 'clients'));
       const clientId = clientRef.id;
       
@@ -111,6 +118,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
         createdAt: serverTimestamp(),
       });
 
+      // Registro do agendamento
       const appointmentRef = doc(collection(db, 'barberProfiles', user.uid, 'appointments'));
       
       await setDoc(appointmentRef, {
@@ -123,7 +131,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
         time: data.time,
         endTime: endTime,
         status: 'scheduled',
-        priceAtAppointment: selectedService?.price || 0,
+        priceAtAppointment: Number(selectedService?.price) || 0,
         createdAt: serverTimestamp(),
       });
 
@@ -132,13 +140,14 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
         description: `${data.clientName} marcado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
       });
       
+      form.reset();
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error(error);
       toast({
         variant: 'destructive',
         title: 'Erro ao agendar',
-        description: 'Verifique sua conexão e tente novamente.',
+        description: 'Não foi possível salvar os dados. Tente novamente.',
       });
     } finally {
       setIsSubmitting(false);
@@ -149,7 +158,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
     return (
       <div className="flex flex-col items-center justify-center py-10 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Carregando dados da barbearia...</p>
+        <p className="text-sm text-muted-foreground">Carregando dados...</p>
       </div>
     );
   }
@@ -157,37 +166,20 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="clientName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome do Cliente</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input {...field} placeholder="Digite o nome para cadastro rápido" className="pl-10 bg-background" />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Data</FormLabel>
+                <FormLabel>Data do Corte</FormLabel>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal bg-background border-border hover:bg-accent",
+                          "w-full pl-3 text-left font-normal bg-background border-border h-11",
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -233,7 +225,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                 <FormControl>
                   <div className="relative">
                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input {...field} type="time" className="pl-10 bg-background" />
+                    <Input {...field} type="time" className="pl-10 bg-background h-11" />
                   </div>
                 </FormControl>
                 {endTime && (
@@ -247,23 +239,43 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
           />
         </div>
 
+        <FormField
+          control={form.control}
+          name="clientName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome do Cliente</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input {...field} placeholder="Digite o nome completo" className="pl-10 bg-background h-11" />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="staffId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Barbeiro</FormLabel>
+                <FormLabel>Profissional</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Escolha o profissional" />
+                    <SelectTrigger className="bg-background h-11">
+                      <SelectValue placeholder="Escolha o barbeiro" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="z-[150]">
                     {staff?.map(s => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
+                    {(!staff || staff.length === 0) && (
+                      <SelectItem value="none" disabled>Nenhum barbeiro ativo</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -279,16 +291,19 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                 <FormLabel>Serviço</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-background">
+                    <SelectTrigger className="bg-background h-11">
                       <SelectValue placeholder="Selecione o serviço" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="z-[150]">
                     {services?.map(s => (
                       <SelectItem key={s.id} value={s.id}>
-                        {s.name} - R$ {s.price.toFixed(2)}
+                        {s.name} - R$ {Number(s.price).toFixed(2)}
                       </SelectItem>
                     ))}
+                    {(!services || services.length === 0) && (
+                      <SelectItem value="none" disabled>Nenhum serviço cadastrado</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -299,10 +314,15 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
 
         <Button 
           type="submit" 
-          className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-12 rounded-xl"
+          className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 rounded-2xl shadow-xl shadow-primary/20"
           disabled={isSubmitting}
         >
-          {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Confirmar Agendamento'}
+          {isSubmitting ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Agendando...</span>
+            </div>
+          ) : 'Confirmar Agendamento'}
         </Button>
       </form>
     </Form>

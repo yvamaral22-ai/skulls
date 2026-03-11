@@ -24,28 +24,28 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export default function AgendaPage() {
-  const { user } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const db = useFirestore();
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [isBookingOpen, setIsBookingOpen] = React.useState(false);
 
-  const barberProfileId = user?.uid || 'loading';
+  const barberProfileId = user?.uid;
 
   // Buscar Agendamentos Reais
   const appointmentsQuery = useMemoFirebase(() => {
-    if (barberProfileId === 'loading') return null;
+    if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'appointments');
   }, [db, barberProfileId]);
 
   // Buscar Serviços
   const servicesQuery = useMemoFirebase(() => {
-    if (barberProfileId === 'loading') return null;
+    if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'services');
   }, [db, barberProfileId]);
 
   // Buscar Clientes
   const clientsQuery = useMemoFirebase(() => {
-    if (barberProfileId === 'loading') return null;
+    if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'clients');
   }, [db, barberProfileId]);
 
@@ -68,10 +68,13 @@ export default function AgendaPage() {
     }
   };
 
-  if (isApptsLoading || isServicesLoading || isClientsLoading) {
+  if (isAuthLoading || isApptsLoading || isServicesLoading || isClientsLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground animate-pulse">Sincronizando sua agenda...</p>
+        </div>
       </div>
     );
   }
@@ -111,14 +114,14 @@ export default function AgendaPage() {
           </div>
 
           <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-2">
-            <span className="text-xl font-bold text-primary">R$ {(appt.priceAtAppointment || service?.price || 0).toFixed(2)}</span>
+            <span className="text-xl font-bold text-primary">R$ {(Number(appt.priceAtAppointment) || Number(service?.price) || 0).toFixed(2)}</span>
             <div className="flex gap-2">
               {!isCompleted ? (
                 <CheckoutDialog 
                   appointmentId={appt.id}
                   customerName={client?.name || 'Cliente'}
                   serviceName={service?.name || 'Serviço'}
-                  price={appt.priceAtAppointment || service?.price || 0}
+                  price={Number(appt.priceAtAppointment) || Number(service?.price) || 0}
                   staffId={appt.staffId}
                 />
               ) : (
@@ -134,7 +137,7 @@ export default function AgendaPage() {
   return (
     <div className="grid gap-6 lg:grid-cols-12 animate-in slide-in-from-bottom-4 duration-500">
       <div className="lg:col-span-12">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold font-headline text-primary">EstiloCerto - Agenda</h1>
             <p className="text-muted-foreground">Gerencie seus horários e atendimentos em tempo real.</p>
@@ -142,8 +145,8 @@ export default function AgendaPage() {
           
           <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
-                <Plus className="mr-2 h-4 w-4" /> Novo Agendamento
+              <Button size="lg" className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 h-12 px-8">
+                <Plus className="mr-2 h-5 w-5" /> Novo Agendamento
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] bg-card border-border shadow-2xl">
@@ -167,7 +170,10 @@ export default function AgendaPage() {
       <div className="lg:col-span-4 space-y-6">
         <Card className="border-none shadow-xl bg-card overflow-hidden">
           <CardHeader className="bg-primary/10">
-            <CardTitle className="text-lg">Calendário</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-primary" />
+              Calendário
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4 flex justify-center calendar-custom">
             <Calendar
@@ -182,35 +188,37 @@ export default function AgendaPage() {
 
         <Card className="border-none shadow-xl bg-card overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-lg">Dica do Especialista</CardTitle>
+            <CardTitle className="text-lg">Resumo do Dia</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex gap-4 p-4 rounded-xl bg-accent/10 border border-accent/20">
-              <Wallet className="h-6 w-6 text-accent shrink-0" />
-              <p className="text-sm leading-relaxed text-accent-foreground">
-                Finalize os agendamentos assim que o cliente pagar para manter seus relatórios financeiros atualizados.
-              </p>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border">
+              <span className="text-sm text-muted-foreground">Agendados:</span>
+              <span className="font-bold">{activeAppointments.length}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+              <span className="text-sm text-green-500">Finalizados:</span>
+              <span className="font-bold text-green-500">{completedAppointments.length}</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="lg:col-span-8">
-        <Card className="border-none shadow-xl bg-card">
+        <Card className="border-none shadow-xl bg-card h-full min-h-[400px]">
           <CardHeader>
-            <CardTitle className="font-headline">
-              {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : '...'}
+            <CardTitle className="font-headline text-2xl">
+              {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : 'Selecione uma data'}
             </CardTitle>
-            <CardDescription>{filteredAppointments.length} horários totais.</CardDescription>
+            <CardDescription>{filteredAppointments.length} atendimentos totais no dia.</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="active" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-secondary/30 mb-6">
-                <TabsTrigger value="active" className="flex items-center gap-2">
+              <TabsList className="grid w-full grid-cols-2 bg-secondary/30 mb-6 h-12 p-1">
+                <TabsTrigger value="active" className="flex items-center gap-2 text-sm font-bold">
                   <CalendarDays className="h-4 w-4" />
                   Agendamentos ({activeAppointments.length})
                 </TabsTrigger>
-                <TabsTrigger value="history" className="flex items-center gap-2">
+                <TabsTrigger value="history" className="flex items-center gap-2 text-sm font-bold">
                   <HistoryIcon className="h-4 w-4" />
                   Finalizados ({completedAppointments.length})
                 </TabsTrigger>
@@ -219,10 +227,10 @@ export default function AgendaPage() {
               <TabsContent value="active" className="space-y-4">
                 {activeAppointments.length > 0 ? (
                   activeAppointments
-                    .sort((a, b) => a.time.localeCompare(b.time))
+                    .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
                     .map(renderAppointmentCard)
                 ) : (
-                  <div className="py-20 text-center flex flex-col items-center gap-4">
+                  <div className="py-24 text-center flex flex-col items-center gap-4 border-2 border-dashed border-border rounded-3xl opacity-60">
                     <Clock className="h-12 w-12 text-muted-foreground opacity-20" />
                     <p className="text-muted-foreground italic">Nenhum agendamento ativo para este dia.</p>
                   </div>
@@ -232,10 +240,10 @@ export default function AgendaPage() {
               <TabsContent value="history" className="space-y-4">
                 {completedAppointments.length > 0 ? (
                   completedAppointments
-                    .sort((a, b) => a.time.localeCompare(b.time))
+                    .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
                     .map(renderAppointmentCard)
                 ) : (
-                  <div className="py-20 text-center flex flex-col items-center gap-4">
+                  <div className="py-24 text-center flex flex-col items-center gap-4 border-2 border-dashed border-border rounded-3xl opacity-60">
                     <HistoryIcon className="h-12 w-12 text-muted-foreground opacity-20" />
                     <p className="text-muted-foreground italic">Nenhum atendimento finalizado nesta data.</p>
                   </div>
