@@ -29,8 +29,13 @@ export const FirebaseProvider: React.FC<{
   auth,
 }) => {
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Marcamos como montado para garantir que o cliente e o servidor 
+    // tenham tido o primeiro render idêntico (loading screen).
+    setMounted(true);
+    
     // Sistema de Autenticação Silenciosa para Single-User
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
@@ -55,8 +60,9 @@ export const FirebaseProvider: React.FC<{
     auth,
   }), [firebaseApp, firestore, auth]);
 
-  // Bloqueio Crítico: Não renderiza os filhos (queries do Firestore) até que o Auth esteja pronto
-  if (!isAuthReady) {
+  // FIX DE HIDRATAÇÃO: Só renderizamos o conteúdo real após a montagem no cliente e o Auth pronto.
+  // No servidor e no primeiro pass do cliente, 'mounted' é false, forçando o mesmo loading screen.
+  if (!mounted || !isAuthReady) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6">
