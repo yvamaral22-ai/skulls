@@ -68,6 +68,9 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
+      clientName: '',
+      staffId: '',
+      serviceId: '',
       time: '09:00',
       date: new Date(),
     },
@@ -171,7 +174,6 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
           )}
         />
 
-        {/* Movido Data e Hora para cima para evitar sobreposição de cliques com o Popover */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -205,7 +207,6 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                       onSelect={(date) => {
                         if (date) {
                           field.onChange(date);
-                          // Delay mínimo para garantir o registro antes de fechar
                           setTimeout(() => setIsCalendarOpen(false), 150);
                         }
                       }}
