@@ -11,7 +11,7 @@ import {
 } from "recharts"
 import { 
   TrendingUp, DollarSign, ArrowDownRight, 
-  Calendar as CalendarIcon, Briefcase, Wallet, Loader2, Play
+  Calendar as CalendarIcon, Briefcase, Wallet, Loader2, Play, FileBarChart
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -25,6 +25,7 @@ export default function ReportsPage() {
   const [endDate, setEndDate] = React.useState("")
   const [appliedStartDate, setAppliedStartDate] = React.useState("")
   const [appliedEndDate, setAppliedEndDate] = React.useState("")
+  const [hasGenerated, setHasGenerated] = React.useState(false)
 
   React.useEffect(() => {
     const now = new Date();
@@ -32,8 +33,6 @@ export default function ReportsPage() {
     const end = format(endOfMonth(now), 'yyyy-MM-dd');
     setStartDate(start);
     setEndDate(end);
-    setAppliedStartDate(start);
-    setAppliedEndDate(end);
   }, []);
 
   const barberProfileId = user?.uid
@@ -60,10 +59,11 @@ export default function ReportsPage() {
   const handleApplyFilters = () => {
     setAppliedStartDate(startDate);
     setAppliedEndDate(endDate);
+    setHasGenerated(true);
   }
 
   const stats = React.useMemo(() => {
-    if (!appointments || !appliedStartDate || !appliedEndDate) return null;
+    if (!appointments || !appliedStartDate || !appliedEndDate || !hasGenerated) return null;
 
     const filteredAppts = appointments.filter(a => 
       a.date >= appliedStartDate && 
@@ -108,9 +108,12 @@ export default function ReportsPage() {
     }))
 
     return { totalRevenue, totalCommissions, totalExpenses, netProfit, staffReport, chartData, count: filteredAppts.length }
-  }, [appointments, staff, expenses, appliedStartDate, appliedEndDate])
+  }, [appointments, staff, expenses, appliedStartDate, appliedEndDate, hasGenerated])
 
-  if (isApptsLoading || isStaffLoading || isExpensesLoading || !startDate) {
+  // Somente mostra o loader global se não tivermos NENHUM dado carregado ainda
+  const isInitialLoading = (isApptsLoading && !appointments) || (isStaffLoading && !staff);
+
+  if (isInitialLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -151,116 +154,126 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-none bg-card shadow-xl border-t-4 border-t-primary">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Faturamento</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black">R$ {stats?.totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground mt-1">{stats?.count} cortes finalizados</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-none bg-card shadow-xl border-t-4 border-t-blue-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Comissões</CardTitle>
-            <Briefcase className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black">R$ {stats?.totalCommissions.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Total pago à equipe</p>
-          </CardContent>
-        </Card>
+      {!hasGenerated ? (
+        <div className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-border rounded-3xl opacity-60">
+          <FileBarChart className="h-16 w-16 text-muted-foreground mb-4 opacity-20" />
+          <h3 className="text-xl font-bold">Pronto para analisar?</h3>
+          <p className="text-muted-foreground italic text-sm">Selecione as datas acima e clique em "Gerar Relatório" para começar.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 animate-in slide-in-from-bottom-2 duration-500">
+            <Card className="border-none bg-card shadow-xl border-t-4 border-t-primary">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Faturamento</CardTitle>
+                <DollarSign className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-black">R$ {stats?.totalRevenue.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stats?.count} cortes finalizados</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-none bg-card shadow-xl border-t-4 border-t-blue-500">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Comissões</CardTitle>
+                <Briefcase className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-black">R$ {stats?.totalCommissions.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">Total pago à equipe</p>
+              </CardContent>
+            </Card>
 
-        <Card className="border-none bg-card shadow-xl border-t-4 border-t-red-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Despesas</CardTitle>
-            <ArrowDownRight className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black">R$ {stats?.totalExpenses.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Custos operacionais</p>
-          </CardContent>
-        </Card>
+            <Card className="border-none bg-card shadow-xl border-t-4 border-t-red-500">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Despesas</CardTitle>
+                <ArrowDownRight className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-black">R$ {stats?.totalExpenses.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">Custos operacionais</p>
+              </CardContent>
+            </Card>
 
-        <Card className="border-none bg-card shadow-xl border-t-4 border-t-green-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Lucro Líquido</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-green-500">R$ {stats?.netProfit.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Resultado no período</p>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="border-none bg-card shadow-xl border-t-4 border-t-green-500">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Lucro Líquido</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-black text-green-500">R$ {stats?.netProfit.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">Resultado no período</p>
+              </CardContent>
+            </Card>
+          </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-none bg-card shadow-xl overflow-hidden">
-          <CardHeader className="bg-secondary/20">
-            <CardTitle className="font-headline text-lg flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-primary" />
-              Ranking de Produção
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="pl-6 font-bold">Barbeiro</TableHead>
-                  <TableHead className="font-bold">Atendimentos</TableHead>
-                  <TableHead className="font-bold">Faturamento</TableHead>
-                  <TableHead className="text-right pr-6 text-blue-400 font-bold">Comissão</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stats?.staffReport.map((s, idx) => (
-                  <TableRow key={idx} className="border-border hover:bg-primary/5 transition-colors">
-                    <TableCell className="font-bold pl-6">{s.name}</TableCell>
-                    <TableCell>{s.count} serviços</TableCell>
-                    <TableCell>R$ {s.revenue.toFixed(2)}</TableCell>
-                    <TableCell className="text-right pr-6 text-blue-400 font-black">
-                      R$ {s.commission.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(!stats || stats.staffReport.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic">
-                      Clique em "Gerar Relatório" para visualizar os dados.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="lg:col-span-2 border-none bg-card shadow-xl overflow-hidden">
+              <CardHeader className="bg-secondary/20">
+                <CardTitle className="font-headline text-lg flex items-center gap-2">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                  Ranking de Produção
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="pl-6 font-bold">Barbeiro</TableHead>
+                      <TableHead className="font-bold">Atendimentos</TableHead>
+                      <TableHead className="font-bold">Faturamento</TableHead>
+                      <TableHead className="text-right pr-6 text-blue-400 font-bold">Comissão</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stats?.staffReport.map((s, idx) => (
+                      <TableRow key={idx} className="border-border hover:bg-primary/5 transition-colors">
+                        <TableCell className="font-bold pl-6">{s.name}</TableCell>
+                        <TableCell>{s.count} serviços</TableCell>
+                        <TableCell>R$ {s.revenue.toFixed(2)}</TableCell>
+                        <TableCell className="text-right pr-6 text-blue-400 font-black">
+                          R$ {s.commission.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {(!stats || stats.staffReport.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic">
+                          Nenhum dado disponível para o período selecionado.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
-        <Card className="border-none bg-card shadow-xl">
-          <CardHeader>
-            <CardTitle className="font-headline text-lg flex items-center gap-2">
-              <Wallet className="h-5 w-5 text-accent" />
-              Fontes de Pagamento
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="h-[350px] mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats?.chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#888' }} />
-                <YAxis axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#888' }} />
-                <Tooltip 
-                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ backgroundColor: '#130f1f', border: '1px solid #2d2445', borderRadius: '12px' }}
-                />
-                <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="border-none bg-card shadow-xl">
+              <CardHeader>
+                <CardTitle className="font-headline text-lg flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-accent" />
+                  Fontes de Pagamento
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="h-[350px] mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats?.chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#888' }} />
+                    <YAxis axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#888' }} />
+                    <Tooltip 
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      contentStyle={{ backgroundColor: '#130f1f', border: '1px solid #2d2445', borderRadius: '12px' }}
+                    />
+                    <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </div>
   )
 }
