@@ -1,69 +1,10 @@
 'use client';
 
-import type { Metadata } from 'next';
 import './globals.css';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { FirebaseClientProvider } from '@/firebase';
-import { AuthInitializer } from '@/components/auth-initializer';
 import { Toaster } from '@/components/ui/toaster';
-import { BottomNav } from '@/components/bottom-nav';
-import { useUser } from '@/firebase';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
-
-function RouteGuard({ children }: { children: React.ReactNode }) {
-  const { user, role, isUserLoading } = useUser();
-  const pathname = usePathname();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isUserLoading) {
-      const isLoginPage = pathname === '/login';
-      const adminRoutes = ['/', '/agenda', '/customers', '/services', '/staff', '/reports'];
-      const isTryingAdmin = adminRoutes.includes(pathname);
-
-      // Se não estiver logado e não estiver na página de login, manda pra lá
-      if (!user && !isLoginPage) {
-        router.push('/login');
-        return;
-      }
-
-      // Se estiver logado e na página de login, redireciona pro lugar certo
-      if (user && isLoginPage) {
-        if (role === 'CLIENT') router.push('/client');
-        else router.push('/');
-        return;
-      }
-
-      // Se for cliente tentando acessar gestão, manda para área de cliente
-      if (user && role === 'CLIENT' && isTryingAdmin) {
-        router.push('/client');
-        return;
-      }
-      
-      // Se for barbeiro tentando acessar área de cliente, manda para dashboard
-      if (user && (role === 'BARBER' || role === 'ADMIN') && pathname === '/client') {
-        router.push('/');
-        return;
-      }
-    }
-  }, [user, role, isUserLoading, pathname, router]);
-
-  if (isUserLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground animate-pulse">Autenticando acesso...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-}
 
 export default function RootLayout({
   children,
@@ -79,14 +20,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background">
         <FirebaseClientProvider>
-          <AuthInitializer />
-          <SidebarProvider>
+          <SidebarProvider defaultOpen={true}>
             <div className="flex min-h-screen w-full relative">
               <AppSidebar />
               <SidebarInset className="flex-1 overflow-auto p-4 md:p-8">
-                <RouteGuard>{children}</RouteGuard>
+                {children}
               </SidebarInset>
-              <BottomNav />
             </div>
           </SidebarProvider>
           <Toaster />

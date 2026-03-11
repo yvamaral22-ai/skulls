@@ -6,8 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, parseISO, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Clock, Loader2, Check } from 'lucide-react';
+import { CalendarIcon, Clock, Loader2, Check, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Form,
   FormControl,
@@ -15,7 +16,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/components/form';
 import {
   Select,
   SelectContent,
@@ -26,11 +27,12 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp, query, where, getDocs, limit } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 const bookingSchema = z.object({
+  clientName: z.string().min(2, 'Informe o nome do cliente'),
   staffId: z.string().min(1, 'Selecione um barbeiro'),
   serviceId: z.string().min(1, 'Selecione um serviço'),
   date: z.date({
@@ -54,35 +56,16 @@ const TIME_SLOTS = [
 ];
 
 export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
-  const { user, role } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
-  const [targetBarberShopId, setTargetBarberShopId] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    async function fetchShop() {
-      if (role === 'BARBER' || role === 'ADMIN') {
-        setTargetBarberShopId(user?.uid || null);
-      } else {
-        const q = query(collection(db, 'barberProfiles'), limit(1));
-        const snap = await getDocs(q);
-        if (!snap.empty) setTargetBarberShopId(snap.docs[0].id);
-      }
-    }
-    fetchShop();
-  }, [user, role, db]);
+  // No sistema single-user, usamos um ID fixo ou do admin para a barbearia
+  const barberShopId = "master-barbershop";
 
-  const servicesQuery = useMemoFirebase(() => {
-    if (!targetBarberShopId) return null;
-    return collection(db, 'barberProfiles', targetBarberShopId, 'services');
-  }, [db, targetBarberShopId]);
-
-  const staffQuery = useMemoFirebase(() => {
-    if (!targetBarberShopId) return null;
-    return collection(db, 'barberProfiles', targetBarberShopId, 'staff');
-  }, [db, targetBarberShopId]);
+  const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'services'), [db]);
+  const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'staff'), [db]);
 
   const { data: services } = useCollection(servicesQuery);
   const { data: staff } = useCollection(staffQuery);
@@ -90,6 +73,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
+      clientName: initialData?.clientName || '',
       staffId: initialData?.staffId || '',
       serviceId: initialData?.serviceId || '',
       time: initialData?.time || '',
@@ -101,36 +85,30 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const selectedStaffId = form.watch('staffId');
 
   const appointmentsQuery = useMemoFirebase(() => {
-    if (!targetBarberShopId || !selectedDate || !selectedStaffId) return null;
+    if (!selectedDate || !selectedStaffId) return null;
     return query(
-      collection(db, 'barberProfiles', targetBarberShopId, 'appointments'),
+      collection(db, 'barberProfiles', barberShopId, 'appointments'),
       where('date', '==', format(selectedDate, 'yyyy-MM-dd')),
       where('staffId', '==', selectedStaffId),
       where('status', '!=', 'Canceled')
     );
-  }, [db, targetBarberShopId, selectedDate, selectedStaffId]);
+  }, [db, selectedDate, selectedStaffId]);
 
   const { data: existingAppointments } = useCollection(appointmentsQuery);
-
-  const occupiedSlots = React.useMemo(() => {
-    return existingAppointments?.map(a => a.time) || [];
-  }, [existingAppointments]);
+  const occupiedSlots = React.useMemo(() => existingAppointments?.map(a => a.time) || [], [existingAppointments]);
 
   async function onSubmit(data: BookingFormValues) {
-    if (!user || !targetBarberShopId) return;
-    
     setIsSubmitting(true);
     const targetDateStr = format(data.date, 'yyyy-MM-dd');
 
     try {
       const selectedService = services?.find(s => s.id === data.serviceId);
-      const apptId = initialData?.id || doc(collection(db, 'barberProfiles', targetBarberShopId, 'appointments')).id;
+      const apptId = initialData?.id || doc(collection(db, 'barberProfiles', barberShopId, 'appointments')).id;
       
       const appointmentData = {
         id: apptId,
-        barberProfileId: targetBarberShopId,
-        clientId: user.uid,
-        clientName: user.displayName || 'Cliente',
+        barberProfileId: barberShopId,
+        clientName: data.clientName,
         staffId: data.staffId,
         serviceId: data.serviceId,
         date: targetDateStr,
@@ -140,17 +118,17 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
         createdAt: serverTimestamp(),
       };
 
-      await setDoc(doc(db, 'barberProfiles', targetBarberShopId, 'appointments', apptId), appointmentData);
+      await setDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', apptId), appointmentData);
 
       toast({
-        title: 'Sucesso!',
-        description: `Horário reservado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
+        title: 'Agendamento Salvo!',
+        description: `${data.clientName} agendado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
       });
       
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar o agendamento.' });
+      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao salvar agendamento.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -158,8 +136,25 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="clientName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome do Cliente</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input {...field} placeholder="Digite o nome do cliente" className="pl-10 h-12 bg-background border-2" />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="date"
@@ -174,21 +169,15 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                         variant={"outline"}
                         className={cn(
                           "w-full text-left font-normal h-12 bg-background border-2",
-                          !field.value && "text-muted-foreground",
-                          isCalendarOpen && "border-primary ring-2 ring-primary/20"
+                          !field.value && "text-muted-foreground"
                         )}
                       >
-                        {field.value ? format(field.value, "dd/MM/yyyy") : "Escolha a data"}
+                        {field.value ? format(field.value, "dd/MM/yyyy") : "Data"}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-auto p-0 z-[10001] pointer-events-auto" 
-                    align="start"
-                    side="bottom"
-                    sideOffset={8}
-                  >
+                  <PopoverContent className="w-auto p-0 z-[10001]">
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -196,7 +185,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                         if (date) {
                           field.onChange(date);
                           setIsCalendarOpen(false);
-                          form.setValue('time', ''); 
                         }
                       }}
                       locale={ptBR}
@@ -216,10 +204,10 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Horário</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDate || !selectedStaffId}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="h-12 bg-background border-2">
-                      <SelectValue placeholder={!selectedStaffId ? "Selecione o profissional" : "Escolha o horário"} />
+                      <SelectValue placeholder="Hora" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="max-h-[300px] z-[10001]">
@@ -227,11 +215,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                       const isOccupied = occupiedSlots.includes(slot);
                       return (
                         <SelectItem key={slot} value={slot} disabled={isOccupied}>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
-                            {slot}
-                            {isOccupied && <span className="text-[10px] text-destructive ml-2">(Ocupado)</span>}
-                          </div>
+                          {slot} {isOccupied ? '(Ocupado)' : ''}
                         </SelectItem>
                       );
                     })}
@@ -243,64 +227,59 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           />
         </div>
 
-        <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="staffId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Profissional</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-12 bg-background border-2">
-                      <SelectValue placeholder="Selecione o barbeiro" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="z-[10001]">
-                    {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="staffId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Barbeiro</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="h-12 bg-background border-2">
+                    <SelectValue placeholder="Selecione o profissional" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="z-[10001]">
+                  {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="serviceId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Serviço</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-12 bg-background border-2">
-                      <SelectValue placeholder="Selecione o serviço" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="z-[10001]">
-                    {services?.map(s => (
-                      <SelectItem key={s.id} value={s.id}>
-                        <div className="flex justify-between w-full gap-8">
-                          <span>{s.name}</span>
-                          <span className="font-bold text-primary">R$ {Number(s.price).toFixed(2)}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="serviceId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Serviço</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="h-12 bg-background border-2">
+                    <SelectValue placeholder="Selecione o serviço" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="z-[10001]">
+                  {services?.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} - R$ {Number(s.price).toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button 
           type="submit" 
-          disabled={isSubmitting || !form.watch('time')}
+          disabled={isSubmitting}
           className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4"
         >
           {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
-          Confirmar Agendamento
+          Registrar Agendamento
         </Button>
       </form>
     </Form>
