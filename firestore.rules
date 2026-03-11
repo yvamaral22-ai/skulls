@@ -2,13 +2,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permissão total para o ID fixo da barbearia (Single-User)
-    // Isso garante que o barbeiro mestre sempre consiga gerenciar seus dados
+    // Permissão total para a operação interna do barbeiro mestre
     match /barberProfiles/master-barbershop/{allPaths=**} {
       allow read, write: if true;
     }
     
-    // Regra de fallback para garantir acesso geral se autenticado (inclui login anônimo)
+    // Regra de fallback para usuários autenticados (login anônimo automático)
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

@@ -34,17 +34,13 @@ export const FirebaseProvider: React.FC<{
   useEffect(() => {
     setMounted(true);
     
-    // Inicia a escuta da autenticação imediatamente
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
-        // Se não houver usuário, realiza o login anônimo silencioso
         signInAnonymously(auth)
-          .then(() => {
-            setIsAuthReady(true);
-          })
+          .then(() => setIsAuthReady(true))
           .catch(err => {
             console.error("Auth Error:", err);
-            setIsAuthReady(true); // Evita travar a UI em caso de erro, permitindo fallback
+            setIsAuthReady(true);
           });
       } else {
         setIsAuthReady(true);
@@ -61,9 +57,7 @@ export const FirebaseProvider: React.FC<{
     auth,
   }), [firebaseApp, firestore, auth]);
 
-  // FIX DE HIDRATAÇÃO E PERMISSÃO: 
-  // 1. O servidor e o cliente rendenrizam o mesmo fallback inicial (mounted === false).
-  // 2. Só exibimos o conteúdo real após 'isAuthReady', evitando requisições sem permissão.
+  // FIX DE HIDRATAÇÃO: Servidor e Cliente rendenrizam o mesmo fallback inicial.
   if (!mounted || !isAuthReady) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
