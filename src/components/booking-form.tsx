@@ -16,7 +16,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/form';
 import {
   Select,
   SelectContent,
@@ -48,7 +48,6 @@ interface BookingFormProps {
   initialData?: any;
 }
 
-// Horários padrão da barbearia (pode ser expandido para ser configurável)
 const TIME_SLOTS = [
   '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', 
   '11:00', '11:30', '13:00', '13:30', '14:00', '14:30', 
@@ -63,21 +62,14 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [targetBarberShopId, setTargetBarberShopId] = React.useState<string | null>(null);
 
-  // No modo SaaS, precisamos identificar a barbearia. 
-  // Se for admin, a barbearia é a dele. Se for cliente, buscamos a ativa.
   React.useEffect(() => {
     if (role === 'BARBER' || role === 'ADMIN') {
       setTargetBarberShopId(user?.uid || null);
     } else {
       async function fetchShop() {
-        const q = query(collection(db, 'barberProfiles'), where('isActive', '==', true));
+        const q = query(collection(db, 'barberProfiles'), limit(1));
         const snap = await getDocs(q);
         if (!snap.empty) setTargetBarberShopId(snap.docs[0].id);
-        else {
-          // Fallback para pegar a primeira se não houver flag isActive
-          const fallback = await getDocs(query(collection(db, 'barberProfiles')));
-          if (!fallback.empty) setTargetBarberShopId(fallback.docs[0].id);
-        }
       }
       fetchShop();
     }
@@ -108,9 +100,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
   const selectedDate = form.watch('date');
   const selectedStaffId = form.watch('staffId');
-  const selectedServiceId = form.watch('serviceId');
 
-  // Consulta agendamentos existentes para a data e barbeiro selecionado
   const appointmentsQuery = useMemoFirebase(() => {
     if (!targetBarberShopId || !selectedDate || !selectedStaffId) return null;
     return query(
@@ -134,22 +124,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
     const targetDateStr = format(data.date, 'yyyy-MM-dd');
 
     try {
-      // Verificação final de conflito
-      const conflictQuery = query(
-        collection(db, 'barberProfiles', targetBarberShopId, 'appointments'),
-        where('date', '==', targetDateStr),
-        where('staffId', '==', data.staffId),
-        where('time', '==', data.time),
-        where('status', '!=', 'Canceled')
-      );
-      const conflictSnap = await getDocs(conflictQuery);
-      
-      if (!conflictSnap.empty) {
-        toast({ variant: 'destructive', title: 'Horário Ocupado', description: 'Infelizmente alguém acabou de reservar este horário.' });
-        setIsSubmitting(false);
-        return;
-      }
-
       const selectedService = services?.find(s => s.id === data.serviceId);
       const apptId = initialData?.id || doc(collection(db, 'barberProfiles', targetBarberShopId, 'appointments')).id;
       
@@ -171,7 +145,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
       toast({
         title: 'Sucesso!',
-        description: `Seu horário foi reservado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
+        description: `Horário reservado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
       });
       
       if (onSuccess) onSuccess();
@@ -187,7 +161,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          {/* Seleção de Barbeiro */}
           <FormField
             control={form.control}
             name="staffId"
@@ -209,7 +182,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             )}
           />
 
-          {/* Seleção de Serviço */}
           <FormField
             control={form.control}
             name="serviceId"
@@ -238,7 +210,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             )}
           />
 
-          {/* Seleção de Data */}
           <FormField
             control={form.control}
             name="date"
@@ -265,9 +236,11 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                       mode="single"
                       selected={field.value}
                       onSelect={(date) => {
-                        field.onChange(date);
-                        setIsCalendarOpen(false);
-                        form.setValue('time', ''); // Reseta o horário ao mudar a data
+                        if (date) {
+                          field.onChange(date);
+                          setIsCalendarOpen(false);
+                          form.setValue('time', ''); 
+                        }
                       }}
                       locale={ptBR}
                       disabled={(date) => startOfDay(date) < startOfDay(new Date())}
@@ -280,7 +253,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             )}
           />
 
-          {/* Grid de Horários */}
           {selectedDate && selectedStaffId ? (
             <FormField
               control={form.control}
