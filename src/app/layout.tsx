@@ -7,6 +7,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { FirebaseClientProvider } from '@/firebase';
 import { Toaster } from '@/components/ui/toaster';
 import { BottomNav } from '@/components/bottom-nav';
+import React from 'react';
 
 const BarberPoleIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -29,10 +30,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Força a atualização do título para evitar caches de modelos anteriores
+  React.useEffect(() => {
+    document.title = "Barbearia Skull's | Gestão Profissional";
+  }, []);
+
   return (
     <html lang="pt-BR" className="dark">
       <head>
         <title>Barbearia Skull's | Gestão Profissional</title>
+        <meta name="description" content="Sistema de gestão profissional para a Barbearia Skull's" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
         
         {/* PWA Meta Tags */}
