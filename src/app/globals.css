@@ -65,7 +65,7 @@
 
 .calendar-custom .rdp-day_button,
 .rdp-day_button {
-  @apply rounded-md transition-all h-9 w-9 flex items-center justify-center;
+  @apply rounded-md transition-all h-9 w-9 flex items-center justify-center cursor-pointer;
 }
 
 .calendar-custom .rdp-selected .rdp-day_button,
@@ -79,9 +79,13 @@
 }
 
 .rdp-month_caption {
-  @apply flex justify-center items-center py-2 relative;
+  @apply flex justify-center items-center py-2 relative h-10;
 }
 
 .rdp-nav {
-  @apply absolute left-0 right-0 flex justify-between px-2;
+  @apply flex justify-between absolute inset-x-0 top-0 h-10 items-center px-1 pointer-events-none;
+}
+
+.rdp-nav button {
+  @apply pointer-events-auto z-20;
 }
