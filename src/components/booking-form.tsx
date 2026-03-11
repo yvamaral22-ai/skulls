@@ -48,6 +48,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
   const { user } = useUser();
   const db = useFirestore();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
   const barberProfileId = user?.uid || 'loading';
 
@@ -226,13 +227,13 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Data</FormLabel>
-                <Popover>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal bg-background",
+                          "w-full pl-3 text-left font-normal bg-background border-border hover:bg-accent",
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -249,7 +250,12 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                     <Calendar
                       mode="single"
                       selected={field.value}
-                      onSelect={(date) => field.onChange(date || new Date())}
+                      onSelect={(date) => {
+                        if (date) {
+                          field.onChange(date);
+                          setIsCalendarOpen(false);
+                        }
+                      }}
                       locale={ptBR}
                       disabled={(date) =>
                         date < new Date(new Date().setHours(0,0,0,0))

@@ -58,6 +58,12 @@ export default function AgendaPage() {
     return appointments.filter(appt => appt.date === targetDateStr);
   }, [date, appointments]);
 
+  const handleDateSelect = (newDate: Date | undefined) => {
+    if (newDate) {
+      setDate(newDate);
+    }
+  };
+
   if (isApptsLoading || isServicesLoading || isClientsLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -108,7 +114,7 @@ export default function AgendaPage() {
             <Calendar
               mode="single"
               selected={date}
-              onSelect={setDate}
+              onSelect={handleDateSelect}
               locale={ptBR}
               className="rounded-md border-none"
             />
