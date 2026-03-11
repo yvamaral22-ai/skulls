@@ -13,7 +13,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Clock, User, Scissors, CalendarDays, Wallet, Loader2, CheckCircle2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Clock, User, Scissors, CalendarDays, Wallet, Loader2, CheckCircle2, History as HistoryIcon } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
@@ -58,6 +59,9 @@ export default function AgendaPage() {
     return appointments.filter(appt => appt.date === targetDateStr);
   }, [date, appointments]);
 
+  const activeAppointments = filteredAppointments.filter(a => a.status === 'scheduled');
+  const completedAppointments = filteredAppointments.filter(a => a.status === 'completed');
+
   const handleDateSelect = (newDate: Date | undefined) => {
     if (newDate) {
       setDate(newDate);
@@ -72,13 +76,68 @@ export default function AgendaPage() {
     );
   }
 
+  const renderAppointmentCard = (appt: any) => {
+    const client = clients?.find(c => c.id === appt.clientId);
+    const service = services?.find(s => s.id === appt.serviceId);
+    const isCompleted = appt.status === 'completed';
+
+    return (
+      <div key={appt.id} className="group relative animate-in fade-in slide-in-from-left-2 duration-300">
+        <div className={cn(
+          "flex flex-col md:flex-row md:items-center gap-6 p-5 rounded-2xl border transition-all duration-300",
+          isCompleted 
+            ? "bg-green-500/5 border-green-500/20" 
+            : "bg-secondary/20 border-border/50 hover:bg-secondary/40 hover:border-primary/30"
+        )}>
+          <div className="flex flex-row md:flex-col items-center justify-center min-w-[70px] py-2 border-b md:border-b-0 md:border-r border-border gap-2 md:gap-0">
+            <Clock className="h-4 w-4 text-primary" />
+            <span className="font-bold text-lg">{appt.time}</span>
+          </div>
+          
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <User className="h-4 w-4 text-accent" />
+              <h3 className="font-bold text-lg">{client?.name || 'Cliente'}</h3>
+              {isCompleted && (
+                <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 text-[10px]">
+                  <CheckCircle2 className="mr-1 h-3 w-3" /> PAGO via {appt.paymentMethod}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Scissors className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{service?.name || 'Serviço'}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-2">
+            <span className="text-xl font-bold text-primary">R$ {(appt.priceAtAppointment || service?.price || 0).toFixed(2)}</span>
+            <div className="flex gap-2">
+              {!isCompleted ? (
+                <CheckoutDialog 
+                  appointmentId={appt.id}
+                  customerName={client?.name || 'Cliente'}
+                  serviceName={service?.name || 'Serviço'}
+                  price={appt.priceAtAppointment || service?.price || 0}
+                  staffId={appt.staffId}
+                />
+              ) : (
+                <Badge variant="secondary" className="bg-primary/10 text-primary">Concluído</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-12 animate-in slide-in-from-bottom-4 duration-500">
       <div className="lg:col-span-12">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold font-headline text-primary">EstiloCerto - Agenda</h1>
-            <p className="text-muted-foreground">Gerencie seus horários e atendimentos.</p>
+            <p className="text-muted-foreground">Gerencie seus horários e atendimentos em tempo real.</p>
           </div>
           
           <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
@@ -123,13 +182,13 @@ export default function AgendaPage() {
 
         <Card className="border-none shadow-xl bg-card overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-lg">Resumo Financeiro</CardTitle>
+            <CardTitle className="text-lg">Dica do Especialista</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 p-4 rounded-xl bg-accent/10 border border-accent/20">
               <Wallet className="h-6 w-6 text-accent shrink-0" />
               <p className="text-sm leading-relaxed text-accent-foreground">
-                Lembre-se de finalizar os atendimentos para que o lucro entre nos relatórios mensais.
+                Finalize os agendamentos assim que o cliente pagar para manter seus relatórios financeiros atualizados.
               </p>
             </div>
           </CardContent>
@@ -140,75 +199,49 @@ export default function AgendaPage() {
         <Card className="border-none shadow-xl bg-card">
           <CardHeader>
             <CardTitle className="font-headline">
-              Agenda de {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : '...'}
+              {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : '...'}
             </CardTitle>
-            <CardDescription>{filteredAppointments.length} horários reservados.</CardDescription>
+            <CardDescription>{filteredAppointments.length} horários totais.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {filteredAppointments.length > 0 ? (
-                filteredAppointments.sort((a, b) => a.time.localeCompare(b.time)).map((appt) => {
-                  const client = clients?.find(c => c.id === appt.clientId);
-                  const service = services?.find(s => s.id === appt.serviceId);
-                  const isCompleted = appt.status === 'completed';
+            <Tabs defaultValue="active" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-secondary/30 mb-6">
+                <TabsTrigger value="active" className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4" />
+                  Agendamentos ({activeAppointments.length})
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2">
+                  <HistoryIcon className="h-4 w-4" />
+                  Finalizados ({completedAppointments.length})
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="active" className="space-y-4">
+                {activeAppointments.length > 0 ? (
+                  activeAppointments
+                    .sort((a, b) => a.time.localeCompare(b.time))
+                    .map(renderAppointmentCard)
+                ) : (
+                  <div className="py-20 text-center flex flex-col items-center gap-4">
+                    <Clock className="h-12 w-12 text-muted-foreground opacity-20" />
+                    <p className="text-muted-foreground italic">Nenhum agendamento ativo para este dia.</p>
+                  </div>
+                )}
+              </TabsContent>
 
-                  return (
-                    <div key={appt.id} className="group relative">
-                      <div className={cn(
-                        "flex flex-col md:flex-row md:items-center gap-6 p-5 rounded-2xl border transition-all duration-300",
-                        isCompleted 
-                          ? "bg-green-500/5 border-green-500/20" 
-                          : "bg-secondary/20 border-border/50 hover:bg-secondary/40 hover:border-primary/30"
-                      )}>
-                        <div className="flex flex-row md:flex-col items-center justify-center min-w-[70px] py-2 border-b md:border-b-0 md:border-r border-border gap-2 md:gap-0">
-                          <Clock className="h-4 w-4 text-primary" />
-                          <span className="font-bold text-lg">{appt.time}</span>
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <User className="h-4 w-4 text-accent" />
-                            <h3 className="font-bold text-lg">{client?.name || 'Cliente'}</h3>
-                            {isCompleted && (
-                              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 text-[10px]">
-                                <CheckCircle2 className="mr-1 h-3 w-3" /> PAGO via {appt.paymentMethod}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Scissors className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">{service?.name || 'Serviço'}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-2">
-                          <span className="text-xl font-bold text-primary">R$ {(appt.priceAtAppointment || service?.price || 0).toFixed(2)}</span>
-                          <div className="flex gap-2">
-                            {!isCompleted ? (
-                              <CheckoutDialog 
-                                appointmentId={appt.id}
-                                customerName={client?.name || 'Cliente'}
-                                serviceName={service?.name || 'Serviço'}
-                                price={appt.priceAtAppointment || service?.price || 0}
-                                staffId={appt.staffId}
-                              />
-                            ) : (
-                              <Badge variant="secondary" className="bg-primary/10 text-primary">Concluído</Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="py-20 text-center flex flex-col items-center gap-4">
-                  <Clock className="h-12 w-12 text-muted-foreground opacity-20" />
-                  <p className="text-muted-foreground italic">Nenhum agendamento para este dia.</p>
-                  <Button variant="outline" onClick={() => setIsBookingOpen(true)}>Agendar agora</Button>
-                </div>
-              )}
-            </div>
+              <TabsContent value="history" className="space-y-4">
+                {completedAppointments.length > 0 ? (
+                  completedAppointments
+                    .sort((a, b) => a.time.localeCompare(b.time))
+                    .map(renderAppointmentCard)
+                ) : (
+                  <div className="py-20 text-center flex flex-col items-center gap-4">
+                    <HistoryIcon className="h-12 w-12 text-muted-foreground opacity-20" />
+                    <p className="text-muted-foreground italic">Nenhum atendimento finalizado nesta data.</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
