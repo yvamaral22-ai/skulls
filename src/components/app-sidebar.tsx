@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -32,8 +33,6 @@ export function AppSidebar() {
       { title: "Relatórios", url: "/reports", icon: BarChart3 },
     ] : [
       { title: "Início", url: "/client", icon: Home },
-      { title: "Meus Agendamentos", url: "/agenda", icon: CalendarDays },
-      { title: "Perfil", url: "/client/profile", icon: User },
     ]),
   ]
 

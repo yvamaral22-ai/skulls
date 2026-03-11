@@ -1,24 +1,22 @@
+
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CalendarDays, User, Scissors } from 'lucide-react';
+import { Home, CalendarDays, User, Scissors, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { role } = useUser();
+  const { role, logout } = useUser();
 
   // Só exibe para Clientes no mobile
   if (role !== 'CLIENT') return null;
 
   const navItems = [
     { label: 'Início', href: '/client', icon: Home },
-    { label: 'Agenda', href: '/agenda', icon: CalendarDays },
-    { label: 'Serviços', href: '/client/services', icon: Scissors },
-    { label: 'Perfil', href: '/client/profile', icon: User },
   ];
 
   return (
@@ -41,6 +39,13 @@ export function BottomNav() {
             </Link>
           );
         })}
+        <button 
+          onClick={logout}
+          className="flex flex-col items-center justify-center gap-1 text-muted-foreground"
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="text-[10px] font-bold uppercase">Sair</span>
+        </button>
       </div>
     </nav>
   );
