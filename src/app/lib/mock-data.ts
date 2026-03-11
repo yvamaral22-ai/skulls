@@ -29,14 +29,14 @@ export const CUSTOMERS = [
 ];
 
 export const APPOINTMENTS = [
-  { id: 'a1', customerId: 'c1', staffId: 's1', serviceId: '1', date: '2025-05-20', time: '09:00', status: 'completed', priceAtAppointment: 50, commissionAtAppointment: 20 },
-  { id: 'a2', customerId: 'c2', staffId: 's2', serviceId: '3', date: '2025-05-20', time: '10:30', status: 'completed', priceAtAppointment: 70, commissionAtAppointment: 28 },
-  { id: 'a3', customerId: 'c3', staffId: 's1', serviceId: '1', date: '2025-05-20', time: '14:00', status: 'confirmed', priceAtAppointment: 50, commissionAtAppointment: 0 },
-  { id: 'a4', customerId: 'c4', staffId: 's2', serviceId: '6', date: '2025-05-21', time: '11:00', status: 'confirmed', priceAtAppointment: 120, commissionAtAppointment: 0 },
+  { id: 'a1', customerId: 'c1', staffId: 's1', serviceId: '1', date: '2025-05-20', time: '09:00', status: 'completed', paymentMethod: 'PIX', priceAtAppointment: 50, commissionAtAppointment: 20 },
+  { id: 'a2', customerId: 'c2', staffId: 's2', serviceId: '3', date: '2025-05-20', time: '10:30', status: 'completed', paymentMethod: 'Credit', priceAtAppointment: 70, commissionAtAppointment: 28 },
+  { id: 'a3', customerId: 'c3', staffId: 's1', serviceId: '1', date: '2025-05-20', time: '14:00', status: 'scheduled', priceAtAppointment: 50, commissionAtAppointment: 0 },
+  { id: 'a4', customerId: 'c4', staffId: 's2', serviceId: '6', date: '2025-05-21', time: '11:00', status: 'scheduled', priceAtAppointment: 120, commissionAtAppointment: 0 },
   // Dados históricos para relatórios
-  { id: 'h1', customerId: 'c1', staffId: 's1', serviceId: '1', date: '2025-03-05', time: '09:00', status: 'completed', priceAtAppointment: 50, commissionAtAppointment: 20 },
-  { id: 'h2', customerId: 'c2', staffId: 's2', serviceId: '3', date: '2025-03-15', time: '10:30', status: 'completed', priceAtAppointment: 70, commissionAtAppointment: 28 },
-  { id: 'h3', customerId: 'c1', staffId: 's1', serviceId: '2', date: '2025-03-25', time: '11:00', status: 'completed', priceAtAppointment: 30, commissionAtAppointment: 12 },
+  { id: 'h1', customerId: 'c1', staffId: 's1', serviceId: '1', date: '2025-03-05', time: '09:00', status: 'completed', paymentMethod: 'Cash', priceAtAppointment: 50, commissionAtAppointment: 20 },
+  { id: 'h2', customerId: 'c2', staffId: 's2', serviceId: '3', date: '2025-03-15', time: '10:30', status: 'completed', paymentMethod: 'PIX', priceAtAppointment: 70, commissionAtAppointment: 28 },
+  { id: 'h3', customerId: 'c1', staffId: 's1', serviceId: '2', date: '2025-03-25', time: '11:00', status: 'completed', paymentMethod: 'Debit', priceAtAppointment: 30, commissionAtAppointment: 12 },
 ];
 
 export const EXPENSES = [

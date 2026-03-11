@@ -76,6 +76,7 @@
         "startTime": { "type": "string", "format": "date-time" },
         "endTime": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["Scheduled", "Completed", "Canceled"] },
+        "paymentMethod": { "type": "string", "enum": ["Cash", "Credit", "Debit", "PIX"] },
         "priceAtAppointment": { "type": "number" },
         "commissionAtAppointment": { "type": "number" },
         "notes": { "type": "string" }
