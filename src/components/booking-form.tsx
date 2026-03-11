@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, parseISO, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Clock, Loader2, Check, User } from 'lucide-react';
+import { CalendarIcon, Clock, Loader2, Check, User, Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,9 +36,7 @@ const bookingSchema = z.object({
   clientName: z.string().min(2, 'Informe o nome do cliente'),
   staffId: z.string().min(1, 'Selecione um barbeiro'),
   serviceId: z.string().min(1, 'Selecione um serviço'),
-  date: z.date({
-    required_error: 'Selecione uma data',
-  }),
+  date: z.date({ required_error: 'Selecione uma data' }),
   time: z.string().min(1, 'Selecione um horário'),
 });
 
@@ -67,8 +65,8 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'services'), [db]);
   const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'staff'), [db]);
 
-  const { data: services } = useCollection(servicesQuery);
-  const { data: staff } = useCollection(staffQuery);
+  const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
+  const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -97,7 +95,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const { data: existingAppointments } = useCollection(appointmentsQuery);
   const occupiedSlots = React.useMemo(() => {
     return existingAppointments
-      ?.filter(a => a.id !== initialData?.id) // Não bloquear o próprio slot ao editar
+      ?.filter(a => a.id !== initialData?.id)
       ?.map(a => a.time) || [];
   }, [existingAppointments, initialData]);
 
@@ -134,7 +132,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
       toast({
         title: isUpdate ? 'Agendamento Atualizado!' : 'Agendamento Salvo!',
-        description: `${data.clientName} para ${format(data.date, 'dd/MM')} às ${data.time}.`,
+        description: `${data.clientName} registrado com sucesso.`,
       });
       
       if (onSuccess) onSuccess();
@@ -179,26 +177,18 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                       <Button
                         type="button"
                         variant={"outline"}
-                        className={cn(
-                          "w-full text-left font-normal h-12 bg-background border-2",
-                          !field.value && "text-muted-foreground"
-                        )}
+                        className={cn("w-full text-left font-normal h-12 bg-background border-2", !field.value && "text-muted-foreground")}
                       >
                         {field.value ? format(field.value, "dd/MM/yyyy") : "Data"}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[10001] pointer-events-auto">
+                  <PopoverContent className="w-auto p-0 z-[10001]">
                     <Calendar
                       mode="single"
                       selected={field.value}
-                      onSelect={(date) => {
-                        if (date) {
-                          field.onChange(date);
-                          setIsCalendarOpen(false);
-                        }
-                      }}
+                      onSelect={(date) => { if (date) { field.onChange(date); setIsCalendarOpen(false); } }}
                       locale={ptBR}
                       disabled={(date) => startOfDay(date) < startOfDay(new Date())}
                       initialFocus
@@ -248,7 +238,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger className="h-12 bg-background border-2">
-                    <SelectValue placeholder="Selecione o profissional" />
+                    <SelectValue placeholder={isStaffLoading ? "Carregando..." : "Selecione o profissional"} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent className="z-[10001]">
@@ -269,7 +259,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger className="h-12 bg-background border-2">
-                    <SelectValue placeholder="Selecione o serviço" />
+                    <SelectValue placeholder={isServicesLoading ? "Carregando..." : "Selecione o serviço"} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent className="z-[10001]">
@@ -285,11 +275,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           )}
         />
 
-        <Button 
-          type="submit" 
-          disabled={isSubmitting}
-          className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4"
-        >
+        <Button type="submit" disabled={isSubmitting} className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4">
           {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
           {initialData?.id ? 'Salvar Alterações' : 'Registrar Agendamento'}
         </Button>
