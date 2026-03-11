@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Clock, User, Scissors, CalendarDays, Loader2, 
-  CheckCircle2, History as HistoryIcon, Pencil, Trash2 
+  CheckCircle2, History as HistoryIcon, Pencil, Trash2, Briefcase 
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
@@ -63,9 +63,15 @@ export default function AgendaPage() {
     return collection(db, 'barberProfiles', barberProfileId, 'clients');
   }, [db, barberProfileId]);
 
+  const staffQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, 'barberProfiles', barberProfileId, 'staff');
+  }, [db, barberProfileId]);
+
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery);
   const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
   const { data: clients, isLoading: isClientsLoading } = useCollection(clientsQuery);
+  const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery);
 
   const filteredAppointments = React.useMemo(() => {
     if (!date || !appointments) return [];
@@ -80,9 +86,6 @@ export default function AgendaPage() {
     return uniqueDates.map(dateStr => parseISO(`${dateStr}T00:00:00`));
   }, [appointments]);
 
-  const activeAppointments = filteredAppointments.filter(a => a.status === 'scheduled');
-  const completedAppointments = filteredAppointments.filter(a => a.status === 'completed');
-
   const handleDelete = (apptId: string) => {
     if (!user) return;
     const apptRef = doc(db, 'barberProfiles', user.uid, 'appointments', apptId);
@@ -94,7 +97,7 @@ export default function AgendaPage() {
     });
   };
 
-  if (isAuthLoading || isApptsLoading || isServicesLoading || isClientsLoading) {
+  if (isAuthLoading || isApptsLoading || isServicesLoading || isClientsLoading || isStaffLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -113,35 +116,35 @@ export default function AgendaPage() {
     return (
       <div key={appt.id} className="group relative animate-in fade-in slide-in-from-left-2 duration-300">
         <div className={cn(
-          "flex flex-col md:flex-row md:items-center gap-6 p-5 rounded-2xl border transition-all duration-300",
+          "flex flex-col md:flex-row md:items-center gap-4 p-4 rounded-xl border transition-all duration-300",
           isCompleted 
             ? "bg-green-500/5 border-green-500/20" 
             : "bg-secondary/20 border-border/50 hover:bg-secondary/40 hover:border-primary/30"
         )}>
-          <div className="flex flex-row md:flex-col items-center justify-center min-w-[70px] py-2 border-b md:border-b-0 md:border-r border-border gap-2 md:gap-0">
-            <Clock className="h-4 w-4 text-primary" />
-            <span className="font-bold text-lg">{appt.time}</span>
+          <div className="flex flex-row md:flex-col items-center justify-center min-w-[60px] py-1 border-b md:border-b-0 md:border-r border-border gap-2 md:gap-0">
+            <Clock className="h-3 w-3 text-primary" />
+            <span className="font-bold text-base">{appt.time}</span>
           </div>
           
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <User className="h-4 w-4 text-accent" />
-              <h3 className="font-bold text-lg">{client?.name || 'Cliente'}</h3>
+            <div className="flex items-center gap-2 mb-0.5">
+              <User className="h-3 w-3 text-accent" />
+              <h3 className="font-bold text-md">{client?.name || 'Cliente'}</h3>
               {isCompleted && (
-                <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 text-[10px]">
-                  <CheckCircle2 className="mr-1 h-3 w-3" /> FINALIZADO
+                <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 text-[9px] h-4">
+                  FINALIZADO
                 </Badge>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Scissors className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{service?.name || 'Serviço'}</span>
+              <Scissors className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">{service?.name || 'Serviço'}</span>
             </div>
           </div>
 
-          <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-3">
-            <span className="text-xl font-bold text-primary">R$ {(Number(appt.priceAtAppointment) || Number(service?.price) || 0).toFixed(2)}</span>
-            <div className="flex gap-2">
+          <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-2">
+            <span className="text-md font-bold text-primary">R$ {(Number(appt.priceAtAppointment) || Number(service?.price) || 0).toFixed(2)}</span>
+            <div className="flex gap-1">
               {!isCompleted ? (
                 <>
                   <CheckoutDialog 
@@ -154,8 +157,8 @@ export default function AgendaPage() {
                   
                   <Dialog open={editingAppointment?.id === appt.id} onOpenChange={(open) => setEditingAppointment(open ? appt : null)}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-9 w-9 border-primary/30 text-primary hover:bg-primary/10">
-                        <Pencil className="h-4 w-4" />
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-primary/30 text-primary hover:bg-primary/10">
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[500px] bg-card border-border shadow-2xl">
@@ -174,8 +177,8 @@ export default function AgendaPage() {
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-border shadow-2xl">
@@ -195,11 +198,55 @@ export default function AgendaPage() {
                   </AlertDialog>
                 </>
               ) : (
-                <Badge variant="secondary" className="bg-primary/10 text-primary px-3 py-1">Concluído</Badge>
+                <Badge variant="secondary" className="bg-primary/10 text-primary px-2 py-0.5 text-[10px]">Concluído</Badge>
               )}
             </div>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const renderStaffAgenda = (type: 'active' | 'history') => {
+    if (!staff || staff.length === 0) {
+      return (
+        <div className="py-24 text-center flex flex-col items-center gap-4 border-2 border-dashed border-border rounded-3xl opacity-60">
+          <Briefcase className="h-12 w-12 text-muted-foreground opacity-20" />
+          <p className="text-muted-foreground italic">Nenhum barbeiro cadastrado para gerenciar a agenda.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-8">
+        {staff.map((member) => {
+          const memberAppts = filteredAppointments.filter(a => 
+            a.staffId === member.id && 
+            (type === 'active' ? a.status === 'scheduled' : a.status === 'completed')
+          ).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+          return (
+            <div key={member.id} className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-border pb-2">
+                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                  <Briefcase className="h-4 w-4" />
+                </div>
+                <h3 className="font-headline text-lg font-bold">{member.name}</h3>
+                <Badge variant="secondary" className="ml-auto bg-secondary text-muted-foreground text-[10px]">
+                  {memberAppts.length} {type === 'active' ? 'agendados' : 'finalizados'}
+                </Badge>
+              </div>
+              
+              <div className="grid gap-3">
+                {memberAppts.length > 0 ? (
+                  memberAppts.map(renderAppointmentCard)
+                ) : (
+                  <p className="text-xs text-muted-foreground italic pl-10">Sem horários para este profissional.</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -210,7 +257,7 @@ export default function AgendaPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold font-headline text-primary">Skull Barber - Agenda</h1>
-            <p className="text-muted-foreground">Gerencie seus horários e atendimentos em tempo real.</p>
+            <p className="text-muted-foreground">Gerencie seus horários organizados por profissional.</p>
           </div>
           
           <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
@@ -269,11 +316,11 @@ export default function AgendaPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 border border-border">
               <span className="text-sm text-muted-foreground">Agendados:</span>
-              <span className="font-bold">{activeAppointments.length}</span>
+              <span className="font-bold">{filteredAppointments.filter(a => a.status === 'scheduled').length}</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/20">
               <span className="text-sm text-green-500">Finalizados:</span>
-              <span className="font-bold text-green-500">{completedAppointments.length}</span>
+              <span className="font-bold text-green-500">{filteredAppointments.filter(a => a.status === 'completed').length}</span>
             </div>
           </CardContent>
         </Card>
@@ -285,45 +332,27 @@ export default function AgendaPage() {
             <CardTitle className="font-headline text-2xl">
               {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : 'Selecione uma data'}
             </CardTitle>
-            <CardDescription>{filteredAppointments.length} atendimentos totais no dia.</CardDescription>
+            <CardDescription>{filteredAppointments.length} atendimentos totais hoje.</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="active" className="w-full">
               <TabsList className="grid w-full grid-cols-2 bg-secondary/30 mb-6 h-12 p-1">
                 <TabsTrigger value="active" className="flex items-center gap-2 text-sm font-bold">
                   <CalendarDays className="h-4 w-4" />
-                  Agendamentos ({activeAppointments.length})
+                  Agenda Ativa
                 </TabsTrigger>
                 <TabsTrigger value="history" className="flex items-center gap-2 text-sm font-bold">
                   <HistoryIcon className="h-4 w-4" />
-                  Finalizados ({completedAppointments.length})
+                  Finalizados
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="active" className="space-y-4">
-                {activeAppointments.length > 0 ? (
-                  activeAppointments
-                    .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-                    .map(renderAppointmentCard)
-                ) : (
-                  <div className="py-24 text-center flex flex-col items-center gap-4 border-2 border-dashed border-border rounded-3xl opacity-60">
-                    <Clock className="h-12 w-12 text-muted-foreground opacity-20" />
-                    <p className="text-muted-foreground italic">Nenhum agendamento ativo para este dia.</p>
-                  </div>
-                )}
+              <TabsContent value="active">
+                {renderStaffAgenda('active')}
               </TabsContent>
 
-              <TabsContent value="history" className="space-y-4">
-                {completedAppointments.length > 0 ? (
-                  completedAppointments
-                    .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-                    .map(renderAppointmentCard)
-                ) : (
-                  <div className="py-24 text-center flex flex-col items-center gap-4 border-2 border-dashed border-border rounded-3xl opacity-60">
-                    <HistoryIcon className="h-12 w-12 text-muted-foreground opacity-20" />
-                    <p className="text-muted-foreground italic">Nenhum atendimento finalizado nesta data.</p>
-                  </div>
-                )}
+              <TabsContent value="history">
+                {renderStaffAgenda('history')}
               </TabsContent>
             </Tabs>
           </CardContent>
