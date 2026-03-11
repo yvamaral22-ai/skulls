@@ -25,6 +25,7 @@ export default function ReportsPage() {
   const [endDate, setEndDate] = React.useState("")
   const [appliedStartDate, setAppliedStartDate] = React.useState("")
   const [appliedEndDate, setAppliedEndDate] = React.useState("")
+  const [isGenerating, setIsGenerating] = React.useState(false)
   const [hasGenerated, setHasGenerated] = React.useState(false)
 
   React.useEffect(() => {
@@ -57,13 +58,18 @@ export default function ReportsPage() {
   const { data: expenses, isLoading: isExpensesLoading } = useCollection(expensesQuery)
 
   const handleApplyFilters = () => {
-    setAppliedStartDate(startDate);
-    setAppliedEndDate(endDate);
-    setHasGenerated(true);
+    setIsGenerating(true);
+    // Simular um pequeno delay para feedback visual de processamento
+    setTimeout(() => {
+      setAppliedStartDate(startDate);
+      setAppliedEndDate(endDate);
+      setHasGenerated(true);
+      setIsGenerating(false);
+    }, 400);
   }
 
   const stats = React.useMemo(() => {
-    if (!appointments || !appliedStartDate || !appliedEndDate || !hasGenerated) return null;
+    if (!appointments || !hasGenerated) return null;
 
     const filteredAppts = appointments.filter(a => 
       a.date >= appliedStartDate && 
@@ -71,10 +77,10 @@ export default function ReportsPage() {
       a.status === 'completed'
     )
 
-    const filteredExps = expenses?.filter(e => 
+    const filteredExps = (expenses || []).filter(e => 
       e.date >= appliedStartDate && 
       e.date <= appliedEndDate
-    ) || []
+    )
 
     const totalRevenue = filteredAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
     const totalCommissions = filteredAppts.reduce((sum, a) => sum + (Number(a.commissionAtAppointment) || 0), 0)
@@ -107,10 +113,17 @@ export default function ReportsPage() {
       valor: value
     }))
 
-    return { totalRevenue, totalCommissions, totalExpenses, netProfit, staffReport, chartData, count: filteredAppts.length }
+    return { 
+      totalRevenue, 
+      totalCommissions, 
+      totalExpenses, 
+      netProfit, 
+      staffReport, 
+      chartData, 
+      count: filteredAppts.length 
+    }
   }, [appointments, staff, expenses, appliedStartDate, appliedEndDate, hasGenerated])
 
-  // Somente mostra o loader global se não tivermos NENHUM dado carregado ainda
   const isInitialLoading = (isApptsLoading && !appointments) || (isStaffLoading && !staff);
 
   if (isInitialLoading) {
@@ -147,9 +160,15 @@ export default function ReportsPage() {
           </div>
           <Button 
             onClick={handleApplyFilters} 
+            disabled={isGenerating || isApptsLoading}
             className="bg-primary hover:bg-primary/90 text-white h-9 px-4 ml-2"
           >
-            <Play className="mr-2 h-4 w-4 fill-current" /> Gerar Relatório
+            {isGenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="mr-2 h-4 w-4 fill-current" />
+            )}
+            Gerar Relatório
           </Button>
         </div>
       </div>
@@ -169,8 +188,8 @@ export default function ReportsPage() {
                 <DollarSign className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black">R$ {stats?.totalRevenue.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{stats?.count} cortes finalizados</p>
+                <div className="text-3xl font-black">R$ {(stats?.totalRevenue ?? 0).toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stats?.count ?? 0} cortes finalizados</p>
               </CardContent>
             </Card>
             
@@ -180,7 +199,7 @@ export default function ReportsPage() {
                 <Briefcase className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black">R$ {stats?.totalCommissions.toFixed(2)}</div>
+                <div className="text-3xl font-black">R$ {(stats?.totalCommissions ?? 0).toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">Total pago à equipe</p>
               </CardContent>
             </Card>
@@ -191,7 +210,7 @@ export default function ReportsPage() {
                 <ArrowDownRight className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black">R$ {stats?.totalExpenses.toFixed(2)}</div>
+                <div className="text-3xl font-black">R$ {(stats?.totalExpenses ?? 0).toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">Custos operacionais</p>
               </CardContent>
             </Card>
@@ -202,7 +221,7 @@ export default function ReportsPage() {
                 <TrendingUp className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black text-green-500">R$ {stats?.netProfit.toFixed(2)}</div>
+                <div className="text-3xl font-black text-green-500">R$ {(stats?.netProfit ?? 0).toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">Resultado no período</p>
               </CardContent>
             </Card>
@@ -227,20 +246,21 @@ export default function ReportsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {stats?.staffReport.map((s, idx) => (
-                      <TableRow key={idx} className="border-border hover:bg-primary/5 transition-colors">
-                        <TableCell className="font-bold pl-6">{s.name}</TableCell>
-                        <TableCell>{s.count} serviços</TableCell>
-                        <TableCell>R$ {s.revenue.toFixed(2)}</TableCell>
-                        <TableCell className="text-right pr-6 text-blue-400 font-black">
-                          R$ {s.commission.toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {(!stats || stats.staffReport.length === 0) && (
+                    {stats?.staffReport && stats.staffReport.length > 0 ? (
+                      stats.staffReport.map((s, idx) => (
+                        <TableRow key={idx} className="border-border hover:bg-primary/5 transition-colors">
+                          <TableCell className="font-bold pl-6">{s.name}</TableCell>
+                          <TableCell>{s.count} serviços</TableCell>
+                          <TableCell>R$ {s.revenue.toFixed(2)}</TableCell>
+                          <TableCell className="text-right pr-6 text-blue-400 font-black">
+                            R$ {s.commission.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic">
-                          Nenhum dado disponível para o período selecionado.
+                          Nenhum atendimento finalizado encontrado para este período.
                         </TableCell>
                       </TableRow>
                     )}
@@ -257,18 +277,24 @@ export default function ReportsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-[350px] mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats?.chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#888' }} />
-                    <YAxis axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#888' }} />
-                    <Tooltip 
-                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                      contentStyle={{ backgroundColor: '#130f1f', border: '1px solid #2d2445', borderRadius: '12px' }}
-                    />
-                    <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {stats && stats.count > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.chartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#888' }} />
+                      <YAxis axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#888' }} />
+                      <Tooltip 
+                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                        contentStyle={{ backgroundColor: '#130f1f', border: '1px solid #2d2445', borderRadius: '12px' }}
+                      />
+                      <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm italic">
+                    <p>Sem dados gráficos</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
