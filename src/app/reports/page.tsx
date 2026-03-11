@@ -11,7 +11,7 @@ import {
 } from "recharts"
 import { 
   TrendingUp, DollarSign, ArrowDownRight, 
-  Calendar as CalendarIcon, Briefcase, Loader2, Play, FileBarChart, ListChecks, User
+  Calendar as CalendarIcon, Briefcase, Loader2, Play, FileBarChart, Clock
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -25,10 +25,17 @@ export default function ReportsPage() {
   
   const [startDate, setStartDate] = React.useState("")
   const [endDate, setEndDate] = React.useState("")
-  const [appliedStartDate, setAppliedStartDate] = React.useState("")
-  const [appliedEndDate, setAppliedEndDate] = React.useState("")
+  const [startTime, setStartTime] = React.useState("00:00")
+  const [endTime, setEndTime] = React.useState("23:59")
+  
+  const [appliedFilters, setAppliedFilters] = React.useState<{
+    startDate: string;
+    endDate: string;
+    startTime: string;
+    endTime: string;
+  } | null>(null)
+  
   const [isGenerating, setIsGenerating] = React.useState(false)
-  const [hasGenerated, setHasGenerated] = React.useState(false)
 
   const barberShopId = "master-barbershop";
 
@@ -43,14 +50,10 @@ export default function ReportsPage() {
   const appointmentsQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "appointments"), [db]);
   const staffQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "staff"), [db]);
   const expensesQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "expenses"), [db]);
-  const servicesQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "services"), [db]);
-  const clientsQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "clients"), [db]);
 
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery)
   const { data: staff } = useCollection(staffQuery)
   const { data: expenses } = useCollection(expensesQuery)
-  const { data: services } = useCollection(servicesQuery)
-  const { data: clients } = useCollection(clientsQuery)
 
   const handleApplyFilters = () => {
     if (!startDate || !endDate) {
@@ -59,29 +62,36 @@ export default function ReportsPage() {
     }
     
     setIsGenerating(true);
-    setAppliedStartDate(startDate);
-    setAppliedEndDate(endDate);
-    setHasGenerated(true);
+    setAppliedFilters({ startDate, endDate, startTime, endTime });
     
     setTimeout(() => {
       setIsGenerating(false);
       toast({
         title: "Relatório Gerado",
-        description: `Dados de ${format(parseISO(startDate), 'dd/MM/yy')} até ${format(parseISO(endDate), 'dd/MM/yy')} calculados.`,
+        description: `Cálculo realizado para o período selecionado.`,
       })
     }, 400);
   }
 
   const stats = React.useMemo(() => {
-    if (!hasGenerated || !appointments || !appliedStartDate || !appliedEndDate) return null;
+    if (!appliedFilters || !appointments) return null;
+
+    const { startDate: aStart, endDate: aEnd, startTime: tStart, endTime: tEnd } = appliedFilters;
 
     const filteredAppts = appointments.filter(a => {
       const isCompleted = a.status === 'completed';
-      const isWithinRange = a.date >= appliedStartDate && a.date <= appliedEndDate;
+      
+      // Criamos strings comparáveis no formato YYYY-MM-DDTHH:mm
+      const apptDateTime = `${a.date}T${a.time}`;
+      const filterStart = `${aStart}T${tStart || '00:00'}`;
+      const filterEnd = `${aEnd}T${tEnd || '23:59'}`;
+      
+      const isWithinRange = apptDateTime >= filterStart && apptDateTime <= filterEnd;
+      
       return isCompleted && isWithinRange;
     }).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
-    const filteredExps = (expenses || []).filter(e => e.date >= appliedStartDate && e.date <= appliedEndDate);
+    const filteredExps = (expenses || []).filter(e => e.date >= aStart && e.date <= aEnd);
 
     const totalRevenue = filteredAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
     const totalCommissions = filteredAppts.reduce((sum, a) => sum + (Number(a.commissionAtAppointment) || 0), 0)
@@ -108,8 +118,17 @@ export default function ReportsPage() {
       }
     })
 
-    return { totalRevenue, totalCommissions, totalExpenses, netProfit, staffReport, detailedAppts: filteredAppts, chartData: Object.entries(paymentMethodsMap).map(([name, valor]) => ({ name, valor })), count: filteredAppts.length }
-  }, [appointments, staff, expenses, appliedStartDate, appliedEndDate, hasGenerated])
+    return { 
+      totalRevenue, 
+      totalCommissions, 
+      totalExpenses, 
+      netProfit, 
+      staffReport, 
+      detailedAppts: filteredAppts, 
+      chartData: Object.entries(paymentMethodsMap).map(([name, valor]) => ({ name, valor })), 
+      count: filteredAppts.length 
+    }
+  }, [appointments, staff, expenses, appliedFilters])
 
   if (isApptsLoading && !appointments) {
     return (
@@ -127,25 +146,59 @@ export default function ReportsPage() {
           <p className="text-muted-foreground">Visão geral do faturamento e produtividade.</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 bg-card p-3 rounded-2xl border border-border shadow-xl">
-          <div className="flex items-center gap-2 px-2 border-r border-border pr-4">
-            <CalendarIcon className="h-4 w-4 text-primary" />
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-40 bg-background border-none focus-visible:ring-0 text-sm h-10" />
-            <span className="text-muted-foreground font-bold">→</span>
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-40 bg-background border-none focus-visible:ring-0 text-sm h-10" />
+        <div className="flex flex-col gap-3 bg-card p-4 rounded-2xl border border-border shadow-xl">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2 bg-background/50 p-2 rounded-lg border border-border">
+              <CalendarIcon className="h-4 w-4 text-primary" />
+              <Input 
+                type="date" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)} 
+                className="w-36 bg-transparent border-none focus-visible:ring-0 text-sm h-8 p-0" 
+              />
+              <Clock className="h-3 w-3 ml-2 text-muted-foreground" />
+              <Input 
+                type="time" 
+                value={startTime} 
+                onChange={(e) => setStartTime(e.target.value)} 
+                className="w-20 bg-transparent border-none focus-visible:ring-0 text-sm h-8 p-0" 
+              />
+            </div>
+
+            <span className="text-muted-foreground font-bold">até</span>
+
+            <div className="flex items-center gap-2 bg-background/50 p-2 rounded-lg border border-border">
+              <CalendarIcon className="h-4 w-4 text-primary" />
+              <Input 
+                type="date" 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)} 
+                className="w-36 bg-transparent border-none focus-visible:ring-0 text-sm h-8 p-0" 
+              />
+              <Clock className="h-3 w-3 ml-2 text-muted-foreground" />
+              <Input 
+                type="time" 
+                value={endTime} 
+                onChange={(e) => setEndTime(e.target.value)} 
+                className="w-20 bg-transparent border-none focus-visible:ring-0 text-sm h-8 p-0" 
+              />
+            </div>
+
+            <Button onClick={handleApplyFilters} disabled={isGenerating} className="bg-primary hover:bg-primary/90 text-white h-10 px-6 font-bold shadow-lg shadow-primary/20">
+              {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="mr-2 h-4 w-4 fill-current" />}
+              Gerar Relatório
+            </Button>
           </div>
-          <Button onClick={handleApplyFilters} disabled={isGenerating} className="bg-primary hover:bg-primary/90 text-white h-10 px-6 ml-2 font-bold shadow-lg shadow-primary/20">
-            {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="mr-2 h-4 w-4 fill-current" />}
-            Gerar Relatório
-          </Button>
         </div>
       </header>
 
-      {!hasGenerated ? (
+      {!appliedFilters ? (
         <div className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-border rounded-3xl opacity-60">
           <FileBarChart className="h-16 w-16 text-muted-foreground mb-4 opacity-20" />
           <h3 className="text-xl font-bold font-headline">Relatório pronto para consulta</h3>
-          <p className="text-muted-foreground italic text-sm">Selecione o período e clique no botão para calcular.</p>
+          <p className="text-muted-foreground italic text-sm text-center max-w-xs">
+            Selecione a data e o horário desejado para calcular o fechamento com precisão.
+          </p>
         </div>
       ) : (
         <>
@@ -157,7 +210,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">R$ {(stats?.totalRevenue ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{stats?.count ?? 0} finalizados</p>
+                <p className="text-xs text-muted-foreground mt-1">{stats?.count ?? 0} finalizados no período</p>
               </CardContent>
             </Card>
             <Card className="border-none bg-card shadow-xl border-t-4 border-t-blue-500">
@@ -167,7 +220,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">R$ {(stats?.totalCommissions ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Custos com pessoal</p>
+                <p className="text-xs text-muted-foreground mt-1">Custos operacionais de equipe</p>
               </CardContent>
             </Card>
             <Card className="border-none bg-card shadow-xl border-t-4 border-t-red-500">
@@ -177,7 +230,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">R$ {(stats?.totalExpenses ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Outras saídas</p>
+                <p className="text-xs text-muted-foreground mt-1">Saídas registradas na data</p>
               </CardContent>
             </Card>
             <Card className="border-none bg-card shadow-xl border-t-4 border-t-green-500">
@@ -187,7 +240,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black text-green-500">R$ {(stats?.netProfit ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Resultado final</p>
+                <p className="text-xs text-muted-foreground mt-1">Resultado final limpo</p>
               </CardContent>
             </Card>
           </div>
@@ -218,7 +271,7 @@ export default function ReportsPage() {
                         </TableRow>
                       ))
                     ) : (
-                      <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground italic">Sem registros.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground italic">Sem registros para este período.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -234,11 +287,14 @@ export default function ReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                       <XAxis dataKey="name" fontSize={12} tick={{ fill: '#888' }} />
                       <YAxis fontSize={12} tick={{ fill: '#888' }} />
-                      <Tooltip contentStyle={{ backgroundColor: '#130f1f', border: 'none', borderRadius: '12px' }} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#130f1f', border: 'none', borderRadius: '12px' }}
+                        itemStyle={{ color: 'hsl(var(--primary))' }}
+                      />
                       <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-muted-foreground italic">Sem dados.</div>}
+                ) : <div className="h-full flex items-center justify-center text-muted-foreground italic">Sem dados financeiros no intervalo.</div>}
               </CardContent>
             </Card>
           </div>
