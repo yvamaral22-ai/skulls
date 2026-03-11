@@ -24,22 +24,23 @@ import {
 } from '@/components/ui/alert-dialog';
 import { 
   Plus, ChevronLeft, ChevronRight, 
-  Loader2, Search, CheckCircle2, Clock, Trash2, User
+  Loader2, CheckCircle2, Clock, User, Calendar as CalendarIcon
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
 import { 
   format, addDays, startOfWeek, isSameDay, 
-  startOfDay, differenceInMinutes,
+  startOfDay, differenceInMinutes, parseISO
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 08:00 às 21:00
-const COLUMN_WIDTH = "min-w-[150px] md:min-w-[120px]";
+const SLOT_HEIGHT = 80;
+const COLUMN_WIDTH = "min-w-[160px] md:min-w-[180px]";
 
 export default function AgendaPage() {
   const db = useFirestore();
@@ -71,27 +72,28 @@ export default function AgendaPage() {
     if (!appt.time) return { top: '0px', height: '40px' };
     
     const [hours, minutes] = appt.time.split(':').map(Number);
-    // 8:00 é o ponto zero (top 0)
-    const startMinutes = (hours - 8) * 60 + (minutes || 0);
-    
-    // Força uma duração mínima de 30 minutos para visibilidade no calendário
+    // 8:00 é o ponto zero
+    const relativeMinutes = (hours - 8) * 60 + (minutes || 0);
     const duration = Math.max(Number(service?.durationMinutes) || 30, 30);
     
     return {
-      top: `${(startMinutes / 60) * 80}px`, 
-      height: `${(duration / 60) * 80}px`,
+      top: `${(relativeMinutes / 60) * SLOT_HEIGHT}px`, 
+      height: `${(duration / 60) * SLOT_HEIGHT}px`,
     };
   };
 
-  const handleDelete = (id: string) => {
-    const apptRef = doc(db, 'barberProfiles', barberShopId, 'appointments', id);
-    deleteDocumentNonBlocking(apptRef);
-    setEditingAppointment(null);
-    toast({
-      variant: "destructive",
-      title: "Agendamento Excluído",
-      description: "O horário foi removido da agenda com sucesso.",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', id));
+      setEditingAppointment(null);
+      toast({
+        variant: "destructive",
+        title: "Agendamento Excluído",
+        description: "O horário foi removido da agenda.",
+      });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao excluir" });
+    }
   };
 
   const handleCellClick = (day: Date, hour: number) => {
@@ -109,10 +111,10 @@ export default function AgendaPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] overflow-hidden bg-background rounded-2xl border border-border shadow-2xl">
-      {/* Cabeçalho */}
-      <header className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-border bg-card gap-4">
+      {/* Header Fixo */}
+      <header className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-border bg-card gap-4 z-50">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="font-bold h-9">Hoje</Button>
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="font-bold h-9 bg-secondary/50">Hoje</Button>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -7))} className="h-9 w-9">
               <ChevronLeft className="h-4 w-4" />
@@ -121,28 +123,32 @@ export default function AgendaPage() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <h2 className="text-sm md:text-lg font-bold ml-2 capitalize">
+          <h2 className="text-sm md:text-lg font-bold ml-2 capitalize text-primary font-headline tracking-widest">
             {format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR })}
           </h2>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button className="flex-1 sm:flex-none bg-primary text-black font-bold h-9" onClick={() => setIsBookingOpen(true)}>
+          <Button className="flex-1 sm:flex-none bg-primary text-black font-bold h-10 shadow-lg shadow-primary/20" onClick={() => setIsBookingOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo Horário
           </Button>
         </div>
       </header>
 
-      {/* Grade */}
+      {/* Grade de Agenda */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-12 md:w-16 flex-none bg-card border-r border-border flex flex-col pt-[80px]">
+        {/* Coluna de Horários Fixa */}
+        <div className="w-16 md:w-20 flex-none bg-card border-r border-border flex flex-col pt-[80px]">
           {HOURS.map(hour => (
-            <div key={hour} className="h-20 text-[9px] md:text-[10px] text-muted-foreground text-center pt-2 font-bold opacity-50">
-              {`${hour}:00`}
+            <div key={hour} className="h-20 flex items-start justify-center pt-2">
+              <span className="text-[10px] md:text-xs font-medium text-muted-foreground font-body">
+                {`${hour.toString().padStart(2, '0')}:00`}
+              </span>
             </div>
           ))}
         </div>
 
+        {/* Área de Scroll da Grade */}
         <div className="flex-1 overflow-auto relative">
           <div className="inline-flex min-w-full">
             {weekDays.map((day, dayIdx) => {
@@ -152,30 +158,35 @@ export default function AgendaPage() {
 
               return (
                 <div key={dayIdx} className={cn("flex-1 relative border-r border-border last:border-r-0", COLUMN_WIDTH)}>
+                  {/* Cabeçalho da Coluna (Dia) */}
                   <div className={cn(
-                    "sticky top-0 z-20 h-20 flex flex-col items-center justify-center border-b border-border bg-card/90 backdrop-blur-md transition-colors",
+                    "sticky top-0 z-40 h-20 flex flex-col items-center justify-center border-b border-border bg-card/95 backdrop-blur-md",
                     isToday ? "text-primary" : ""
                   )}>
-                    <span className="text-[9px] uppercase font-black opacity-40">
+                    <span className="text-[10px] uppercase font-bold opacity-60 font-body">
                       {format(day, 'eee', { locale: ptBR })}
                     </span>
                     <span className={cn(
-                      "text-xl font-black h-10 w-10 flex items-center justify-center rounded-full transition-colors mt-0.5",
+                      "text-xl font-black h-10 w-10 flex items-center justify-center rounded-full mt-0.5 font-body",
                       isToday ? "bg-primary text-black shadow-lg shadow-primary/30" : ""
                     )}>
                       {format(day, 'd')}
                     </span>
                   </div>
 
-                  <div className="relative" style={{ height: `${HOURS.length * 80}px` }}>
+                  {/* Espaço dos Slots */}
+                  <div className="relative" style={{ height: `${HOURS.length * SLOT_HEIGHT}px` }}>
                     {HOURS.map(hour => (
                       <div 
                         key={hour} 
-                        className="h-20 border-b border-border/10 hover:bg-primary/5 transition-colors cursor-pointer"
+                        className="h-20 border-b border-border/5 hover:bg-primary/5 transition-colors cursor-pointer group"
                         onClick={() => handleCellClick(day, hour)}
-                      />
+                      >
+                        <div className="hidden group-hover:block absolute ml-2 mt-2 text-[8px] text-primary/40 font-bold uppercase">Disponível</div>
+                      </div>
                     ))}
 
+                    {/* Renderização dos Agendamentos */}
                     {dayAppts.map(appt => {
                       const service = services?.find(s => s.id === appt.serviceId);
                       const barber = staff?.find(s => s.id === appt.staffId);
@@ -188,35 +199,44 @@ export default function AgendaPage() {
                           style={style}
                           onClick={(e) => { e.stopPropagation(); setEditingAppointment(appt); }}
                           className={cn(
-                            "absolute left-1 right-1 rounded-lg p-2 text-[9px] md:text-[10px] overflow-hidden transition-all border shadow-md cursor-pointer hover:shadow-xl hover:scale-[1.01] z-10 flex flex-col justify-start gap-0.5",
+                            "absolute left-1.5 right-1.5 rounded-xl p-3 text-xs overflow-hidden transition-all border shadow-lg cursor-pointer hover:shadow-xl hover:scale-[1.02] z-30 flex flex-col justify-start gap-1 font-body",
                             isCompleted 
-                              ? "bg-green-500/20 border-green-500/40 text-green-700 dark:text-green-300" 
-                              : "bg-primary/20 border-primary/40 text-primary-foreground"
+                              ? "bg-green-500/10 border-green-500/30 text-green-400" 
+                              : "bg-primary/10 border-primary/30 text-primary-foreground"
                           )}
                         >
-                          <div className="font-black truncate uppercase leading-tight">
-                            {appt.clientName || 'Cliente Indefinido'}
+                          <div className="font-black truncate uppercase tracking-tight text-white leading-none">
+                            {appt.clientName || 'Cliente'}
                           </div>
-                          <div className="opacity-70 truncate font-bold flex items-center gap-1">
-                            <Clock className="h-2 w-2" /> {appt.time} - {service?.name || 'Serviço'}
+                          
+                          <div className="flex flex-col gap-0.5 opacity-80 font-medium text-[10px] md:text-[11px]">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-3 w-3 text-primary" /> {appt.time} - {service?.name || 'Corte'}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <User className="h-3 w-3 text-primary/60" /> {barber?.name || 'Profissional'}
+                            </div>
                           </div>
-                          <div className="text-[8px] opacity-60 truncate font-bold flex items-center gap-1">
-                            <User className="h-2 w-2" /> Profissional: {barber?.name || 'Não atribuído'}
-                          </div>
-                          {isCompleted && <CheckCircle2 className="absolute top-1 right-1 h-3 w-3 text-green-500" />}
+
+                          {isCompleted && (
+                            <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-black">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            </div>
+                          )}
                         </div>
                       );
                     })}
 
+                    {/* Linha do Tempo Atual */}
                     {isToday && (
                       <div 
-                        className="absolute left-0 right-0 z-30 flex items-center pointer-events-none"
+                        className="absolute left-0 right-0 z-50 flex items-center pointer-events-none"
                         style={{ 
-                          top: `${((differenceInMinutes(currentTime, startOfDay(currentTime)) - 480) / 60) * 80}px` 
+                          top: `${((differenceInMinutes(currentTime, startOfDay(currentTime)) - 480) / 60) * SLOT_HEIGHT}px` 
                         }}
                       >
-                        <div className="h-2 w-2 rounded-full bg-red-500 -ml-1 shadow-glow shadow-red-500" />
-                        <div className="h-px flex-1 bg-red-500/50" />
+                        <div className="h-2.5 w-2.5 rounded-full bg-red-500 -ml-1 shadow-glow shadow-red-500" />
+                        <div className="h-px flex-1 bg-red-500/60" />
                       </div>
                     )}
                   </div>
@@ -227,31 +247,37 @@ export default function AgendaPage() {
         </div>
       </div>
 
+      {/* Modal Novo Agendamento */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-        <DialogContent className="sm:max-w-[450px]">
+        <DialogContent className="sm:max-w-[450px] bg-card border-border">
           <DialogHeader>
-            <DialogTitle>Novo Agendamento</DialogTitle>
-            <DialogDescription>Marque um novo horário para atendimento.</DialogDescription>
+            <DialogTitle className="font-headline text-2xl text-primary">Novo Agendamento</DialogTitle>
+            <DialogDescription className="font-body text-xs uppercase opacity-60">Preencha os dados do cliente e horário.</DialogDescription>
           </DialogHeader>
-          <BookingForm onSuccess={() => setIsBookingOpen(false)} />
+          <div className="max-h-[80vh] overflow-y-auto px-1">
+            <BookingForm onSuccess={() => setIsBookingOpen(false)} />
+          </div>
         </DialogContent>
       </Dialog>
 
+      {/* Modal Edição/Detalhes */}
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
-        <DialogContent className="sm:max-w-[450px]">
+        <DialogContent className="sm:max-w-[450px] bg-card border-border">
           <DialogHeader>
-            <DialogTitle>{editingAppointment?.id ? 'Detalhes do Agendamento' : 'Novo Horário'}</DialogTitle>
-            <DialogDescription>Gerencie as informações do horário na agenda.</DialogDescription>
+            <DialogTitle className="font-headline text-2xl text-primary">{editingAppointment?.id ? 'Detalhes do Horário' : 'Marcar Horário'}</DialogTitle>
+            <DialogDescription className="font-body text-xs uppercase opacity-60">Gerencie este agendamento.</DialogDescription>
           </DialogHeader>
           {editingAppointment && (
             <div className="space-y-6">
-              <BookingForm 
-                initialData={editingAppointment} 
-                onSuccess={() => setEditingAppointment(null)} 
-              />
+              <div className="max-h-[60vh] overflow-y-auto px-1">
+                <BookingForm 
+                  initialData={editingAppointment} 
+                  onSuccess={() => setEditingAppointment(null)} 
+                />
+              </div>
               
               {editingAppointment.id && (
-                <div className="flex gap-2 pt-4 border-t">
+                <div className="flex gap-3 pt-6 border-t border-border/50">
                   {editingAppointment.status !== 'completed' && (
                     <CheckoutDialog 
                       appointmentId={editingAppointment.id}
@@ -267,23 +293,23 @@ export default function AgendaPage() {
                     <AlertDialogTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        className="flex-1 text-destructive hover:bg-destructive/10 font-bold"
+                        className="flex-1 text-destructive hover:bg-destructive/10 font-bold uppercase text-[10px] font-body"
                       >
                         Excluir
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase tracking-widest">Excluir Agendamento?</AlertDialogTitle>
-                        <AlertDialogDescription className="uppercase tracking-tighter text-[10px]">
-                          Esta operação removerá permanentemente o agendamento de {editingAppointment.clientName}.
+                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Excluir Registro?</AlertDialogTitle>
+                        <AlertDialogDescription className="font-body text-sm">
+                          Esta operação removerá o agendamento permanentemente.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Cancelar</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-secondary font-bold font-body">Cancelar</AlertDialogCancel>
                         <AlertDialogAction 
                           onClick={() => handleDelete(editingAppointment.id)} 
-                          className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold"
+                          className="bg-destructive text-white hover:bg-destructive/90 font-bold font-body"
                         >
                           Confirmar Exclusão
                         </AlertDialogAction>

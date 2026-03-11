@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, parseISO, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Clock, Loader2, Check, User, Scissors } from 'lucide-react';
+import { CalendarIcon, Clock, Loader2, Check, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -76,7 +76,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       staffId: initialData?.staffId || '',
       serviceId: initialData?.serviceId || '',
       time: initialData?.time || '',
-      date: initialData?.date ? parseISO(initialData.date) : new Date(),
+      date: initialData?.date ? (typeof initialData.date === 'string' ? parseISO(initialData.date) : initialData.date) : new Date(),
     },
   });
 
@@ -133,18 +133,13 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       }
 
       toast({
-        title: isUpdate ? 'Agendamento Atualizado!' : 'Agendamento Salvo!',
-        description: `${data.clientName} registrado com sucesso.`,
+        title: isUpdate ? 'Sincronizado!' : 'Agendado!',
+        description: `${data.clientName} às ${data.time} no dia ${format(data.date, 'dd/MM')}.`,
       });
       
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error("Erro ao salvar agendamento:", error);
-      toast({ 
-        variant: 'destructive', 
-        title: 'Erro ao Salvar', 
-        description: 'Não foi possível salvar o agendamento.' 
-      });
+      toast({ variant: 'destructive', title: 'Erro ao salvar' });
     } finally {
       setIsSubmitting(false);
     }
@@ -152,20 +147,20 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
         <FormField
           control={form.control}
           name="clientName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome do Cliente</FormLabel>
+              <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Nome do Cliente</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input {...field} placeholder="Nome do cliente" className="pl-10 h-12 bg-background border-2" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/40" />
+                  <Input {...field} placeholder="Ex: João Silva" className="pl-10 h-12 bg-background/50 border-border focus:border-primary transition-all font-body" />
                 </div>
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-[10px]" />
             </FormItem>
           )}
         />
@@ -176,17 +171,17 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Data</FormLabel>
+                <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Data</FormLabel>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         type="button"
                         variant={"outline"}
-                        className={cn("w-full text-left font-normal h-12 bg-background border-2", !field.value && "text-muted-foreground")}
+                        className={cn("w-full text-left font-normal h-12 bg-background/50 border-border hover:border-primary font-body", !field.value && "text-muted-foreground")}
                       >
                         {field.value ? format(field.value, "dd/MM/yyyy") : "Data"}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -201,7 +196,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                     />
                   </PopoverContent>
                 </Popover>
-                <FormMessage />
+                <FormMessage className="text-[10px]" />
               </FormItem>
             )}
           />
@@ -211,25 +206,25 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             name="time"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Horário</FormLabel>
+                <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Horário</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger className="h-12 bg-background border-2">
+                    <SelectTrigger className="h-12 bg-background/50 border-border font-body">
                       <SelectValue placeholder="Hora" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="max-h-[300px] z-[10001]">
+                  <SelectContent className="max-h-[300px] z-[10001] font-body">
                     {TIME_SLOTS.map((slot) => {
                       const isOccupied = occupiedSlots.includes(slot);
                       return (
-                        <SelectItem key={slot} value={slot} disabled={isOccupied}>
+                        <SelectItem key={slot} value={slot} disabled={isOccupied} className="text-xs">
                           {slot} {isOccupied ? '(Ocupado)' : ''}
                         </SelectItem>
                       );
                     })}
                   </SelectContent>
                 </Select>
-                <FormMessage />
+                <FormMessage className="text-[10px]" />
               </FormItem>
             )}
           />
@@ -240,18 +235,18 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           name="staffId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Barbeiro</FormLabel>
+              <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Barbeiro</FormLabel>
               <Select onValueChange={field.onChange} value={field.value} disabled={isStaffLoading}>
                 <FormControl>
-                  <SelectTrigger className="h-12 bg-background border-2">
+                  <SelectTrigger className="h-12 bg-background/50 border-border font-body">
                     <SelectValue placeholder={isStaffLoading ? "Carregando..." : "Selecione o profissional"} />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="z-[10001]">
-                  {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                <SelectContent className="z-[10001] font-body">
+                  {staff?.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <FormMessage />
+              <FormMessage className="text-[10px]" />
             </FormItem>
           )}
         />
@@ -261,29 +256,29 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           name="serviceId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Serviço</FormLabel>
+              <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Serviço</FormLabel>
               <Select onValueChange={field.onChange} value={field.value} disabled={isServicesLoading}>
                 <FormControl>
-                  <SelectTrigger className="h-12 bg-background border-2">
+                  <SelectTrigger className="h-12 bg-background/50 border-border font-body">
                     <SelectValue placeholder={isServicesLoading ? "Carregando..." : "Selecione o serviço"} />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="z-[10001]">
+                <SelectContent className="z-[10001] font-body">
                   {services?.map(s => (
-                    <SelectItem key={s.id} value={s.id}>
+                    <SelectItem key={s.id} value={s.id} className="text-xs">
                       {s.name} - R$ {Number(s.price).toFixed(2)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <FormMessage />
+              <FormMessage className="text-[10px]" />
             </FormItem>
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting} className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4">
-          {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
-          {initialData?.id ? 'Salvar Alterações' : 'Registrar Agendamento'}
+        <Button type="submit" disabled={isSubmitting} className="w-full h-12 text-sm font-bold shadow-xl bg-primary text-black hover:bg-primary/90 mt-4 uppercase font-body">
+          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+          {initialData?.id ? 'Salvar Alterações' : 'Confirmar Agendamento'}
         </Button>
       </form>
     </Form>
