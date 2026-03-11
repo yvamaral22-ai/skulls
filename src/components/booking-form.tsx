@@ -16,7 +16,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/form';
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -61,7 +61,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
-  // No sistema single-user, usamos um ID fixo ou do admin para a barbearia
   const barberShopId = "master-barbershop";
 
   const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'services'), [db]);
