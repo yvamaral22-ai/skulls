@@ -9,11 +9,11 @@ import {
   CalendarDays, 
   Scissors, 
   Clock, 
-  User, 
   Plus, 
   CheckCircle2, 
   Loader2,
-  Phone
+  Phone,
+  User as UserIcon
 } from 'lucide-react';
 import { 
   Dialog, 
@@ -35,8 +35,6 @@ export default function ClientPage() {
   const [isBookingOpen, setIsBookingOpen] = React.useState(false);
   const [targetBarberId, setTargetBarberId] = React.useState<string | null>(null);
 
-  // No modelo SaaS, precisamos saber de qual barbearia o cliente está vendo.
-  // Para o protótipo, vamos buscar a primeira barbearia cadastrada no sistema.
   React.useEffect(() => {
     async function findBarbershop() {
       const q = query(collection(db, 'barberProfiles'), limit(1));
@@ -48,7 +46,6 @@ export default function ClientPage() {
     findBarbershop();
   }, [db]);
 
-  // Agendamentos DO CLIENTE
   const appointmentsQuery = useMemoFirebase(() => {
     if (!targetBarberId || !user) return null;
     return query(
@@ -57,14 +54,19 @@ export default function ClientPage() {
     );
   }, [db, targetBarberId, user]);
 
-  // Serviços da Barbearia
   const servicesQuery = useMemoFirebase(() => {
     if (!targetBarberId) return null;
     return collection(db, 'barberProfiles', targetBarberId, 'services');
   }, [db, targetBarberId]);
 
+  const staffQuery = useMemoFirebase(() => {
+    if (!targetBarberId) return null;
+    return collection(db, 'barberProfiles', targetBarberId, 'staff');
+  }, [db, targetBarberId]);
+
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery);
   const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
+  const { data: staff } = useCollection(staffQuery);
 
   if (isAuthLoading || isApptsLoading || isServicesLoading) {
     return (
@@ -78,8 +80,10 @@ export default function ClientPage() {
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-black font-headline text-primary">Olá, {user?.displayName?.split(' ')[0] || 'Cliente'}!</h1>
-          <p className="text-muted-foreground">Bem-vindo à sua área de estilo Skull Barber.</p>
+          <h1 className="text-3xl md:text-4xl font-black font-headline text-primary">
+            Olá, {user?.displayName?.split(' ')[0] || 'Campeão'}!
+          </h1>
+          <p className="text-muted-foreground text-sm">Pronto para renovar seu visual na Skull Barber?</p>
         </div>
 
         <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
@@ -90,8 +94,8 @@ export default function ClientPage() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
-              <DialogTitle>Agendar Atendimento</DialogTitle>
-              <DialogDescription>Escolha o melhor momento para o seu visual.</DialogDescription>
+              <DialogTitle>Novo Agendamento</DialogTitle>
+              <DialogDescription>Escolha o profissional e o melhor horário para você.</DialogDescription>
             </DialogHeader>
             <BookingForm onSuccess={() => setIsBookingOpen(false)} />
           </DialogContent>
@@ -101,37 +105,43 @@ export default function ClientPage() {
       <div className="grid gap-6 md:grid-cols-2">
         {/* Meus Agendamentos */}
         <Card className="border-none bg-card shadow-2xl border-t-4 border-t-primary">
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <CalendarDays className="h-5 w-5 text-primary" />
-              Meus Agendamentos
+              Próximos Cortes
             </CardTitle>
-            <CardDescription>Acompanhe o status dos seus pedidos.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-4">
             {appointments && appointments.length > 0 ? (
-              appointments.sort((a,b) => b.date.localeCompare(a.date)).map((appt) => {
-                const service = services?.find(s => s.id === appt.serviceId);
-                const isCompleted = appt.status === 'completed';
+              appointments
+                .filter(a => a.status === 'scheduled')
+                .sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+                .map((appt) => {
+                  const service = services?.find(s => s.id === appt.serviceId);
+                  const barber = staff?.find(s => s.id === appt.staffId);
 
-                return (
-                  <div key={appt.id} className="p-4 rounded-xl bg-secondary/20 border border-border flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-sm">{service?.name || 'Serviço'}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1">
-                        <Clock className="h-3 w-3" />
-                        {format(parseISO(appt.date + 'T00:00:00'), 'dd/MM/yyyy')} às {appt.time}
+                  return (
+                    <div key={appt.id} className="p-4 rounded-xl bg-secondary/20 border border-border flex items-center justify-between group hover:bg-primary/5 transition-colors">
+                      <div className="space-y-1">
+                        <p className="font-bold text-sm text-primary">{service?.name || 'Serviço'}</p>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {format(parseISO(appt.date + 'T00:00:00'), 'dd/MM/yyyy')} às {appt.time}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <UserIcon className="h-3 w-3" />
+                            Profissional: <span className="text-foreground/80">{barber?.name || 'Não definido'}</span>
+                          </div>
+                        </div>
                       </div>
+                      <Badge variant="outline" className="border-primary/20 text-primary text-[8px] uppercase">Confirmado</Badge>
                     </div>
-                    <Badge variant={isCompleted ? "default" : "secondary"} className={isCompleted ? "bg-green-500" : ""}>
-                      {isCompleted ? 'Concluído' : 'Agendado'}
-                    </Badge>
-                  </div>
-                );
-              })
+                  );
+                })
             ) : (
-              <div className="text-center py-10 text-muted-foreground italic text-sm bg-secondary/10 rounded-xl border border-dashed border-border">
-                Nenhum agendamento encontrado.
+              <div className="text-center py-10 text-muted-foreground italic text-xs bg-secondary/10 rounded-xl border border-dashed border-border">
+                Você ainda não tem agendamentos ativos.
               </div>
             )}
           </CardContent>
@@ -139,39 +149,40 @@ export default function ClientPage() {
 
         {/* Catálogo de Serviços */}
         <Card className="border-none bg-card shadow-2xl border-t-4 border-t-accent">
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Scissors className="h-5 w-5 text-accent" />
-              Nossos Serviços
+              Menu de Serviços
             </CardTitle>
-            <CardDescription>O melhor da cutelaria para você.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 pt-4">
             {services && services.length > 0 ? (
               services.map((service) => (
-                <div key={service.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/10 transition-colors">
+                <div key={service.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/10 hover:bg-secondary/20 transition-all border border-border/50">
                   <div>
                     <p className="font-bold text-sm">{service.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{service.durationMinutes} min de puro cuidado</p>
+                    <p className="text-[10px] text-muted-foreground">{service.durationMinutes} min • Visual Impecável</p>
                   </div>
-                  <span className="font-black text-accent text-sm">R$ {Number(service.price).toFixed(2)}</span>
+                  <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20 font-black">
+                    R$ {Number(service.price).toFixed(2)}
+                  </Badge>
                 </div>
               ))
             ) : (
-              <p className="text-center py-10 text-muted-foreground italic text-sm">Aguardando catálogo...</p>
+              <p className="text-center py-10 text-muted-foreground italic text-sm">Carregando catálogo...</p>
             )}
           </CardContent>
         </Card>
       </div>
 
       <div className="bg-primary/5 p-8 rounded-3xl border border-primary/10 text-center space-y-4">
-        <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-2" />
-        <h2 className="text-2xl font-bold font-headline">Dúvidas ou Suporte?</h2>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          Caso precise alterar seu horário ou falar com um barbeiro, entre em contato pelo nosso WhatsApp.
+        <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
+        <h2 className="text-xl font-bold font-headline">Precisa falar conosco?</h2>
+        <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+          Caso precise cancelar ou tirar dúvidas, clique no botão abaixo.
         </p>
-        <Button variant="outline" className="border-primary/30 text-primary rounded-full px-8 h-12">
-          <Phone className="mr-2 h-4 w-4" /> (11) 99999-9999
+        <Button variant="outline" className="border-primary/30 text-primary rounded-full px-8 h-12 hover:bg-primary/10">
+          <Phone className="mr-2 h-4 w-4" /> WhatsApp de Suporte
         </Button>
       </div>
     </div>
