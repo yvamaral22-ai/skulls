@@ -156,7 +156,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
               <FormControl>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input {...field} placeholder="Digite o nome do cliente" className="pl-10 h-12 bg-background border-2" />
+                  <Input {...field} placeholder="Nome do cliente" className="pl-10 h-12 bg-background border-2" />
                 </div>
               </FormControl>
               <FormMessage />

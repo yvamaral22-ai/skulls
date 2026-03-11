@@ -57,7 +57,7 @@ export const FirebaseProvider: React.FC<{
     auth,
   }), [firebaseApp, firestore, auth]);
 
-  // FIX DE HIDRATAÇÃO: Servidor e Cliente rendenrizam o mesmo fallback inicial.
+  // FIX DE HIDRATAÇÃO: Servidor e Cliente rendenrizam o mesmo fallback inicial sem variações de texto.
   if (!mounted || !isAuthReady) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">

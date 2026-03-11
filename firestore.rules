@@ -2,14 +2,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permissão total para a operação interna do barbeiro mestre
-    match /barberProfiles/master-barbershop/{allPaths=**} {
-      allow read, write: if true;
-    }
-    
-    // Regra de fallback para usuários autenticados (login anônimo automático)
+    // Permissão total para o sistema de uso exclusivo do barbeiro
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }

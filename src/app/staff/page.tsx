@@ -159,7 +159,7 @@ export default function StaffPage() {
                     <div>
                       <CardTitle className="font-headline text-2xl">{member.name}</CardTitle>
                       <Badge variant="outline" className="text-[10px] uppercase mt-1 border-primary/30 text-primary">
-                        {member.isActive ? "Disponível" : "Indisponível"}
+                        {member.isActive ? "Ativo" : "Inativo"}
                       </Badge>
                     </div>
                   </div>
