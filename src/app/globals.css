@@ -41,10 +41,23 @@
   }
 }
 
-.calendar-custom .rdp-day_selected {
+/* Calendar Fixes */
+.calendar-custom .rdp-month_grid {
+  @apply w-full border-collapse;
+}
+
+.calendar-custom .rdp-week {
+  @apply flex w-full;
+}
+
+.calendar-custom .rdp-day_button {
+  @apply rounded-md transition-all;
+}
+
+.calendar-custom .rdp-selected .rdp-day_button {
   @apply bg-primary text-primary-foreground hover:bg-primary/90;
 }
 
-.calendar-custom .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+.calendar-custom .rdp-day_button:hover:not(.rdp-selected) {
   @apply bg-secondary text-secondary-foreground;
 }
