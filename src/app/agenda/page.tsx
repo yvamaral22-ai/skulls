@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -13,8 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { 
   Plus, ChevronLeft, ChevronRight, 
-  Loader2, Search, Settings, HelpCircle, 
-  CheckCircle2, Clock
+  Loader2, Search, CheckCircle2, Clock
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
@@ -23,13 +21,12 @@ import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
 import { 
   format, addDays, startOfWeek, isSameDay, 
-  startOfDay, addMinutes, differenceInMinutes,
-  isWithinInterval, endOfDay, parse
+  startOfDay, differenceInMinutes,
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 08:00 às 21:00
-const COLUMN_WIDTH = "min-w-[120px]";
+const COLUMN_WIDTH = "min-w-[150px] md:min-w-[120px]";
 
 export default function AgendaPage() {
   const db = useFirestore();
@@ -40,7 +37,6 @@ export default function AgendaPage() {
   
   const barberShopId = "master-barbershop";
 
-  // Atualiza a linha de "agora" a cada minuto
   React.useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
@@ -64,7 +60,7 @@ export default function AgendaPage() {
     const duration = service?.durationMinutes || 30;
     
     return {
-      top: `${(startMinutes / 60) * 80}px`, // 80px por hora
+      top: `${(startMinutes / 60) * 80}px`, 
       height: `${(duration / 60) * 80}px`,
     };
   };
@@ -90,54 +86,41 @@ export default function AgendaPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden bg-background">
-      {/* Cabeçalho Estilo Google Calendar */}
-      <header className="flex items-center justify-between p-4 border-b border-border bg-card">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 mr-6">
-            <div className="p-2 bg-primary rounded-lg">
-              <Clock className="h-6 w-6 text-white" />
-            </div>
-            <h1 className="text-xl font-bold hidden md:block">Agenda Mestre</h1>
-          </div>
-          
-          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="font-bold">Hoje</Button>
-          
+    <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] overflow-hidden bg-background rounded-2xl border border-border shadow-2xl">
+      {/* Cabeçalho */}
+      <header className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-border bg-card gap-4">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="font-bold h-9">Hoje</Button>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
-              <ChevronLeft className="h-5 w-5" />
+            <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -7))} className="h-9 w-9">
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>
-              <ChevronRight className="h-5 w-5" />
+            <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 7))} className="h-9 w-9">
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          
-          <h2 className="text-xl font-medium ml-2">
+          <h2 className="text-sm md:text-lg font-bold ml-2 capitalize">
             {format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR })}
           </h2>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon"><Search className="h-5 w-5" /></Button>
-          <div className="h-8 w-px bg-border mx-2 hidden md:block" />
-          <Button className="bg-primary text-white font-bold" onClick={() => setIsBookingOpen(true)}>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button className="flex-1 sm:flex-none bg-primary text-white font-bold h-9" onClick={() => setIsBookingOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo
           </Button>
         </div>
       </header>
 
-      {/* Grade de Horários */}
+      {/* Grade */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Eixo de Horários (Fixo) */}
-        <div className="w-16 flex-none bg-card border-r border-border flex flex-col pt-[80px]">
+        <div className="w-12 md:w-16 flex-none bg-card border-r border-border flex flex-col pt-[80px]">
           {HOURS.map(hour => (
-            <div key={hour} className="h-20 text-[10px] text-muted-foreground text-center pt-2">
+            <div key={hour} className="h-20 text-[9px] md:text-[10px] text-muted-foreground text-center pt-2 font-bold opacity-50">
               {`${hour}:00`}
             </div>
           ))}
         </div>
 
-        {/* Scrollable Grid */}
         <div className="flex-1 overflow-auto relative">
           <div className="inline-flex min-w-full">
             {weekDays.map((day, dayIdx) => {
@@ -147,33 +130,30 @@ export default function AgendaPage() {
 
               return (
                 <div key={dayIdx} className={cn("flex-1 relative border-r border-border last:border-r-0", COLUMN_WIDTH)}>
-                  {/* Cabeçalho do Dia */}
                   <div className={cn(
-                    "sticky top-0 z-20 h-20 flex flex-col items-center justify-center border-b border-border bg-card/80 backdrop-blur-sm transition-colors",
+                    "sticky top-0 z-20 h-20 flex flex-col items-center justify-center border-b border-border bg-card/90 backdrop-blur-md transition-colors",
                     isToday ? "text-primary" : ""
                   )}>
-                    <span className="text-[10px] uppercase font-bold opacity-60">
+                    <span className="text-[9px] uppercase font-black opacity-40">
                       {format(day, 'eee', { locale: ptBR })}
                     </span>
                     <span className={cn(
-                      "text-2xl font-black h-12 w-12 flex items-center justify-center rounded-full transition-colors mt-1",
+                      "text-xl font-black h-10 w-10 flex items-center justify-center rounded-full transition-colors mt-0.5",
                       isToday ? "bg-primary text-white shadow-lg shadow-primary/30" : ""
                     )}>
                       {format(day, 'd')}
                     </span>
                   </div>
 
-                  {/* Células de Hora */}
                   <div className="relative" style={{ height: `${HOURS.length * 80}px` }}>
                     {HOURS.map(hour => (
                       <div 
                         key={hour} 
-                        className="h-20 border-b border-border/30 hover:bg-primary/5 transition-colors cursor-pointer"
+                        className="h-20 border-b border-border/10 hover:bg-primary/5 transition-colors cursor-pointer"
                         onClick={() => handleCellClick(day, hour)}
                       />
                     ))}
 
-                    {/* Agendamentos */}
                     {dayAppts.map(appt => {
                       const service = services?.find(s => s.id === appt.serviceId);
                       const isCompleted = appt.status === 'completed';
@@ -185,20 +165,19 @@ export default function AgendaPage() {
                           style={style}
                           onClick={(e) => { e.stopPropagation(); setEditingAppointment(appt); }}
                           className={cn(
-                            "absolute left-1 right-1 rounded-md p-2 text-[10px] overflow-hidden transition-all border shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] z-10",
+                            "absolute left-1 right-1 rounded-lg p-2 text-[9px] md:text-[10px] overflow-hidden transition-all border shadow-md cursor-pointer hover:shadow-xl hover:scale-[1.01] z-10 flex flex-col justify-center",
                             isCompleted 
-                              ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400" 
-                              : "bg-primary/10 border-primary/30 text-primary-foreground"
+                              ? "bg-green-500/20 border-green-500/40 text-green-700 dark:text-green-300" 
+                              : "bg-primary/20 border-primary/40 text-primary-foreground"
                           )}
                         >
-                          <div className="font-bold truncate uppercase">{appt.clientName}</div>
-                          <div className="opacity-80 truncate">{service?.name || 'Serviço'}</div>
-                          {isCompleted && <CheckCircle2 className="absolute bottom-1 right-1 h-3 w-3 text-green-500" />}
+                          <div className="font-black truncate uppercase leading-tight">{appt.clientName}</div>
+                          <div className="opacity-70 truncate font-bold">{service?.name || 'Serviço'}</div>
+                          {isCompleted && <CheckCircle2 className="absolute top-1 right-1 h-3 w-3 text-green-500" />}
                         </div>
                       );
                     })}
 
-                    {/* Linha de Hora Atual */}
                     {isToday && (
                       <div 
                         className="absolute left-0 right-0 z-30 flex items-center pointer-events-none"
@@ -206,8 +185,8 @@ export default function AgendaPage() {
                           top: `${((differenceInMinutes(currentTime, startOfDay(currentTime)) - 480) / 60) * 80}px` 
                         }}
                       >
-                        <div className="h-2 w-2 rounded-full bg-red-500 -ml-1" />
-                        <div className="h-px flex-1 bg-red-500" />
+                        <div className="h-2 w-2 rounded-full bg-red-500 -ml-1 shadow-glow shadow-red-500" />
+                        <div className="h-px flex-1 bg-red-500/50" />
                       </div>
                     )}
                   </div>
@@ -218,7 +197,6 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      {/* Modais */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
