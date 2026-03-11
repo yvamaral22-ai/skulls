@@ -32,20 +32,17 @@ export const FirebaseProvider: React.FC<{
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Marcamos como montado para garantir que o cliente e o servidor 
-    // tenham tido o primeiro render idêntico (loading screen).
     setMounted(true);
     
-    // Sistema de Autenticação Silenciosa para Single-User
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
-        // Se não houver usuário, entra como anônimo para satisfazer as regras do Firebase
-        signInAnonymously(auth).catch(err => {
-          console.error("Falha na autenticação inicial:", err);
-          setIsAuthReady(true); // Libera mesmo com erro para evitar tela infinita
-        });
+        signInAnonymously(auth)
+          .then(() => setIsAuthReady(true))
+          .catch(err => {
+            console.error("Erro na autenticação anônima:", err);
+            setIsAuthReady(true);
+          });
       } else {
-        // Usuário identificado, pronto para ler o Firestore
         setIsAuthReady(true);
       }
     });
@@ -60,8 +57,8 @@ export const FirebaseProvider: React.FC<{
     auth,
   }), [firebaseApp, firestore, auth]);
 
-  // FIX DE HIDRATAÇÃO: Só renderizamos o conteúdo real após a montagem no cliente e o Auth pronto.
-  // No servidor e no primeiro pass do cliente, 'mounted' é false, forçando o mesmo loading screen.
+  // FIX DE HIDRATAÇÃO: Garantimos que o servidor e o cliente renderizem 
+  // o conteúdo principal apenas após a montagem e autenticação estarem prontas.
   if (!mounted || !isAuthReady) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">

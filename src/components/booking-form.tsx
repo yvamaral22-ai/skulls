@@ -88,7 +88,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       collection(db, 'barberProfiles', barberShopId, 'appointments'),
       where('date', '==', format(selectedDate, 'yyyy-MM-dd')),
       where('staffId', '==', selectedStaffId),
-      where('status', '!=', 'Canceled')
+      where('status', '!=', 'canceled')
     );
   }, [db, selectedDate, selectedStaffId]);
 
@@ -235,7 +235,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Barbeiro</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isStaffLoading}>
                 <FormControl>
                   <SelectTrigger className="h-12 bg-background border-2">
                     <SelectValue placeholder={isStaffLoading ? "Carregando..." : "Selecione o profissional"} />
@@ -256,7 +256,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Serviço</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={isServicesLoading}>
                 <FormControl>
                   <SelectTrigger className="h-12 bg-background border-2">
                     <SelectValue placeholder={isServicesLoading ? "Carregando..." : "Selecione o serviço"} />
@@ -275,7 +275,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting} className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4">
+        <Button type="submit" disabled={isSubmitting || isServicesLoading || isStaffLoading} className="w-full h-14 text-lg font-bold shadow-xl bg-primary hover:bg-primary/90 mt-4">
           {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
           {initialData?.id ? 'Salvar Alterações' : 'Registrar Agendamento'}
         </Button>

@@ -24,12 +24,10 @@ export default function StaffPage() {
   
   const barberShopId = "master-barbershop";
 
-  // Buscar Equipe
   const staffQuery = useMemoFirebase(() => {
     return collection(db, "barberProfiles", barberShopId, "staff")
   }, [db, barberShopId])
 
-  // Buscar Agendamentos para calcular métricas
   const appointmentsQuery = useMemoFirebase(() => {
     return collection(db, "barberProfiles", barberShopId, "appointments")
   }, [db, barberShopId])
@@ -134,7 +132,7 @@ export default function StaffPage() {
                 <Input name="commissionRate" type="number" placeholder="40" required className="bg-background" />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Barbeiro</Button>
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold">Salvar Barbeiro</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -209,7 +207,7 @@ export default function StaffPage() {
                           <Input name="commissionRate" defaultValue={member.commissionRate * 100} type="number" className="bg-background" required />
                         </div>
                         <DialogFooter className="pt-4">
-                          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Alterações</Button>
+                          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold">Salvar Alterações</Button>
                         </DialogFooter>
                       </form>
                     </DialogContent>

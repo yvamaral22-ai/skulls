@@ -2,9 +2,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permissão total para o perfil master da barbearia (Single-User App)
-    // Isso garante que o barbeiro tenha controle absoluto sobre seus dados
-    match /barberProfiles/{profileId}/{allPaths=**} {
+    // Acesso total para o perfil master da barbearia (Single-User App)
+    match /barberProfiles/master-barbershop/{allPaths=**} {
       allow read, write: if true;
     }
     
