@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase, Home, User } from "lucide-react"
+import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase, Home, User, LogOut } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarFooter,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -17,7 +18,7 @@ import { useUser } from "@/firebase"
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { role } = useUser()
+  const { role, logout } = useUser()
 
   const isAdmin = role === 'BARBER' || role === 'ADMIN'
 
@@ -35,6 +36,8 @@ export function AppSidebar() {
       { title: "Perfil", url: "/client/profile", icon: User },
     ]),
   ]
+
+  if (pathname === '/login') return null;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -68,6 +71,20 @@ export function AppSidebar() {
           ))}
         </SidebarMenu>
       </SidebarContent>
+      <SidebarFooter className="p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              onClick={logout}
+              tooltip="Sair do sistema"
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-11"
+            >
+              <LogOut className="size-5" />
+              <span className="font-medium">Sair</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

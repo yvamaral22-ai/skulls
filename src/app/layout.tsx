@@ -20,18 +20,33 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isUserLoading) {
-      // Rotas exclusivas de gestão
+      const isLoginPage = pathname === '/login';
       const adminRoutes = ['/', '/agenda', '/customers', '/services', '/staff', '/reports'];
       const isTryingAdmin = adminRoutes.includes(pathname);
+
+      // Se não estiver logado e não estiver na página de login, manda pra lá
+      if (!user && !isLoginPage) {
+        router.push('/login');
+        return;
+      }
+
+      // Se estiver logado e na página de login, redireciona pro lugar certo
+      if (user && isLoginPage) {
+        if (role === 'CLIENT') router.push('/client');
+        else router.push('/');
+        return;
+      }
 
       // Se for cliente tentando acessar gestão, manda para área de cliente
       if (user && role === 'CLIENT' && isTryingAdmin) {
         router.push('/client');
+        return;
       }
       
       // Se for barbeiro tentando acessar área de cliente, manda para dashboard
       if (user && (role === 'BARBER' || role === 'ADMIN') && pathname === '/client') {
         router.push('/');
+        return;
       }
     }
   }, [user, role, isUserLoading, pathname, router]);
@@ -41,7 +56,7 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground animate-pulse">Sincronizando segurança...</p>
+          <p className="text-sm text-muted-foreground animate-pulse">Autenticando acesso...</p>
         </div>
       </div>
     );

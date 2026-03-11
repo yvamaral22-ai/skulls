@@ -4,19 +4,11 @@ import React, { DependencyList, createContext, useContext, ReactNode, useMemo, u
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { initiateSignOut } from './non-blocking-login';
 
-interface FirebaseProviderProps {
-  children: ReactNode;
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
-}
-
-// Papéis disponíveis no sistema
 export type UserRole = 'CLIENT' | 'BARBER' | 'ADMIN';
 
-// Estado interno de autenticação e perfil
 interface UserAuthState {
   user: User | null;
   role: UserRole | null;
@@ -24,27 +16,24 @@ interface UserAuthState {
   userError: Error | null;
 }
 
-// Estado combinado do contexto
 export interface FirebaseContextState extends UserAuthState {
   areServicesAvailable: boolean;
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
+  logout: () => void;
 }
 
-// Retorno do hook useUser
 export interface UserHookResult {
   user: User | null;
   role: UserRole | null;
   isUserLoading: boolean;
   userError: Error | null;
+  logout: () => void;
 }
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-/**
- * FirebaseProvider: Gerencia Auth e sincroniza o Role do usuário vindo do Firestore.
- */
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
   firebaseApp,
@@ -72,7 +61,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             let role: UserRole = 'CLIENT';
 
             if (!userSnap.exists()) {
-              // Se for o primeiro login, cria o perfil como CLIENT por padrão
               await setDoc(userRef, {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
@@ -106,6 +94,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     return () => unsubscribe();
   }, [auth, firestore]);
 
+  const logout = () => {
+    if (auth) initiateSignOut(auth);
+  };
+
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
     return {
@@ -113,6 +105,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       firebaseApp: servicesAvailable ? firebaseApp : null,
       firestore: servicesAvailable ? firestore : null,
       auth: servicesAvailable ? auth : null,
+      logout,
       ...authState,
     };
   }, [firebaseApp, firestore, auth, authState]);
@@ -134,8 +127,8 @@ export const useFirebase = () => {
 export const useAuth = () => useFirebase().auth!;
 export const useFirestore = () => useFirebase().firestore!;
 export const useUser = (): UserHookResult => {
-  const { user, role, isUserLoading, userError } = useFirebase();
-  return { user, role, isUserLoading, userError };
+  const { user, role, isUserLoading, userError, logout } = useFirebase();
+  return { user, role, isUserLoading, userError, logout };
 };
 
 type MemoFirebase <T> = T & {__memo?: boolean};
