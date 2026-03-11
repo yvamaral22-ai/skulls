@@ -20,7 +20,7 @@ import { CheckoutDialog } from '@/components/checkout-dialog';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
-import { format, parseISO, isSameDay } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export default function AgendaPage() {
@@ -59,10 +59,12 @@ export default function AgendaPage() {
     return appointments.filter(appt => appt.date === targetDateStr);
   }, [date, appointments]);
 
-  // Identificar dias que possuem agendamentos para o calendário
+  // Identificar APENAS dias que possuem agendamentos ATIVOS (status scheduled)
   const daysWithAppointments = React.useMemo(() => {
     if (!appointments) return [];
-    const uniqueDates = Array.from(new Set(appointments.map(a => a.date)));
+    // Filtrar apenas os que estão marcados como 'scheduled'
+    const scheduledOnly = appointments.filter(a => a.status === 'scheduled');
+    const uniqueDates = Array.from(new Set(scheduledOnly.map(a => a.date)));
     return uniqueDates.map(dateStr => parseISO(`${dateStr}T00:00:00`));
   }, [appointments]);
 

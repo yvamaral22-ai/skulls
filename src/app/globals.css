@@ -43,31 +43,32 @@
 
 /* Calendar Fixes for React Day Picker v9 */
 .rdp {
-  @apply relative m-0 p-0 !important;
+  @apply relative m-0 p-0 flex flex-col items-center !important;
 }
 
 .rdp-months {
-  @apply relative flex flex-col sm:flex-row gap-4 !important;
+  @apply relative flex flex-col sm:flex-row gap-4 w-full !important;
 }
 
 .rdp-month {
-  @apply relative !important;
+  @apply relative w-full !important;
 }
 
+/* Fix Navigation Arrows Position */
 .rdp-nav {
   @apply absolute top-0 right-0 left-0 flex justify-between h-10 items-center px-2 z-20 pointer-events-none !important;
 }
 
 .rdp-nav button {
-  @apply pointer-events-auto h-8 w-8 flex items-center justify-center rounded-md bg-secondary/50 hover:bg-secondary transition-colors border border-border/50 !important;
+  @apply pointer-events-auto h-8 w-8 flex items-center justify-center rounded-md bg-secondary/80 hover:bg-secondary transition-colors border border-border/50 shadow-sm !important;
 }
 
 .rdp-month_caption {
-  @apply flex justify-center items-center h-10 font-bold text-sm mb-4 !important;
+  @apply flex justify-center items-center h-10 font-bold text-sm mb-4 bg-secondary/10 rounded-t-lg !important;
 }
 
 .rdp-month_grid {
-  @apply w-full border-collapse !important;
+  @apply w-full border-separate border-spacing-1 !important;
 }
 
 .rdp-weekdays {
@@ -75,7 +76,7 @@
 }
 
 .rdp-weekday {
-  @apply text-muted-foreground w-10 h-8 flex items-center justify-center text-[0.7rem] font-bold uppercase !important;
+  @apply text-muted-foreground w-full h-8 flex items-center justify-center text-[0.7rem] font-bold uppercase !important;
 }
 
 .rdp-week {
@@ -83,18 +84,18 @@
 }
 
 .rdp-day {
-  @apply relative p-0 w-10 h-10 flex items-center justify-center !important;
+  @apply relative p-0 w-full aspect-square flex items-center justify-center !important;
 }
 
 .rdp-day_button {
-  @apply w-10 h-10 rounded-lg flex items-center justify-center text-sm transition-all bg-secondary/20 border border-transparent hover:border-primary/50 relative z-10 !important;
+  @apply w-full h-full rounded-lg flex items-center justify-center text-sm transition-all bg-secondary/20 border border-transparent hover:border-primary/50 relative z-10 pointer-events-auto !important;
 }
 
 .rdp-selected .rdp-day_button {
   @apply bg-primary text-primary-foreground border-primary !important;
 }
 
-/* Indicators: Dot below the day number */
+/* Indicators: Active Appointments Dot */
 .has-appointment .rdp-day_button::after {
   content: '';
   @apply absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-sm shadow-primary/50 !important;
@@ -108,9 +109,9 @@
   @apply font-black text-primary underline decoration-2 underline-offset-4 !important;
 }
 
-/* Popover handling */
+/* Popover and Dialog Z-Index isolation */
 [data-radix-popper-content-wrapper] {
-  z-index: 200 !important;
+  z-index: 1000 !important;
 }
 
 .calendar-custom .rdp {
