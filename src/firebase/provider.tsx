@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useEffect, useState } from 'react';
@@ -5,6 +6,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, onAuthStateChanged, signInAnonymously, User } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { Loader2 } from 'lucide-react';
 
 export interface FirebaseContextState {
   areServicesAvailable: boolean;
@@ -30,10 +32,14 @@ export const FirebaseProvider: React.FC<{
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Garante que sempre haja um usuário logado (anônimo) para as regras de segurança funcionarem
+    // Garante que o usuário esteja autenticado anonimamente antes de liberar o app
+    // Isso é crucial para que as regras de segurança isSignedIn() funcionem
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
-        signInAnonymously(auth);
+        signInAnonymously(auth).catch(err => {
+          console.error("Falha na autenticação silenciosa:", err);
+          setLoading(false);
+        });
       } else {
         setUser(currentUser);
         setLoading(false);
@@ -49,6 +55,18 @@ export const FirebaseProvider: React.FC<{
     firestore,
     auth,
   }), [firebaseApp, firestore, auth]);
+
+  // Bloqueia a renderização até que o Firebase esteja pronto e autenticado
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground animate-pulse">Iniciando Skull Barber...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -67,7 +85,6 @@ export const useFirebase = () => {
 export const useFirestore = () => useFirebase().firestore!;
 export const useAuth = () => useFirebase().auth!;
 
-// Hook adaptado para o novo modelo de usuário único/interno
 export const useUser = () => {
   const { auth } = useFirebase();
   const [user, setUser] = useState<any>(null);

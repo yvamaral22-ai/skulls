@@ -1,34 +1,19 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Verifica se o usuário está autenticado
+    // Função auxiliar para verificar autenticação
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Estrutura da Barbearia (Modo Single-User / Uso Interno)
+    // Regras simplificadas para uso interno (Single-User)
+    // Permite leitura e escrita em qualquer documento se o usuário estiver autenticado (mesmo anonimamente)
     match /barberProfiles/{profileId} {
-      // Permite acesso total ao perfil master ou ao perfil do próprio usuário
       allow read, write: if isSignedIn();
 
-      match /services/{serviceId} {
-        allow read, write: if isSignedIn();
-      }
-
-      match /staff/{staffId} {
-        allow read, write: if isSignedIn();
-      }
-
-      match /clients/{clientId} {
-        allow read, write: if isSignedIn();
-      }
-
-      match /appointments/{appointmentId} {
-        allow read, write: if isSignedIn();
-      }
-
-      match /expenses/{expenseId} {
+      match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
     }

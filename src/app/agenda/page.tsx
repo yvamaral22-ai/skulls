@@ -40,7 +40,7 @@ export default function AgendaPage() {
   const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
   const barberShopId = "master-barbershop";
 
-  // Gerar dias da semana atual
+  // Gerar dias da semana atual para a visualização estilo Google Calendar
   const weekStart = startOfWeek(selectedDate, { locale: ptBR });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -71,27 +71,27 @@ export default function AgendaPage() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black font-headline text-primary">Agenda Semanal</h1>
-          <p className="text-muted-foreground">Gerencie seus horários com visão clara da semana.</p>
+          <h1 className="text-3xl font-black font-headline text-primary">Agenda Mestre</h1>
+          <p className="text-muted-foreground">Controle total dos seus horários e equipe.</p>
         </div>
 
         <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
           <DialogTrigger asChild>
             <Button className="h-12 md:h-11 font-bold shadow-lg shadow-primary/20 bg-primary">
-              <Plus className="mr-2 h-5 w-5" /> Novo Registro
+              <Plus className="mr-2 h-5 w-5" /> Novo Agendamento
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[450px] z-[10000]">
             <DialogHeader>
-              <DialogTitle>Novo Agendamento Manual</DialogTitle>
-              <DialogDescription>Insira os dados do cliente e horário.</DialogDescription>
+              <DialogTitle>Novo Registro Manual</DialogTitle>
+              <DialogDescription>Insira os dados do cliente e escolha o serviço.</DialogDescription>
             </DialogHeader>
             <BookingForm onSuccess={() => setIsBookingOpen(false)} />
           </DialogContent>
         </Dialog>
       </header>
 
-      {/* Navegação de Calendário Semanal (Estilo Google) */}
+      {/* Navegação de Calendário Semanal (Estilo Google Calendar) */}
       <Card className="border-none shadow-xl bg-card overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between pb-4 bg-secondary/10">
           <div className="flex items-center gap-4">
@@ -146,9 +146,9 @@ export default function AgendaPage() {
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 text-primary" />
-              Planilha de {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+              Planilha de Atendimentos
             </CardTitle>
-            <CardDescription>{dailyAppointments.length} horários ocupados para este dia.</CardDescription>
+            <CardDescription>{format(selectedDate, "dd 'de' MMMM", { locale: ptBR })} • {dailyAppointments.length} registros</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -176,7 +176,7 @@ export default function AgendaPage() {
                     return (
                       <TableRow 
                         key={appt.id} 
-                        className="border-border hover:bg-primary/5 transition-colors cursor-pointer"
+                        className="border-border hover:bg-primary/5 transition-colors cursor-pointer group"
                         onClick={() => setEditingAppointment(appt)}
                       >
                         <TableCell className="font-black text-primary">
@@ -229,7 +229,7 @@ export default function AgendaPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">
-                      Nenhum agendamento para este dia. Clique em "Novo Registro" para começar.
+                      Nenhum agendamento para este dia. Use o botão "Novo Agendamento".
                     </TableCell>
                   </TableRow>
                 )}
@@ -239,12 +239,12 @@ export default function AgendaPage() {
         </CardContent>
       </Card>
 
-      {/* Modal de Edição */}
+      {/* Modal de Edição de Agendamento */}
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
         <DialogContent className="sm:max-w-[450px] z-[10000]">
           <DialogHeader>
-            <DialogTitle>Editar Agendamento</DialogTitle>
-            <DialogDescription>Altere as informações do atendimento selecionado.</DialogDescription>
+            <DialogTitle>Editar Registro</DialogTitle>
+            <DialogDescription>Altere os dados do atendimento selecionado.</DialogDescription>
           </DialogHeader>
           {editingAppointment && (
             <BookingForm 
