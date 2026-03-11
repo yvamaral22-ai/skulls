@@ -27,15 +27,15 @@ export function AppSidebar() {
   ]
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border">
+    <Sidebar collapsible="icon" className="border-r border-border bg-card">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2 px-2">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Scissors className="size-5" />
+          <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-primary text-black">
+            <Scissors className="size-6" />
           </div>
-          <div className="flex flex-col gap-0.5 leading-none text-sidebar-foreground">
-            <span className="font-semibold text-primary font-headline text-lg">Skull Barber</span>
-            <span className="text-xs opacity-60">Painel de Controle</span>
+          <div className="flex flex-col gap-0.5 leading-none">
+            <span className="font-headline text-primary text-xl leading-none">Barbearia Skull's</span>
+            <span className="text-[10px] uppercase tracking-widest opacity-60">Elite Management</span>
           </div>
         </div>
       </SidebarHeader>
@@ -47,7 +47,7 @@ export function AppSidebar() {
                 asChild
                 isActive={pathname === item.url}
                 tooltip={item.title}
-                className="hover:bg-primary/10 hover:text-primary transition-all h-11"
+                className="hover:bg-primary/10 hover:text-primary transition-all h-12"
               >
                 <Link href={item.url}>
                   <item.icon className="size-5" />

@@ -1,8 +1,7 @@
-
 "use client"
 
 import * as React from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -69,8 +68,8 @@ export default function CustomersPage() {
     })
 
     toast({
-      title: "Cliente Cadastrado!",
-      description: `${name} foi adicionado à sua base de dados.`,
+      title: "Alvo Identificado!",
+      description: `${name} foi adicionado à base Skull's.`,
     })
     setIsAddOpen(false)
   }
@@ -84,7 +83,7 @@ export default function CustomersPage() {
     const phone = formData.get("phone") as string
     const preferences = formData.get("preferences") as string
 
-    const clientRef = doc(db, "barberProfiles", barberShopId, "clients", editingId)
+    const clientRef = doc(db, "barberProfiles", barberProfileId, "clients", editingId)
     
     updateDocumentNonBlocking(clientRef, {
       name,
@@ -93,8 +92,8 @@ export default function CustomersPage() {
     })
 
     toast({
-      title: "Perfil Atualizado!",
-      description: "As informações do cliente foram sincronizadas.",
+      title: "Ficha Atualizada!",
+      description: "As informações foram sincronizadas no QG.",
     })
     setEditingId(null)
   }
@@ -104,8 +103,8 @@ export default function CustomersPage() {
     deleteDocumentNonBlocking(clientRef)
     toast({
       variant: "destructive",
-      title: "Cliente Removido",
-      description: `${clientName} foi excluído da sua base de dados.`,
+      title: "Alvo Removido",
+      description: `${clientName} foi excluído da base tática.`,
     })
   }
 
@@ -121,36 +120,36 @@ export default function CustomersPage() {
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-primary">Skull Barber - Clientes</h1>
-          <p className="text-muted-foreground">Seu banco de dados de clientes.</p>
+          <h1 className="text-4xl font-headline text-primary">Esquadrão de Clientes</h1>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px]">Gestão de alistamento Skull's</p>
         </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
-              <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+            <Button className="bg-primary text-black font-bold hover:bg-primary/90 shadow-lg shadow-primary/20">
+              <Plus className="mr-2 h-4 w-4" /> Recrutar Alvo
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border shadow-2xl">
+          <DialogContent className="bg-card border-primary/20 shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl">Cadastrar Novo Cliente</DialogTitle>
-              <DialogDescription>Adicione um novo cliente à sua base de dados.</DialogDescription>
+              <DialogTitle className="font-headline text-3xl text-primary">Alistamento de Cliente</DialogTitle>
+              <DialogDescription className="uppercase tracking-tighter text-[10px]">Insira os dados para o banco de dados underground.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Nome Completo</Label>
-                <Input name="name" placeholder="Ex: João Silva" required className="bg-background" />
+                <Label className="uppercase text-[10px] font-bold tracking-widest">Nome Completo</Label>
+                <Input name="name" placeholder="Ex: John Doe" required className="bg-background border-primary/20 focus:border-primary" />
               </div>
               <div className="space-y-2">
-                <Label>Telefone / WhatsApp</Label>
-                <Input name="phone" placeholder="(11) 99999-9999" className="bg-background" />
+                <Label className="uppercase text-[10px] font-bold tracking-widest">Telefone / WhatsApp</Label>
+                <Input name="phone" placeholder="(11) 99999-9999" className="bg-background border-primary/20 focus:border-primary" />
               </div>
               <div className="space-y-2">
-                <Label>Preferências Técnicas</Label>
-                <Textarea name="preferences" placeholder="Ex: Gosta de degradê navalhado..." className="bg-background" />
+                <Label className="uppercase text-[10px] font-bold tracking-widest">Notas Técnicas</Label>
+                <Textarea name="preferences" placeholder="Ex: Estilo Mohawk, Navalhado..." className="bg-background border-primary/20 focus:border-primary" />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Cliente</Button>
+                <Button type="submit" className="w-full bg-primary text-black font-headline text-xl">Confirmar Alistamento</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -158,10 +157,10 @@ export default function CustomersPage() {
       </div>
 
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
         <Input 
-          placeholder="Buscar cliente por nome ou telefone..." 
-          className="pl-10 bg-card border-border" 
+          placeholder="Rastrear alvo por nome ou telefone..." 
+          className="pl-10 bg-card border-primary/20 focus:border-primary placeholder:text-muted-foreground/30" 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -169,60 +168,60 @@ export default function CustomersPage() {
 
       <div className="grid gap-6 md:grid-cols-2">
         {filteredCustomers.map((customer) => (
-          <Card key={customer.id} className="border-none bg-card shadow-lg hover:shadow-primary/5 transition-all group">
+          <Card key={customer.id} className="border-border bg-card shadow-lg hover:border-primary/50 transition-all group overflow-hidden border-t-2 border-t-primary/20">
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-                    <User className="h-6 w-6" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-secondary text-primary group-hover:bg-primary group-hover:text-black transition-all duration-300 transform -rotate-3">
+                    <User className="h-7 w-7" />
                   </div>
                   <div>
-                    <CardTitle className="font-headline text-lg">{customer.name}</CardTitle>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Phone className="h-3 w-3" />
+                    <CardTitle className="font-headline text-2xl group-hover:text-primary transition-colors">{customer.name}</CardTitle>
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                      <Phone className="h-3 w-3 text-primary" />
                       {customer.phone || 'N/A'}
                     </div>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-primary/30 text-primary">Ativo</Badge>
+                <Badge variant="outline" className="border-primary/30 text-primary uppercase text-[8px] tracking-widest">Ativo</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
-                <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-                  <Info className="h-3 w-3" /> Notas Técnicas
+                <p className="text-[10px] font-bold uppercase text-primary/60 flex items-center gap-2 tracking-widest">
+                  <Info className="h-3 w-3" /> Observações Táticas
                 </p>
-                <p className="text-sm italic text-muted-foreground bg-secondary/30 p-2 rounded-md border border-border/50">
-                  {customer.preferences || "Nenhuma nota técnica cadastrada."}
+                <p className="text-sm italic text-muted-foreground bg-background p-3 rounded-lg border border-primary/10">
+                  {customer.preferences || "Nenhuma nota técnica registrada."}
                 </p>
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
                 <Dialog open={editingId === customer.id} onOpenChange={(open) => setEditingId(open ? customer.id : null)}>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary">
+                    <Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5">
                       <Pencil className="mr-2 h-3 w-3" /> Editar
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-card border-border shadow-2xl">
+                  <DialogContent className="bg-card border-primary/20 shadow-2xl">
                     <DialogHeader>
-                      <DialogTitle className="font-headline text-2xl">Editar Cliente</DialogTitle>
+                      <DialogTitle className="font-headline text-3xl text-primary">Alterar Dados</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleUpdate} className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label>Nome Completo</Label>
-                        <Input name="name" defaultValue={customer.name} className="bg-background" required />
+                        <Label className="uppercase text-[10px] font-bold tracking-widest">Nome</Label>
+                        <Input name="name" defaultValue={customer.name} className="bg-background border-primary/20" required />
                       </div>
                       <div className="space-y-2">
-                        <Label>Telefone</Label>
-                        <Input name="phone" defaultValue={customer.phone} className="bg-background" />
+                        <Label className="uppercase text-[10px] font-bold tracking-widest">Telefone</Label>
+                        <Input name="phone" defaultValue={customer.phone} className="bg-background border-primary/20" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Preferências</Label>
-                        <Textarea name="preferences" defaultValue={customer.preferences} className="bg-background" />
+                        <Label className="uppercase text-[10px] font-bold tracking-widest">Notas</Label>
+                        <Textarea name="preferences" defaultValue={customer.preferences} className="bg-background border-primary/20" />
                       </div>
                       <DialogFooter className="pt-4">
-                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">Salvar Alterações</Button>
+                        <Button type="submit" className="w-full bg-primary text-black font-headline text-xl">Sincronizar Dados</Button>
                       </DialogFooter>
                     </form>
                   </DialogContent>
@@ -230,21 +229,21 @@ export default function CustomersPage() {
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-destructive">
-                      <Trash2 className="mr-2 h-3 w-3" /> Remover
+                    <Button variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground hover:text-destructive hover:bg-destructive/5">
+                      <Trash2 className="mr-2 h-3 w-3" /> Eliminar
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-card border-border shadow-2xl">
+                  <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Remover Cliente?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta ação não pode ser desfeita. Todas as informações de {customer.name} serão apagadas.
+                      <AlertDialogTitle className="font-headline text-2xl text-destructive">Remover do Esquadrão?</AlertDialogTitle>
+                      <AlertDialogDescription className="uppercase tracking-tighter text-[10px]">
+                        Esta operação é irreversível. Todos os dados de {customer.name} serão destruídos.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel className="bg-secondary">Voltar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(customer.id, customer.name)} className="bg-destructive text-white hover:bg-destructive/90">
-                        Sim, Excluir
+                      <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Abortar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(customer.id, customer.name)} className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold">
+                        Confirmar Exclusão
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -254,9 +253,9 @@ export default function CustomersPage() {
           </Card>
         ))}
         {filteredCustomers.length === 0 && !isDataLoading && (
-          <div className="col-span-full py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-60">
-            <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-20" />
-            <p className="text-muted-foreground italic">Nenhum cliente encontrado.</p>
+          <div className="col-span-full py-24 text-center border-2 border-dashed border-primary/10 rounded-3xl opacity-60">
+            <User className="h-16 w-16 mx-auto mb-4 text-primary opacity-20" />
+            <p className="text-muted-foreground uppercase font-headline tracking-widest text-xl">Sem alvos detectados</p>
           </div>
         )}
       </div>

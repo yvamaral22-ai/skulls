@@ -4,31 +4,31 @@
 
 @layer base {
   :root {
-    --background: 264 13% 10%;
+    --background: 0 0% 5%;
     --foreground: 0 0% 98%;
-    --card: 264 13% 12%;
+    --card: 0 0% 7%;
     --card-foreground: 0 0% 98%;
-    --popover: 264 13% 10%;
+    --popover: 0 0% 5%;
     --popover-foreground: 0 0% 98%;
-    --primary: 258 60% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 264 13% 18%;
+    --primary: 48 80% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 12%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 264 13% 18%;
-    --muted-foreground: 264 5% 70%;
-    --accent: 209 100% 76%;
-    --accent-foreground: 264 13% 10%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 48 80% 50%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 264 13% 20%;
-    --input: 264 13% 20%;
-    --ring: 258 60% 50%;
-    --radius: 0.75rem;
-    --chart-1: 258 60% 50%;
-    --chart-2: 209 100% 76%;
-    --chart-3: 280 65% 60%;
-    --chart-4: 173 58% 39%;
-    --chart-5: 43 74% 66%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 48 80% 50%;
+    --radius: 0.5rem;
+    --chart-1: 48 80% 50%;
+    --chart-2: 0 0% 40%;
+    --chart-3: 0 0% 20%;
+    --chart-4: 48 40% 30%;
+    --chart-5: 0 0% 10%;
   }
 }
 
@@ -38,6 +38,9 @@
   }
   body {
     @apply bg-background text-foreground font-body;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline uppercase tracking-wider;
   }
 }
 
@@ -71,4 +74,15 @@ body[style*="pointer-events: none"] [data-radix-popper-content-wrapper] {
 .has-appointment .rdp-day_button::after {
   content: '';
   @apply absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary !important;
+}
+
+/* Scrollbar Style */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/20 rounded-full hover:bg-primary/40 transition-colors;
 }
