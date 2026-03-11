@@ -6,12 +6,23 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Scissors, Plus, Pencil, Trash2, Clock, Loader2 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase"
 import { collection, doc, setDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
-import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates"
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function ServicesPage() {
   const db = useFirestore()
@@ -199,9 +210,30 @@ export default function ServicesPage() {
                         </DialogContent>
                       </Dialog>
                       
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/5" onClick={() => handleDelete(service.id, service.name)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/5">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Remover Serviço?</AlertDialogTitle>
+                            <AlertDialogDescription className="uppercase tracking-tighter text-[10px]">
+                              Esta ação removerá "{service.name}" do catálogo tático permanentemente.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Abortar</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDelete(service.id, service.name)} 
+                              className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold"
+                            >
+                              Confirmar Exclusão
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))

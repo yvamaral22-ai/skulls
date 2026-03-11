@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -8,11 +7,22 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { 
   Briefcase, Plus, TrendingUp, CalendarDays, Pencil, Loader2, Trash2
 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, doc, setDoc, serverTimestamp, deleteDoc } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase"
+import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
@@ -84,15 +94,14 @@ export default function StaffPage() {
     setEditingStaff(null)
   }
 
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Deseja realmente remover ${name} da equipe?`)) {
-      await deleteDoc(doc(db, "barberProfiles", barberShopId, "staff", id));
-      toast({
-        variant: "destructive",
-        title: "Profissional Removido",
-        description: `${name} não faz mais parte da equipe ativa.`,
-      })
-    }
+  const handleDelete = (id: string, name: string) => {
+    const staffRef = doc(db, "barberProfiles", barberShopId, "staff", id);
+    deleteDocumentNonBlocking(staffRef);
+    toast({
+      variant: "destructive",
+      title: "Profissional Removido",
+      description: `${name} não faz mais parte da equipe ativa.`,
+    })
   }
 
   if (isStaffLoading || isApptsLoading) {
@@ -113,7 +122,7 @@ export default function StaffPage() {
 
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
+            <Button className="bg-primary hover:bg-primary/90 text-black font-bold shadow-lg shadow-primary/20">
               <Plus className="mr-2 h-4 w-4" /> Novo Barbeiro
             </Button>
           </DialogTrigger>
@@ -132,7 +141,7 @@ export default function StaffPage() {
                 <Input name="commissionRate" type="number" placeholder="40" required className="bg-background" />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold">Salvar Barbeiro</Button>
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-black font-bold">Salvar Barbeiro</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -153,11 +162,11 @@ export default function StaffPage() {
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-primary group-hover:bg-primary group-hover:text-black transition-all duration-300">
                       <Briefcase className="h-7 w-7" />
                     </div>
                     <div>
-                      <CardTitle className="font-headline text-2xl">{member.name}</CardTitle>
+                      <CardTitle className="font-headline text-2xl group-hover:text-primary transition-colors">{member.name}</CardTitle>
                       <Badge variant="outline" className="text-[10px] uppercase mt-1 border-primary/30 text-primary">
                         {member.isActive ? "Ativo" : "Inativo"}
                       </Badge>
@@ -189,7 +198,7 @@ export default function StaffPage() {
                 <div className="pt-2 flex gap-2">
                   <Dialog open={editingStaff?.id === member.id} onOpenChange={(open) => setEditingStaff(open ? member : null)}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 border-primary/20 text-xs hover:bg-primary/10 h-11">
+                      <Button variant="outline" className="flex-1 border-primary/20 text-xs hover:bg-primary/10 h-11 uppercase font-bold">
                         <Pencil className="mr-2 h-4 w-4" /> Editar Dados
                       </Button>
                     </DialogTrigger>
@@ -207,15 +216,36 @@ export default function StaffPage() {
                           <Input name="commissionRate" defaultValue={member.commissionRate * 100} type="number" className="bg-background" required />
                         </div>
                         <DialogFooter className="pt-4">
-                          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold">Salvar Alterações</Button>
+                          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-black font-bold">Salvar Alterações</Button>
                         </DialogFooter>
                       </form>
                     </DialogContent>
                   </Dialog>
                   
-                  <Button variant="ghost" size="icon" className="h-11 w-11 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(member.id, member.name)}>
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-11 w-11 text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Demitir Barbeiro?</AlertDialogTitle>
+                        <AlertDialogDescription className="uppercase tracking-tighter text-[10px]">
+                          Esta operação removerá {member.name} da equipe tática permanentemente.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Abortar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDelete(member.id, member.name)} 
+                          className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold"
+                        >
+                          Confirmar Exclusão
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
@@ -224,7 +254,7 @@ export default function StaffPage() {
         {staff?.length === 0 && !isStaffLoading && (
           <div className="lg:col-span-2 text-center py-20 bg-card rounded-xl border border-dashed border-border">
             <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-            <p className="text-muted-foreground">Cadastre seu primeiro barbeiro para começar.</p>
+            <p className="text-muted-foreground uppercase font-bold tracking-widest text-[10px]">Cadastre seu primeiro barbeiro para começar.</p>
           </div>
         )}
       </div>

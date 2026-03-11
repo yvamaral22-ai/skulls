@@ -10,26 +10,39 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   Plus, ChevronLeft, ChevronRight, 
-  Loader2, Search, CheckCircle2, Clock
+  Loader2, Search, CheckCircle2, Clock, Trash2
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, deleteDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
 import { 
   format, addDays, startOfWeek, isSameDay, 
   startOfDay, differenceInMinutes,
 } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 08:00 às 21:00
 const COLUMN_WIDTH = "min-w-[150px] md:min-w-[120px]";
 
 export default function AgendaPage() {
   const db = useFirestore();
+  const { toast } = useToast();
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [isBookingOpen, setIsBookingOpen] = React.useState(false);
   const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
@@ -65,11 +78,15 @@ export default function AgendaPage() {
     };
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Deseja realmente excluir este agendamento?')) {
-      await deleteDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', id));
-      setEditingAppointment(null);
-    }
+  const handleDelete = (id: string) => {
+    const apptRef = doc(db, 'barberProfiles', barberShopId, 'appointments', id);
+    deleteDocumentNonBlocking(apptRef);
+    setEditingAppointment(null);
+    toast({
+      variant: "destructive",
+      title: "Registro Eliminado",
+      description: "O agendamento foi removido da grade tática.",
+    });
   };
 
   const handleCellClick = (day: Date, hour: number) => {
@@ -105,7 +122,7 @@ export default function AgendaPage() {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button className="flex-1 sm:flex-none bg-primary text-white font-bold h-9" onClick={() => setIsBookingOpen(true)}>
+          <Button className="flex-1 sm:flex-none bg-primary text-black font-bold h-9" onClick={() => setIsBookingOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo
           </Button>
         </div>
@@ -139,7 +156,7 @@ export default function AgendaPage() {
                     </span>
                     <span className={cn(
                       "text-xl font-black h-10 w-10 flex items-center justify-center rounded-full transition-colors mt-0.5",
-                      isToday ? "bg-primary text-white shadow-lg shadow-primary/30" : ""
+                      isToday ? "bg-primary text-black shadow-lg shadow-primary/30" : ""
                     )}>
                       {format(day, 'd')}
                     </span>
@@ -232,13 +249,34 @@ export default function AgendaPage() {
                       onSuccess={() => setEditingAppointment(null)}
                     />
                   )}
-                  <Button 
-                    variant="ghost" 
-                    className="flex-1 text-destructive hover:bg-destructive/10 font-bold" 
-                    onClick={() => handleDelete(editingAppointment.id)}
-                  >
-                    Excluir
-                  </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        className="flex-1 text-destructive hover:bg-destructive/10 font-bold"
+                      >
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase tracking-widest">Remover Registro?</AlertDialogTitle>
+                        <AlertDialogDescription className="uppercase tracking-tighter text-[10px]">
+                          Esta operação removerá permanentemente o agendamento de {editingAppointment.clientName} do arsenal.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold">Abortar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDelete(editingAppointment.id)} 
+                          className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold"
+                        >
+                          Confirmar Exclusão
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               )}
             </div>
