@@ -4,16 +4,16 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CalendarDays, User, Scissors, LogOut } from 'lucide-react';
+import { Home, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { role, logout } = useUser();
+  const { user, role, isUserLoading, logout } = useUser();
 
-  // Só exibe para Clientes no mobile
-  if (role !== 'CLIENT') return null;
+  // Só exibe para Clientes logados no mobile, exceto na tela de login
+  if (isUserLoading || !user || role !== 'CLIENT' || pathname === '/login') return null;
 
   const navItems = [
     { label: 'Início', href: '/client', icon: Home },

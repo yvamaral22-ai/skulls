@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase, Home, User, LogOut } from "lucide-react"
+import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase, Home, LogOut } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -19,7 +19,10 @@ import { useUser } from "@/firebase"
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { role, logout } = useUser()
+  const { user, role, isUserLoading, logout } = useUser()
+
+  // Não renderiza nada se estiver carregando, se não houver usuário ou se estiver na tela de login
+  if (isUserLoading || !user || pathname === '/login') return null;
 
   const isAdmin = role === 'BARBER' || role === 'ADMIN'
 
@@ -35,8 +38,6 @@ export function AppSidebar() {
       { title: "Início", url: "/client", icon: Home },
     ]),
   ]
-
-  if (pathname === '/login') return null;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
