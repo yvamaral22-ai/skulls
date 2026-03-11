@@ -4,9 +4,9 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, addMinutes } from 'date-fns';
+import { format, addMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Clock, UserPlus, Loader2 } from 'lucide-react';
+import { CalendarIcon, Clock, UserPlus, Loader2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -29,8 +29,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const bookingSchema = z.object({
   clientName: z.string().min(2, 'Informe o nome do cliente'),
@@ -44,7 +45,12 @@ const bookingSchema = z.object({
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
 
-export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
+interface BookingFormProps {
+  onSuccess?: () => void;
+  initialData?: any; // Dados para edição
+}
+
+export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const { user } = useUser();
   const db = useFirestore();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -62,19 +68,35 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
     return collection(db, 'barberProfiles', barberProfileId, 'staff');
   }, [db, barberProfileId]);
 
+  const clientsQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, 'barberProfiles', barberProfileId, 'clients');
+  }, [db, barberProfileId]);
+
   const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
   const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery);
+  const { data: clients } = useCollection(clientsQuery);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      clientName: '',
-      staffId: '',
-      serviceId: '',
-      time: '09:00',
-      date: new Date(),
+      clientName: initialData?.clientName || '',
+      staffId: initialData?.staffId || '',
+      serviceId: initialData?.serviceId || '',
+      time: initialData?.time || '09:00',
+      date: initialData?.date ? parseISO(initialData.date) : new Date(),
     },
   });
+
+  // Atualizar nome do cliente se estiver editando e os clientes carregarem
+  React.useEffect(() => {
+    if (initialData?.clientId && clients) {
+      const client = clients.find(c => c.id === initialData.clientId);
+      if (client) {
+        form.setValue('clientName', client.name);
+      }
+    }
+  }, [initialData, clients, form]);
 
   const selectedServiceId = form.watch('serviceId');
   const selectedTime = form.watch('time');
@@ -103,42 +125,60 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
     try {
       const targetDate = format(data.date, 'yyyy-MM-dd');
       
-      // Garantir que o perfil do barbeiro exista
-      const barberRef = doc(db, 'barberProfiles', user.uid);
-      await setDoc(barberRef, { id: user.uid, lastActivity: serverTimestamp() }, { merge: true });
+      if (initialData?.id) {
+        // EDIÇÃO de agendamento existente
+        const appointmentRef = doc(db, 'barberProfiles', user.uid, 'appointments', initialData.id);
+        
+        updateDocumentNonBlocking(appointmentRef, {
+          staffId: data.staffId,
+          serviceId: data.serviceId,
+          date: targetDate,
+          time: data.time,
+          endTime: endTime,
+          priceAtAppointment: Number(selectedService?.price) || 0,
+          updatedAt: serverTimestamp(),
+        });
 
-      // Cadastro rápido do cliente
-      const clientRef = doc(collection(db, 'barberProfiles', user.uid, 'clients'));
-      const clientId = clientRef.id;
-      
-      await setDoc(clientRef, {
-        id: clientId,
-        barberProfileId: user.uid,
-        name: data.clientName,
-        createdAt: serverTimestamp(),
-      });
+        toast({
+          title: 'Agendamento Atualizado!',
+          description: `O horário foi remarcado com sucesso.`,
+        });
+      } else {
+        // NOVO agendamento
+        const barberRef = doc(db, 'barberProfiles', user.uid);
+        await setDoc(barberRef, { id: user.uid, lastActivity: serverTimestamp() }, { merge: true });
 
-      // Registro do agendamento
-      const appointmentRef = doc(collection(db, 'barberProfiles', user.uid, 'appointments'));
-      
-      await setDoc(appointmentRef, {
-        id: appointmentRef.id,
-        barberProfileId: user.uid,
-        clientId,
-        staffId: data.staffId,
-        serviceId: data.serviceId,
-        date: targetDate,
-        time: data.time,
-        endTime: endTime,
-        status: 'scheduled',
-        priceAtAppointment: Number(selectedService?.price) || 0,
-        createdAt: serverTimestamp(),
-      });
+        const clientRef = doc(collection(db, 'barberProfiles', user.uid, 'clients'));
+        const clientId = clientRef.id;
+        
+        await setDoc(clientRef, {
+          id: clientId,
+          barberProfileId: user.uid,
+          name: data.clientName,
+          createdAt: serverTimestamp(),
+        });
 
-      toast({
-        title: 'Agendamento Realizado!',
-        description: `${data.clientName} marcado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
-      });
+        const appointmentRef = doc(collection(db, 'barberProfiles', user.uid, 'appointments'));
+        
+        await setDoc(appointmentRef, {
+          id: appointmentRef.id,
+          barberProfileId: user.uid,
+          clientId,
+          staffId: data.staffId,
+          serviceId: data.serviceId,
+          date: targetDate,
+          time: data.time,
+          endTime: endTime,
+          status: 'scheduled',
+          priceAtAppointment: Number(selectedService?.price) || 0,
+          createdAt: serverTimestamp(),
+        });
+
+        toast({
+          title: 'Agendamento Realizado!',
+          description: `${data.clientName} marcado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
+        });
+      }
       
       form.reset();
       if (onSuccess) onSuccess();
@@ -146,7 +186,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
       console.error(error);
       toast({
         variant: 'destructive',
-        title: 'Erro ao agendar',
+        title: 'Erro ao salvar',
         description: 'Não foi possível salvar os dados. Tente novamente.',
       });
     } finally {
@@ -172,7 +212,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Data do Corte</FormLabel>
+                <FormLabel>Data do Atendimento</FormLabel>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -248,7 +288,12 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
               <FormControl>
                 <div className="relative">
                   <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input {...field} placeholder="Digite o nome completo" className="pl-10 bg-background h-11" />
+                  <Input 
+                    {...field} 
+                    placeholder="Digite o nome completo" 
+                    className="pl-10 bg-background h-11" 
+                    disabled={!!initialData?.id} // Bloquear nome do cliente na edição para manter integridade
+                  />
                 </div>
               </FormControl>
               <FormMessage />
@@ -263,7 +308,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Profissional</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="bg-background h-11">
                       <SelectValue placeholder="Escolha o barbeiro" />
@@ -289,7 +334,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Serviço</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="bg-background h-11">
                       <SelectValue placeholder="Selecione o serviço" />
@@ -320,9 +365,14 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
           {isSubmitting ? (
             <div className="flex items-center gap-2">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Agendando...</span>
+              <span>Processando...</span>
             </div>
-          ) : 'Confirmar Agendamento'}
+          ) : (
+            <div className="flex items-center gap-2">
+              {initialData?.id ? <Pencil className="h-5 w-5" /> : null}
+              <span>{initialData?.id ? 'Salvar Alterações' : 'Confirmar Agendamento'}</span>
+            </div>
+          )}
         </Button>
       </form>
     </Form>

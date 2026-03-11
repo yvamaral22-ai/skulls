@@ -12,32 +12,47 @@ import {
   DialogTrigger,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Clock, User, Scissors, CalendarDays, Loader2, CheckCircle2, History as HistoryIcon } from 'lucide-react';
+import { 
+  Plus, Clock, User, Scissors, CalendarDays, Loader2, 
+  CheckCircle2, History as HistoryIcon, Pencil, Trash2 
+} from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { toast } from '@/hooks/use-toast';
 
 export default function AgendaPage() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const db = useFirestore();
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [isBookingOpen, setIsBookingOpen] = React.useState(false);
+  const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
 
   const barberProfileId = user?.uid;
 
-  // Buscar Todos os Agendamentos para marcar o calendário
   const appointmentsQuery = useMemoFirebase(() => {
     if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'appointments');
   }, [db, barberProfileId]);
 
-  // Buscar Serviços e Clientes para exibição
   const servicesQuery = useMemoFirebase(() => {
     if (!barberProfileId) return null;
     return collection(db, 'barberProfiles', barberProfileId, 'services');
@@ -52,14 +67,12 @@ export default function AgendaPage() {
   const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
   const { data: clients, isLoading: isClientsLoading } = useCollection(clientsQuery);
 
-  // Filtrar agendamentos para o dia selecionado
   const filteredAppointments = React.useMemo(() => {
     if (!date || !appointments) return [];
     const targetDateStr = format(date, 'yyyy-MM-dd');
     return appointments.filter(appt => appt.date === targetDateStr);
   }, [date, appointments]);
 
-  // Identificar APENAS dias que possuem agendamentos ATIVOS (status scheduled)
   const daysWithAppointments = React.useMemo(() => {
     if (!appointments) return [];
     const scheduledOnly = appointments.filter(a => a.status === 'scheduled');
@@ -70,10 +83,15 @@ export default function AgendaPage() {
   const activeAppointments = filteredAppointments.filter(a => a.status === 'scheduled');
   const completedAppointments = filteredAppointments.filter(a => a.status === 'completed');
 
-  const handleDateSelect = (newDate: Date | undefined) => {
-    if (newDate) {
-      setDate(newDate);
-    }
+  const handleDelete = (apptId: string) => {
+    if (!user) return;
+    const apptRef = doc(db, 'barberProfiles', user.uid, 'appointments', apptId);
+    deleteDocumentNonBlocking(apptRef);
+    toast({
+      variant: 'destructive',
+      title: 'Agendamento Removido',
+      description: 'O horário foi excluído da sua agenda.',
+    });
   };
 
   if (isAuthLoading || isApptsLoading || isServicesLoading || isClientsLoading) {
@@ -121,19 +139,63 @@ export default function AgendaPage() {
             </div>
           </div>
 
-          <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-2">
+          <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-3">
             <span className="text-xl font-bold text-primary">R$ {(Number(appt.priceAtAppointment) || Number(service?.price) || 0).toFixed(2)}</span>
             <div className="flex gap-2">
               {!isCompleted ? (
-                <CheckoutDialog 
-                  appointmentId={appt.id}
-                  customerName={client?.name || 'Cliente'}
-                  serviceName={service?.name || 'Serviço'}
-                  price={Number(appt.priceAtAppointment) || Number(service?.price) || 0}
-                  staffId={appt.staffId}
-                />
+                <>
+                  <CheckoutDialog 
+                    appointmentId={appt.id}
+                    customerName={client?.name || 'Cliente'}
+                    serviceName={service?.name || 'Serviço'}
+                    price={Number(appt.priceAtAppointment) || Number(service?.price) || 0}
+                    staffId={appt.staffId}
+                  />
+                  
+                  <Dialog open={editingAppointment?.id === appt.id} onOpenChange={(open) => setEditingAppointment(open ? appt : null)}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-9 w-9 border-primary/30 text-primary hover:bg-primary/10">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px] bg-card border-border shadow-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="font-headline text-2xl flex items-center gap-2">
+                          <Pencil className="h-6 w-6 text-primary" />
+                          Editar Agendamento
+                        </DialogTitle>
+                        <DialogDescription>Altere o horário, profissional ou serviço.</DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4">
+                        <BookingForm initialData={appt} onSuccess={() => setEditingAppointment(null)} />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-card border-border shadow-2xl">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remover Agendamento?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. O horário de {client?.name} será liberado na sua agenda.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-secondary">Voltar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(appt.id)} className="bg-destructive text-white hover:bg-destructive/90">
+                          Sim, Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               ) : (
-                <Badge variant="secondary" className="bg-primary/10 text-primary">Concluído</Badge>
+                <Badge variant="secondary" className="bg-primary/10 text-primary px-3 py-1">Concluído</Badge>
               )}
             </div>
           </div>
@@ -187,7 +249,7 @@ export default function AgendaPage() {
             <Calendar
               mode="single"
               selected={date}
-              onSelect={handleDateSelect}
+              onSelect={(newDate) => newDate && setDate(newDate)}
               locale={ptBR}
               className="rounded-md border-none w-full"
               modifiers={{
