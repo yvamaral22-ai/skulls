@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Metadata } from 'next';
@@ -8,6 +7,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { FirebaseClientProvider } from '@/firebase';
 import { AuthInitializer } from '@/components/auth-initializer';
 import { Toaster } from '@/components/ui/toaster';
+import { BottomNav } from '@/components/bottom-nav';
 import { useUser } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -20,8 +20,6 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isUserLoading) {
-      // Se não estiver logado, o AuthInitializer cuida do login anônimo.
-      // Se for CLIENT e tentar acessar rotas de admin, manda para /client
       const adminRoutes = ['/', '/agenda', '/customers', '/services', '/staff', '/reports'];
       const isTryingAdmin = adminRoutes.includes(pathname);
 
@@ -36,7 +34,7 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground animate-pulse">Verificando permissões...</p>
+          <p className="text-sm text-muted-foreground animate-pulse">Sincronizando segurança...</p>
         </div>
       </div>
     );
@@ -57,15 +55,16 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased bg-background">
         <FirebaseClientProvider>
           <AuthInitializer />
           <SidebarProvider>
-            <div className="flex min-h-screen w-full bg-background">
+            <div className="flex min-h-screen w-full relative">
               <AppSidebar />
-              <SidebarInset className="flex-1 overflow-auto bg-background p-4 md:p-8">
+              <SidebarInset className="flex-1 overflow-auto p-4 md:p-8">
                 <RouteGuard>{children}</RouteGuard>
               </SidebarInset>
+              <BottomNav />
             </div>
           </SidebarProvider>
           <Toaster />

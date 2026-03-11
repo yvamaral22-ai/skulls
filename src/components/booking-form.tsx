@@ -4,9 +4,9 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, addMinutes, parseISO } from 'date-fns';
+import { format, addMinutes, parseISO, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Clock, UserPlus, Loader2, Pencil } from 'lucide-react';
+import { CalendarIcon, Clock, UserPlus, Loader2, Pencil, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -29,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
@@ -47,7 +47,7 @@ type BookingFormValues = z.infer<typeof bookingSchema>;
 
 interface BookingFormProps {
   onSuccess?: () => void;
-  initialData?: any; // Dados para edição
+  initialData?: any;
 }
 
 export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
@@ -68,14 +68,8 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
     return collection(db, 'barberProfiles', barberProfileId, 'staff');
   }, [db, barberProfileId]);
 
-  const clientsQuery = useMemoFirebase(() => {
-    if (!barberProfileId) return null;
-    return collection(db, 'barberProfiles', barberProfileId, 'clients');
-  }, [db, barberProfileId]);
-
   const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
   const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery);
-  const { data: clients } = useCollection(clientsQuery);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -87,16 +81,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       date: initialData?.date ? parseISO(initialData.date) : new Date(),
     },
   });
-
-  // Atualizar nome do cliente se estiver editando e os clientes carregarem
-  React.useEffect(() => {
-    if (initialData?.clientId && clients) {
-      const client = clients.find(c => c.id === initialData.clientId);
-      if (client) {
-        form.setValue('clientName', client.name);
-      }
-    }
-  }, [initialData, clients, form]);
 
   const selectedServiceId = form.watch('serviceId');
   const selectedTime = form.watch('time');
@@ -117,18 +101,18 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
   async function onSubmit(data: BookingFormValues) {
     if (!user) {
-      toast({ variant: 'destructive', title: 'Erro de autenticação', description: 'Você precisa estar logado.' });
+      toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não autenticado.' });
       return;
     }
+    
     setIsSubmitting(true);
+    console.log("Iniciando checkout para:", data.clientName);
 
     try {
       const targetDate = format(data.date, 'yyyy-MM-dd');
       
       if (initialData?.id) {
-        // EDIÇÃO de agendamento existente
         const appointmentRef = doc(db, 'barberProfiles', user.uid, 'appointments', initialData.id);
-        
         updateDocumentNonBlocking(appointmentRef, {
           staffId: data.staffId,
           serviceId: data.serviceId,
@@ -138,32 +122,23 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           priceAtAppointment: Number(selectedService?.price) || 0,
           updatedAt: serverTimestamp(),
         });
-
-        toast({
-          title: 'Agendamento Atualizado!',
-          description: `O horário foi remarcado com sucesso.`,
-        });
+        toast({ title: 'Sucesso', description: 'Agendamento atualizado.' });
       } else {
-        // NOVO agendamento
-        const barberRef = doc(db, 'barberProfiles', user.uid);
-        await setDoc(barberRef, { id: user.uid, lastActivity: serverTimestamp() }, { merge: true });
-
         const clientRef = doc(collection(db, 'barberProfiles', user.uid, 'clients'));
-        const clientId = clientRef.id;
+        const appointmentRef = doc(collection(db, 'barberProfiles', user.uid, 'appointments'));
         
+        // Persistência Atômica Simulada
         await setDoc(clientRef, {
-          id: clientId,
+          id: clientRef.id,
           barberProfileId: user.uid,
           name: data.clientName,
           createdAt: serverTimestamp(),
         });
 
-        const appointmentRef = doc(collection(db, 'barberProfiles', user.uid, 'appointments'));
-        
         await setDoc(appointmentRef, {
           id: appointmentRef.id,
           barberProfileId: user.uid,
-          clientId,
+          clientId: clientRef.id,
           staffId: data.staffId,
           serviceId: data.serviceId,
           date: targetDate,
@@ -175,19 +150,19 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
         });
 
         toast({
-          title: 'Agendamento Realizado!',
-          description: `${data.clientName} marcado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
+          title: 'Agendamento Confirmado!',
+          description: `${data.clientName} agendado para ${format(data.date, 'dd/MM')} às ${data.time}.`,
         });
       }
       
       form.reset();
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error(error);
+      console.error("Erro no Checkout:", error);
       toast({
         variant: 'destructive',
-        title: 'Erro ao salvar',
-        description: 'Não foi possível salvar os dados. Tente novamente.',
+        title: 'Falha no Checkout',
+        description: 'Ocorreu um erro ao gravar no banco. Verifique sua conexão.',
       });
     } finally {
       setIsSubmitting(false);
@@ -196,58 +171,49 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
   if (isServicesLoading || isStaffLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 space-y-4">
+      <div className="flex flex-col items-center justify-center py-10">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Carregando dados...</p>
+        <p className="mt-2 text-sm text-muted-foreground">Carregando formulário...</p>
       </div>
     );
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Data do Atendimento</FormLabel>
+                <FormLabel>Data</FormLabel>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal bg-background border-border h-11",
+                          "w-full text-left font-normal h-12 md:h-11",
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        {field.value ? (
-                          format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                        ) : (
-                          <span>Escolha a data</span>
-                        )}
+                        {field.value ? format(field.value, "dd/MM/yyyy", { locale: ptBR }) : "Escolha a data"}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[200] pointer-events-auto" align="start">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
                       onSelect={(date) => {
-                        if (date) {
-                          field.onChange(date);
-                          setTimeout(() => setIsCalendarOpen(false), 150);
-                        }
+                        field.onChange(date);
+                        setIsCalendarOpen(false);
                       }}
                       locale={ptBR}
-                      disabled={(date) =>
-                        date < new Date(new Date().setHours(0,0,0,0))
-                      }
+                      disabled={(date) => startOfDay(date) < startOfDay(new Date())}
                       initialFocus
-                      className="bg-card shadow-2xl border-primary/20"
                     />
                   </PopoverContent>
                 </Popover>
@@ -263,16 +229,9 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
               <FormItem>
                 <FormLabel>Horário</FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input {...field} type="time" className="pl-10 bg-background h-11" />
-                  </div>
+                  <Input {...field} type="time" className="h-12 md:h-11 bg-background" />
                 </FormControl>
-                {endTime && (
-                  <FormDescription className="text-primary text-xs font-bold">
-                    Término previsto: {endTime}
-                  </FormDescription>
-                )}
+                {endTime && <p className="text-[10px] text-primary font-bold">Término: {endTime}</p>}
                 <FormMessage />
               </FormItem>
             )}
@@ -284,17 +243,9 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           name="clientName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome do Cliente</FormLabel>
+              <FormLabel>Cliente</FormLabel>
               <FormControl>
-                <div className="relative">
-                  <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    {...field} 
-                    placeholder="Digite o nome completo" 
-                    className="pl-10 bg-background h-11" 
-                    disabled={!!initialData?.id} // Bloquear nome do cliente na edição para manter integridade
-                  />
-                </div>
+                <Input {...field} placeholder="Nome do cliente" className="h-12 md:h-11" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -307,20 +258,15 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             name="staffId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Profissional</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                <FormLabel>Barbeiro</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-background h-11">
-                      <SelectValue placeholder="Escolha o barbeiro" />
+                    <SelectTrigger className="h-12 md:h-11">
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="z-[150]">
-                    {staff?.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                    {(!staff || staff.length === 0) && (
-                      <SelectItem value="none" disabled>Nenhum barbeiro ativo</SelectItem>
-                    )}
+                  <SelectContent>
+                    {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -334,21 +280,16 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Serviço</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-background h-11">
-                      <SelectValue placeholder="Selecione o serviço" />
+                    <SelectTrigger className="h-12 md:h-11">
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="z-[150]">
+                  <SelectContent>
                     {services?.map(s => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name} - R$ {Number(s.price).toFixed(2)}
-                      </SelectItem>
+                      <SelectItem key={s.id} value={s.id}>{s.name} - R$ {Number(s.price).toFixed(2)}</SelectItem>
                     ))}
-                    {(!services || services.length === 0) && (
-                      <SelectItem value="none" disabled>Nenhum serviço cadastrado</SelectItem>
-                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -359,20 +300,11 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
         <Button 
           type="submit" 
-          className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 rounded-2xl shadow-xl shadow-primary/20"
           disabled={isSubmitting}
+          className="w-full h-14 md:h-12 text-lg font-bold shadow-lg bg-primary hover:bg-primary/90"
         >
-          {isSubmitting ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Processando...</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              {initialData?.id ? <Pencil className="h-5 w-5" /> : null}
-              <span>{initialData?.id ? 'Salvar Alterações' : 'Confirmar Agendamento'}</span>
-            </div>
-          )}
+          {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
+          {initialData?.id ? 'Salvar Alterações' : 'Confirmar Agendamento'}
         </Button>
       </form>
     </Form>
