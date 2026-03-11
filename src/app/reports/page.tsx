@@ -28,6 +28,7 @@ export default function ReportsPage() {
   const [isGenerating, setIsGenerating] = React.useState(false)
   const [hasGenerated, setHasGenerated] = React.useState(false)
 
+  // Inicializa as datas com o mês atual na carga inicial
   React.useEffect(() => {
     const now = new Date();
     const start = format(startOfMonth(now), 'yyyy-MM-dd');
@@ -59,7 +60,7 @@ export default function ReportsPage() {
 
   const handleApplyFilters = () => {
     setIsGenerating(true);
-    // Simular um pequeno delay para feedback visual de processamento
+    // Pequeno delay apenas para feedback visual de processamento
     setTimeout(() => {
       setAppliedStartDate(startDate);
       setAppliedEndDate(endDate);
@@ -69,13 +70,16 @@ export default function ReportsPage() {
   }
 
   const stats = React.useMemo(() => {
+    // Só calcula se houver dados e se o usuário clicou em "Gerar" pelo menos uma vez
     if (!appointments || !hasGenerated) return null;
 
-    const filteredAppts = appointments.filter(a => 
-      a.date >= appliedStartDate && 
-      a.date <= appliedEndDate && 
-      a.status === 'completed'
-    )
+    // Filtro rigoroso por data e status concluído
+    const filteredAppts = appointments.filter(a => {
+      const apptDate = a.date; // Esperado yyyy-MM-dd
+      const statusMatch = a.status?.toLowerCase() === 'completed';
+      const dateMatch = apptDate >= appliedStartDate && apptDate <= appliedEndDate;
+      return statusMatch && dateMatch;
+    })
 
     const filteredExps = (expenses || []).filter(e => 
       e.date >= appliedStartDate && 
@@ -103,8 +107,9 @@ export default function ReportsPage() {
       'Cash': 0, 'PIX': 0, 'Credit': 0, 'Debit': 0
     }
     filteredAppts.forEach(a => {
-      if (a.paymentMethod && paymentMethodsMap[a.paymentMethod] !== undefined) {
-        paymentMethodsMap[a.paymentMethod] += (Number(a.priceAtAppointment) || 0)
+      const method = a.paymentMethod;
+      if (method && paymentMethodsMap[method] !== undefined) {
+        paymentMethodsMap[method] += (Number(a.priceAtAppointment) || 0)
       }
     })
 
@@ -139,7 +144,7 @@ export default function ReportsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-headline text-primary">Relatórios Skull Barber</h1>
-          <p className="text-muted-foreground">Visão financeira de faturamento e lucro.</p>
+          <p className="text-muted-foreground">Faturamento real baseado em atendimentos concluídos.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 bg-card p-3 rounded-2xl border border-border shadow-xl">
           <div className="flex items-center gap-2 px-2 border-r border-border pr-4">
@@ -160,7 +165,7 @@ export default function ReportsPage() {
           </div>
           <Button 
             onClick={handleApplyFilters} 
-            disabled={isGenerating || isApptsLoading}
+            disabled={isGenerating || !startDate || !endDate}
             className="bg-primary hover:bg-primary/90 text-white h-9 px-4 ml-2"
           >
             {isGenerating ? (
@@ -176,8 +181,8 @@ export default function ReportsPage() {
       {!hasGenerated ? (
         <div className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-border rounded-3xl opacity-60">
           <FileBarChart className="h-16 w-16 text-muted-foreground mb-4 opacity-20" />
-          <h3 className="text-xl font-bold">Pronto para analisar?</h3>
-          <p className="text-muted-foreground italic text-sm">Selecione as datas acima e clique em "Gerar Relatório" para começar.</p>
+          <h3 className="text-xl font-bold">Relatório Pronto</h3>
+          <p className="text-muted-foreground italic text-sm">Selecione o período acima e clique para consolidar os dados.</p>
         </div>
       ) : (
         <>
@@ -189,7 +194,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">R$ {(stats?.totalRevenue ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{stats?.count ?? 0} cortes finalizados</p>
+                <p className="text-xs text-muted-foreground mt-1">{stats?.count ?? 0} atendimentos no período</p>
               </CardContent>
             </Card>
             
@@ -200,7 +205,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">R$ {(stats?.totalCommissions ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Total pago à equipe</p>
+                <p className="text-xs text-muted-foreground mt-1">Total a pagar para equipe</p>
               </CardContent>
             </Card>
 
@@ -211,7 +216,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">R$ {(stats?.totalExpenses ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Custos operacionais</p>
+                <p className="text-xs text-muted-foreground mt-1">Custos cadastrados</p>
               </CardContent>
             </Card>
 
@@ -222,7 +227,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black text-green-500">R$ {(stats?.netProfit ?? 0).toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Resultado no período</p>
+                <p className="text-xs text-muted-foreground mt-1">Sobra do caixa</p>
               </CardContent>
             </Card>
           </div>
@@ -232,25 +237,25 @@ export default function ReportsPage() {
               <CardHeader className="bg-secondary/20">
                 <CardTitle className="font-headline text-lg flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-primary" />
-                  Ranking de Produção
+                  Produção por Barbeiro
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="pl-6 font-bold">Barbeiro</TableHead>
-                      <TableHead className="font-bold">Atendimentos</TableHead>
-                      <TableHead className="font-bold">Faturamento</TableHead>
+                      <TableHead className="pl-6 font-bold">Profissional</TableHead>
+                      <TableHead className="font-bold">Serviços</TableHead>
+                      <TableHead className="font-bold">Bruto</TableHead>
                       <TableHead className="text-right pr-6 text-blue-400 font-bold">Comissão</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {stats?.staffReport && stats.staffReport.length > 0 ? (
-                      stats.staffReport.map((s, idx) => (
+                    {stats?.staffReport && stats.staffReport.some(s => s.count > 0) ? (
+                      stats.staffReport.filter(s => s.count > 0).map((s, idx) => (
                         <TableRow key={idx} className="border-border hover:bg-primary/5 transition-colors">
                           <TableCell className="font-bold pl-6">{s.name}</TableCell>
-                          <TableCell>{s.count} serviços</TableCell>
+                          <TableCell>{s.count} atendimentos</TableCell>
                           <TableCell>R$ {s.revenue.toFixed(2)}</TableCell>
                           <TableCell className="text-right pr-6 text-blue-400 font-black">
                             R$ {s.commission.toFixed(2)}
@@ -260,7 +265,7 @@ export default function ReportsPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic">
-                          Nenhum atendimento finalizado encontrado para este período.
+                          Nenhum dado de produção encontrado para as datas e status selecionados.
                         </TableCell>
                       </TableRow>
                     )}
@@ -273,7 +278,7 @@ export default function ReportsPage() {
               <CardHeader>
                 <CardTitle className="font-headline text-lg flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-accent" />
-                  Fontes de Pagamento
+                  Meios de Recebimento
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-[350px] mt-4">
@@ -291,8 +296,8 @@ export default function ReportsPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm italic">
-                    <p>Sem dados gráficos</p>
+                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm italic border border-dashed border-border/50 rounded-xl">
+                    <p>Sem movimentação financeira</p>
                   </div>
                 )}
               </CardContent>
