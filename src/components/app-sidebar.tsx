@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase } from "lucide-react"
+import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase, Home } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -14,18 +14,26 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-
-const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Agenda", url: "/agenda", icon: CalendarDays },
-  { title: "Clientes", url: "/customers", icon: Users },
-  { title: "Serviços", url: "/services", icon: Scissors },
-  { title: "Equipe", url: "/staff", icon: Briefcase },
-  { title: "Relatórios", url: "/reports", icon: BarChart3 },
-]
+import { useUser } from "@/firebase"
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { role } = useUser()
+
+  const isAdmin = role === 'BARBER' || role === 'ADMIN'
+
+  const items = [
+    ...(isAdmin ? [
+      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+      { title: "Agenda", url: "/agenda", icon: CalendarDays },
+      { title: "Clientes", url: "/customers", icon: Users },
+      { title: "Serviços", url: "/services", icon: Scissors },
+      { title: "Equipe", url: "/staff", icon: Briefcase },
+      { title: "Relatórios", url: "/reports", icon: BarChart3 },
+    ] : [
+      { title: "Início", url: "/client", icon: Home },
+    ]),
+  ]
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -34,9 +42,9 @@ export function AppSidebar() {
           <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Scissors className="size-5" />
           </div>
-          <div className="flex flex-col gap-0.5 leading-none">
+          <div className="flex flex-col gap-0.5 leading-none text-sidebar-foreground">
             <span className="font-semibold text-primary font-headline text-lg">Skull Barber</span>
-            <span className="text-xs text-muted-foreground">Gestão Master</span>
+            <span className="text-xs opacity-60">{isAdmin ? 'Gestão Master' : 'Área do Cliente'}</span>
           </div>
         </div>
       </SidebarHeader>
@@ -48,7 +56,7 @@ export function AppSidebar() {
                 asChild
                 isActive={pathname === item.url}
                 tooltip={item.title}
-                className="hover:bg-primary/10 hover:text-primary transition-all"
+                className="hover:bg-primary/10 hover:text-primary transition-all text-sidebar-foreground"
               >
                 <Link href={item.url}>
                   <item.icon className="size-4" />

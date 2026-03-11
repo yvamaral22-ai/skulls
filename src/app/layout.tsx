@@ -1,3 +1,6 @@
+
+'use client';
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -5,11 +8,42 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { FirebaseClientProvider } from '@/firebase';
 import { AuthInitializer } from '@/components/auth-initializer';
 import { Toaster } from '@/components/ui/toaster';
+import { useUser } from '@/firebase';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Skull Barber Agenda',
-  description: 'Gestão moderna e eficiente para barbeiros.',
-};
+function RouteGuard({ children }: { children: React.ReactNode }) {
+  const { user, role, isUserLoading } = useUser();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading) {
+      // Se não estiver logado, o AuthInitializer cuida do login anônimo.
+      // Se for CLIENT e tentar acessar rotas de admin, manda para /client
+      const adminRoutes = ['/', '/agenda', '/customers', '/services', '/staff', '/reports'];
+      const isTryingAdmin = adminRoutes.includes(pathname);
+
+      if (user && role === 'CLIENT' && isTryingAdmin) {
+        router.push('/client');
+      }
+    }
+  }, [user, role, isUserLoading, pathname, router]);
+
+  if (isUserLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground animate-pulse">Verificando permissões...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 export default function RootLayout({
   children,
@@ -30,7 +64,7 @@ export default function RootLayout({
             <div className="flex min-h-screen w-full bg-background">
               <AppSidebar />
               <SidebarInset className="flex-1 overflow-auto bg-background p-4 md:p-8">
-                {children}
+                <RouteGuard>{children}</RouteGuard>
               </SidebarInset>
             </div>
           </SidebarProvider>
