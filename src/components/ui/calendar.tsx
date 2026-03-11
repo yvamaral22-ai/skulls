@@ -18,7 +18,7 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("p-0 w-full", className)}
       classNames={{
         months: "rdp-months",
         month: "rdp-month",
@@ -43,8 +43,8 @@ function Calendar({
       }}
       components={{
         Chevron: ({ orientation }) => {
-          if (orientation === "left") return <ChevronLeft className="h-4 w-4" />
-          return <ChevronRight className="h-4 w-4" />
+          if (orientation === "left") return <ChevronLeft className="h-6 w-6" />
+          return <ChevronRight className="h-6 w-6" />
         }
       }}
       {...props}

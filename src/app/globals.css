@@ -41,9 +41,10 @@
   }
 }
 
-/* Calendar Fixes for React Day Picker v9 - Professional & Responsive */
+/* Calendar Refactoring for v9 - High Visibility & Responsiveness */
 .rdp {
   @apply relative m-0 p-0 w-full flex flex-col items-center !important;
+  --rdp-cell-size: 100%;
 }
 
 .rdp-months {
@@ -51,74 +52,70 @@
 }
 
 .rdp-month {
-  @apply relative w-full flex flex-col gap-4 !important;
+  @apply relative w-full flex flex-col gap-6 !important;
 }
 
-/* Header: Month and Year Selection */
+/* Fixed Header Navigation */
 .rdp-month_caption {
-  @apply flex justify-center items-center h-14 font-bold text-lg bg-secondary/50 rounded-t-xl relative w-full !important;
+  @apply flex justify-center items-center h-16 font-bold text-xl bg-secondary/50 rounded-t-2xl relative w-full border-b border-border/50 !important;
 }
 
 .rdp-nav {
-  @apply absolute top-0 left-0 right-0 flex justify-between items-center h-14 px-4 pointer-events-none z-20 !important;
+  @apply absolute top-0 left-0 right-0 flex justify-between items-center h-16 px-6 pointer-events-none z-20 !important;
 }
 
 .rdp-nav_button {
-  @apply pointer-events-auto h-9 w-9 flex items-center justify-center rounded-xl bg-secondary hover:bg-primary hover:text-primary-foreground transition-all border border-border/50 shadow-md !important;
+  @apply pointer-events-auto h-10 w-10 flex items-center justify-center rounded-xl bg-card hover:bg-primary hover:text-primary-foreground transition-all border border-border/50 shadow-md !important;
 }
 
-/* Grid Structure */
+/* Responsive Grid */
 .rdp-month_grid {
-  @apply w-full border-collapse border-spacing-0 !important;
+  @apply w-full border-separate border-spacing-2 !important;
 }
 
 .rdp-weekdays {
-  @apply flex w-full justify-between mb-2 mt-2 !important;
+  @apply flex w-full justify-between mb-4 mt-2 px-2 !important;
 }
 
 .rdp-weekday {
-  @apply flex-1 text-center text-muted-foreground text-[10px] font-bold uppercase py-2 tracking-wider !important;
+  @apply flex-1 text-center text-muted-foreground text-xs font-black uppercase tracking-widest !important;
 }
 
 .rdp-week {
-  @apply flex w-full justify-between gap-1 mb-1 !important;
+  @apply flex w-full justify-between gap-2 mb-2 px-2 !important;
 }
 
 .rdp-day {
-  @apply flex-1 aspect-square p-0 flex items-center justify-center !important;
+  @apply flex-1 flex items-center justify-center !important;
 }
 
 .rdp-day_button {
-  @apply w-full h-full flex items-center justify-center rounded-xl text-sm font-semibold transition-all bg-secondary/10 border border-transparent hover:border-primary/50 hover:bg-primary/5 relative !important;
+  @apply w-full aspect-square flex items-center justify-center rounded-2xl text-base font-bold transition-all bg-secondary/20 border border-transparent hover:border-primary/50 hover:bg-primary/5 relative !important;
 }
 
 .rdp-selected .rdp-day_button {
-  @apply bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/30 !important;
+  @apply bg-primary text-primary-foreground border-primary shadow-xl shadow-primary/40 !important;
 }
 
 .rdp-today .rdp-day_button {
-  @apply text-primary font-black ring-1 ring-primary/30 !important;
+  @apply text-primary ring-2 ring-primary/40 bg-primary/5 !important;
 }
 
 .rdp-outside {
-  @apply opacity-20 !important;
+  @apply opacity-10 pointer-events-none !important;
 }
 
-/* Appointment Indicator Dot - Non-intrusive */
+/* Appointment Indicator - Absolute Positioned to not break grid */
 .has-appointment .rdp-day_button::after {
   content: '';
-  @apply absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-sm shadow-primary/50 !important;
+  @apply absolute bottom-2.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary shadow-sm shadow-primary/50 !important;
 }
 
 .rdp-selected.has-appointment .rdp-day_button::after {
   @apply bg-primary-foreground !important;
 }
 
-/* Popover and Dialog Z-Index isolation */
+/* Ensure popovers and dialogs stay on top */
 [data-radix-popper-content-wrapper] {
   z-index: 1000 !important;
-}
-
-.calendar-custom .rdp {
-  --rdp-cell-size: 100%;
 }

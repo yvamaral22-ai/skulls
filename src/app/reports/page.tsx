@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -15,6 +14,7 @@ import {
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
+import { format, startOfMonth, endOfMonth } from "date-fns"
 
 export default function ReportsPage() {
   const db = useFirestore()
@@ -25,30 +25,26 @@ export default function ReportsPage() {
   const [endDate, setEndDate] = React.useState("")
 
   React.useEffect(() => {
-    const today = new Date();
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
-    setStartDate(firstDay);
-    setEndDate(lastDay);
+    const now = new Date();
+    setStartDate(format(startOfMonth(now), 'yyyy-MM-dd'));
+    setEndDate(format(endOfMonth(now), 'yyyy-MM-dd'));
   }, []);
 
-  const barberProfileId = user?.uid || "loading"
+  const barberProfileId = user?.uid
 
-  // Buscar Agendamentos (para Receita e Comissões)
+  // Buscar todos os dados uma vez e filtrar localmente para máxima reatividade
   const appointmentsQuery = useMemoFirebase(() => {
-    if (barberProfileId === "loading") return null;
+    if (!barberProfileId) return null;
     return collection(db, "barberProfiles", barberProfileId, "appointments")
   }, [db, barberProfileId])
 
-  // Buscar Equipe (para nomes e taxas)
   const staffQuery = useMemoFirebase(() => {
-    if (barberProfileId === "loading") return null;
+    if (!barberProfileId) return null;
     return collection(db, "barberProfiles", barberProfileId, "staff")
   }, [db, barberProfileId])
 
-  // Buscar Despesas
   const expensesQuery = useMemoFirebase(() => {
-    if (barberProfileId === "loading") return null;
+    if (!barberProfileId) return null;
     return collection(db, "barberProfiles", barberProfileId, "expenses")
   }, [db, barberProfileId])
 
@@ -75,7 +71,6 @@ export default function ReportsPage() {
     const totalExpenses = filteredExps.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
     const netProfit = totalRevenue - totalCommissions - totalExpenses
 
-    // Agrupamento por Barbeiro
     const staffReport = (staff || []).map(member => {
       const memberAppts = filteredAppts.filter(a => a.staffId === member.id)
       const revenue = memberAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
@@ -88,17 +83,16 @@ export default function ReportsPage() {
       }
     }).sort((a, b) => b.revenue - a.revenue)
 
-    // Agrupamento por Forma de Pagamento
-    const paymentMethods: Record<string, number> = {
+    const paymentMethodsMap: Record<string, number> = {
       'Cash': 0, 'PIX': 0, 'Credit': 0, 'Debit': 0
     }
     filteredAppts.forEach(a => {
-      if (a.paymentMethod && paymentMethods[a.paymentMethod] !== undefined) {
-        paymentMethods[a.paymentMethod] += (Number(a.priceAtAppointment) || 0)
+      if (a.paymentMethod && paymentMethodsMap[a.paymentMethod] !== undefined) {
+        paymentMethodsMap[a.paymentMethod] += (Number(a.priceAtAppointment) || 0)
       }
     })
 
-    const chartData = Object.entries(paymentMethods).map(([name, value]) => ({
+    const chartData = Object.entries(paymentMethodsMap).map(([name, value]) => ({
       name: name === 'Cash' ? 'Dinheiro' : name,
       valor: value
     }))
@@ -106,7 +100,7 @@ export default function ReportsPage() {
     return { totalRevenue, totalCommissions, totalExpenses, netProfit, staffReport, chartData, count: filteredAppts.length }
   }, [appointments, staff, expenses, startDate, endDate])
 
-  if (isApptsLoading || isStaffLoading || isExpensesLoading || !startDate || !endDate) {
+  if (isApptsLoading || isStaffLoading || isExpensesLoading || !startDate) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -115,13 +109,13 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-primary">Relatórios EstiloCerto</h1>
-          <p className="text-muted-foreground">Visão detalhada de faturamento e comissões.</p>
+          <h1 className="text-3xl font-bold font-headline text-primary">Relatórios Skull Barber</h1>
+          <p className="text-muted-foreground">Visão financeira reativa de faturamento e lucro.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 bg-card p-2 rounded-xl border border-border">
+        <div className="flex flex-wrap items-center gap-2 bg-card p-2 rounded-xl border border-border shadow-lg">
           <Calendar className="h-4 w-4 text-primary ml-2" />
           <Input 
             type="date" 
@@ -129,58 +123,58 @@ export default function ReportsPage() {
             onChange={(e) => setStartDate(e.target.value)} 
             className="w-40 bg-background border-none focus-visible:ring-0" 
           />
-          <span className="text-muted-foreground">até</span>
+          <span className="text-muted-foreground font-bold">→</span>
           <Input 
             type="date" 
             value={endDate} 
             onChange={(e) => setEndDate(e.target.value)} 
             className="w-40 bg-background border-none focus-visible:ring-0" 
           />
-          <Button variant="ghost" size="icon">
-            <Download className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
+        <Card className="border-none bg-card shadow-xl border-t-4 border-t-primary">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Faturamento Bruto</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Faturamento</CardTitle>
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {stats?.totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">{stats?.count} atendimentos concluídos</p>
+            <div className="text-3xl font-black">R$ {stats?.totalRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">{stats?.count} cortes finalizados</p>
           </CardContent>
         </Card>
-        <Card className="border-none bg-card shadow-lg border-l-4 border-l-blue-500">
+        
+        <Card className="border-none bg-card shadow-xl border-t-4 border-t-blue-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Comissões</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Comissões</CardTitle>
             <Briefcase className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {stats?.totalCommissions.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Valor total para equipe</p>
+            <div className="text-3xl font-black">R$ {stats?.totalCommissions.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Total pago à equipe</p>
           </CardContent>
         </Card>
-        <Card className="border-none bg-card shadow-lg border-l-4 border-l-red-500">
+
+        <Card className="border-none bg-card shadow-xl border-t-4 border-t-red-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Despesas</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Despesas</CardTitle>
             <ArrowDownRight className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {stats?.totalExpenses.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Custos do período</p>
+            <div className="text-3xl font-black">R$ {stats?.totalExpenses.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Custos operacionais</p>
           </CardContent>
         </Card>
-        <Card className="border-none bg-card shadow-lg border-l-4 border-l-green-500">
+
+        <Card className="border-none bg-card shadow-xl border-t-4 border-t-green-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Lucro Líquido</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {stats?.netProfit.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Resultado após comissões e despesas</p>
+            <div className="text-3xl font-black text-green-500">R$ {stats?.netProfit.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Resultado real no bolso</p>
           </CardContent>
         </Card>
       </div>
@@ -190,24 +184,24 @@ export default function ReportsPage() {
           <CardHeader className="bg-secondary/20">
             <CardTitle className="font-headline text-lg flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-primary" />
-              Produção por Barbeiro
+              Ranking de Produção
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="pl-6">Barbeiro</TableHead>
-                  <TableHead>Qtd. Cortes</TableHead>
-                  <TableHead>Faturamento</TableHead>
-                  <TableHead className="text-right pr-6 text-blue-400">Comissão</TableHead>
+                  <TableHead className="pl-6 font-bold">Barbeiro</TableHead>
+                  <TableHead className="font-bold">Atendimentos</TableHead>
+                  <TableHead className="font-bold">Faturamento</TableHead>
+                  <TableHead className="text-right pr-6 text-blue-400 font-bold">Comissão</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {stats?.staffReport.map((s, idx) => (
-                  <TableRow key={idx} className="border-border">
+                  <TableRow key={idx} className="border-border hover:bg-primary/5 transition-colors">
                     <TableCell className="font-bold pl-6">{s.name}</TableCell>
-                    <TableCell>{s.count} atendimentos</TableCell>
+                    <TableCell>{s.count} serviços</TableCell>
                     <TableCell>R$ {s.revenue.toFixed(2)}</TableCell>
                     <TableCell className="text-right pr-6 text-blue-400 font-black">
                       R$ {s.commission.toFixed(2)}
@@ -216,8 +210,8 @@ export default function ReportsPage() {
                 ))}
                 {(!stats || stats.staffReport.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground italic">
-                      Nenhum atendimento finalizado neste período.
+                    <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic">
+                      Sem movimentação financeira no período selecionado.
                     </TableCell>
                   </TableRow>
                 )}
@@ -230,10 +224,10 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle className="font-headline text-lg flex items-center gap-2">
               <Wallet className="h-5 w-5 text-accent" />
-              Entradas por Pagamento
+              Fontes de Pagamento
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] mt-4">
+          <CardContent className="h-[350px] mt-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats?.chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
@@ -243,7 +237,7 @@ export default function ReportsPage() {
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                   contentStyle={{ backgroundColor: '#130f1f', border: '1px solid #2d2445', borderRadius: '12px' }}
                 />
-                <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
