@@ -1,32 +1,88 @@
+
 "use client"
 
+import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { User, Search, Plus, Phone, History, Info } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { User, Search, Plus, Phone, History, Info, Pencil } from "lucide-react"
 import { CUSTOMERS } from "../lib/mock-data"
+import { toast } from "@/hooks/use-toast"
 
 export default function CustomersPage() {
+  const [searchTerm, setSearchTerm] = React.useState("")
+  const [isAddOpen, setIsAddOpen] = React.useState(false)
+
+  const filteredCustomers = CUSTOMERS.filter(c => 
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.phone.includes(searchTerm)
+  )
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault()
+    toast({
+      title: "Sucesso!",
+      description: "As informações do cliente foram atualizadas.",
+    })
+    setIsAddOpen(false)
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-headline">Gerenciamento de Clientes</h1>
+          <h1 className="text-3xl font-bold font-headline text-primary">Skull Barber - Clientes</h1>
           <p className="text-muted-foreground">Seu banco de dados de clientes e preferências.</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-white">
-          <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-        </Button>
+        
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary/90 text-white">
+              <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle>Cadastrar Novo Cliente</DialogTitle>
+              <DialogDescription>Adicione um novo cliente à sua base de dados.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSave} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Nome Completo</Label>
+                <Input placeholder="Ex: João Silva" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone / WhatsApp</Label>
+                <Input placeholder="(11) 99999-9999" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Preferências Técnicas</Label>
+                <Textarea placeholder="Ex: Gosta de degradê navalhado, usa pomada matte..." />
+              </div>
+              <DialogFooter>
+                <Button type="submit" className="w-full">Salvar Cliente</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar cliente por nome ou telefone..." className="pl-10 bg-card border-border" />
+        <Input 
+          placeholder="Buscar cliente por nome ou telefone..." 
+          className="pl-10 bg-card border-border" 
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {CUSTOMERS.map((customer) => (
+        {filteredCustomers.map((customer) => (
           <Card key={customer.id} className="border-none bg-card shadow-lg hover:shadow-primary/5 transition-all group">
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
@@ -35,7 +91,7 @@ export default function CustomersPage() {
                     <User className="h-6 w-6" />
                   </div>
                   <div>
-                    <CardTitle className="font-headline">{customer.name}</CardTitle>
+                    <CardTitle className="font-headline text-lg">{customer.name}</CardTitle>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Phone className="h-3 w-3" />
                       {customer.phone}
@@ -69,8 +125,33 @@ export default function CustomersPage() {
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
-                <Button variant="ghost" size="sm" className="text-xs">Ver Perfil Completo</Button>
-                <Button size="sm" className="text-xs bg-accent text-accent-foreground hover:bg-accent/80">Novo Agendamento</Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-xs">
+                      <Pencil className="mr-2 h-3 w-3" /> Editar Perfil
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-card border-border">
+                    <DialogHeader>
+                      <DialogTitle>Editar Cliente</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSave} className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Nome Completo</Label>
+                        <Input defaultValue={customer.name} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Telefone</Label>
+                        <Input defaultValue={customer.phone} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Preferências</Label>
+                        <Textarea defaultValue={customer.preferences} />
+                      </div>
+                      <Button type="submit" className="w-full">Atualizar</Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </div>
             </CardContent>
           </Card>

@@ -1,23 +1,65 @@
+
 "use client"
 
+import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Scissors, Plus, Pencil, Trash2, Clock, DollarSign } from "lucide-react"
 import { SERVICES } from "../lib/mock-data"
+import { toast } from "@/hooks/use-toast"
 
 export default function ServicesPage() {
+  const [isAddOpen, setIsAddOpen] = React.useState(false)
+
+  const handleAction = (msg: string) => {
+    toast({
+      title: "Serviço Atualizado",
+      description: msg,
+    })
+    setIsAddOpen(false)
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-headline">Serviços e Preços</h1>
-          <p className="text-muted-foreground">Configure os serviços que você oferece na Skull Barber.</p>
+          <h1 className="text-3xl font-bold font-headline text-primary">Skull Barber - Serviços</h1>
+          <p className="text-muted-foreground">Configure os serviços que você oferece.</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-white">
-          <Plus className="mr-2 h-4 w-4" /> Novo Serviço
-        </Button>
+        
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary/90 text-white">
+              <Plus className="mr-2 h-4 w-4" /> Novo Serviço
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle>Novo Serviço no Menu</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={(e) => { e.preventDefault(); handleAction("Novo serviço adicionado com sucesso."); }} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Nome do Serviço</Label>
+                <Input placeholder="Ex: Platinado" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Preço (R$)</Label>
+                  <Input type="number" placeholder="50.00" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Duração (min)</Label>
+                  <Input type="number" placeholder="40" required />
+                </div>
+              </div>
+              <Button type="submit" className="w-full">Cadastrar Serviço</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -48,10 +90,42 @@ export default function ServicesPage() {
                     </TableCell>
                     <TableCell className="text-accent font-bold">R$ {service.price.toFixed(2)}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-card border-border">
+                          <DialogHeader>
+                            <DialogTitle>Editar {service.name}</DialogTitle>
+                          </DialogHeader>
+                          <form onSubmit={(e) => { e.preventDefault(); handleAction("Serviço editado com sucesso."); }} className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label>Nome</Label>
+                              <Input defaultValue={service.name} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Preço</Label>
+                                <Input defaultValue={service.price} type="number" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Duração</Label>
+                                <Input defaultValue={service.duration} type="number" />
+                              </div>
+                            </div>
+                            <Button type="submit" className="w-full">Salvar Alterações</Button>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleAction("Serviço removido.")}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -75,22 +149,6 @@ export default function ServicesPage() {
                 Revisar seus preços trimestralmente pode ajudar a manter sua margem de lucro. Considere pacotes mensais para fidelizar clientes.
               </p>
             </CardContent>
-          </Card>
-
-          <Card className="border-none bg-card shadow-xl overflow-hidden">
-             <div className="relative h-40 w-full">
-                <img 
-                  src="https://picsum.photos/seed/barber-style/600/400" 
-                  alt="Barbershop interior"
-                  className="object-cover w-full h-full opacity-60"
-                  data-ai-hint="barber shop"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
-                <div className="absolute bottom-4 left-4">
-                  <h3 className="text-xl font-bold font-headline">Ambiente Premium</h3>
-                  <p className="text-xs text-muted-foreground">Valorize seu trabalho.</p>
-                </div>
-             </div>
           </Card>
         </div>
       </div>
