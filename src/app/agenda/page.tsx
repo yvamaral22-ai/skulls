@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { 
   Plus, ChevronLeft, ChevronRight, 
-  Loader2, CheckCircle2, Clock, User, Calendar as CalendarIcon
+  Loader2, CheckCircle2, Clock, User, Scissors, Calendar as CalendarIcon, Info
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
@@ -33,14 +33,15 @@ import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
 import { 
   format, addDays, startOfWeek, isSameDay, 
-  startOfDay, differenceInMinutes, parseISO
+  startOfDay, differenceInMinutes, parseISO, addMinutes
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 08:00 às 21:00
-const SLOT_HEIGHT = 80;
-const COLUMN_WIDTH = "min-w-[160px] md:min-w-[180px]";
+const SLOT_HEIGHT = 90; // Aumentado para dar mais respiro
+const COLUMN_WIDTH = "min-w-[180px] md:min-w-[220px]";
 
 export default function AgendaPage() {
   const db = useFirestore();
@@ -69,7 +70,7 @@ export default function AgendaPage() {
   const { data: staff } = useCollection(staffQuery);
 
   const getAppointmentStyle = (appt: any, service: any) => {
-    if (!appt.time) return { top: '0px', height: '40px' };
+    if (!appt.time) return { top: '0px', height: '50px' };
     
     const [hours, minutes] = appt.time.split(':').map(Number);
     // 8:00 é o ponto zero
@@ -79,6 +80,7 @@ export default function AgendaPage() {
     return {
       top: `${(relativeMinutes / 60) * SLOT_HEIGHT}px`, 
       height: `${(duration / 60) * SLOT_HEIGHT}px`,
+      minHeight: '45px'
     };
   };
 
@@ -138,10 +140,10 @@ export default function AgendaPage() {
       {/* Grade de Agenda */}
       <div className="flex flex-1 overflow-hidden">
         {/* Coluna de Horários Fixa */}
-        <div className="w-16 md:w-20 flex-none bg-card border-r border-border flex flex-col pt-[80px]">
+        <div className="w-16 md:w-20 flex-none bg-card border-r border-border flex flex-col pt-[90px]">
           {HOURS.map(hour => (
-            <div key={hour} className="h-20 flex items-start justify-center pt-2">
-              <span className="text-[10px] md:text-xs font-medium text-muted-foreground font-body">
+            <div key={hour} className="h-[90px] flex items-start justify-center pt-2">
+              <span className="text-[10px] md:text-xs font-bold text-muted-foreground font-body">
                 {`${hour.toString().padStart(2, '0')}:00`}
               </span>
             </div>
@@ -160,7 +162,7 @@ export default function AgendaPage() {
                 <div key={dayIdx} className={cn("flex-1 relative border-r border-border last:border-r-0", COLUMN_WIDTH)}>
                   {/* Cabeçalho da Coluna (Dia) */}
                   <div className={cn(
-                    "sticky top-0 z-40 h-20 flex flex-col items-center justify-center border-b border-border bg-card/95 backdrop-blur-md",
+                    "sticky top-0 z-40 h-[90px] flex flex-col items-center justify-center border-b border-border bg-card/95 backdrop-blur-md",
                     isToday ? "text-primary" : ""
                   )}>
                     <span className="text-[10px] uppercase font-bold opacity-60 font-body">
@@ -179,7 +181,7 @@ export default function AgendaPage() {
                     {HOURS.map(hour => (
                       <div 
                         key={hour} 
-                        className="h-20 border-b border-border/5 hover:bg-primary/5 transition-colors cursor-pointer group"
+                        className="h-[90px] border-b border-border/10 hover:bg-primary/5 transition-colors cursor-pointer group"
                         onClick={() => handleCellClick(day, hour)}
                       >
                         <div className="hidden group-hover:block absolute ml-2 mt-2 text-[8px] text-primary/40 font-bold uppercase">Disponível</div>
@@ -199,28 +201,31 @@ export default function AgendaPage() {
                           style={style}
                           onClick={(e) => { e.stopPropagation(); setEditingAppointment(appt); }}
                           className={cn(
-                            "absolute left-1.5 right-1.5 rounded-xl p-3 text-xs overflow-hidden transition-all border shadow-lg cursor-pointer hover:shadow-xl hover:scale-[1.02] z-30 flex flex-col justify-start gap-1 font-body",
+                            "absolute left-1 right-1 rounded-xl p-2 md:p-3 text-xs overflow-hidden transition-all border shadow-lg cursor-pointer hover:shadow-xl hover:scale-[1.01] z-30 flex flex-col justify-start gap-1 font-body",
                             isCompleted 
-                              ? "bg-green-500/10 border-green-500/30 text-green-400" 
-                              : "bg-primary/10 border-primary/30 text-primary-foreground"
+                              ? "bg-green-500/20 border-green-500/40 text-green-300" 
+                              : "bg-primary/20 border-primary/40 text-white"
                           )}
                         >
-                          <div className="font-black truncate uppercase tracking-tight text-white leading-none">
+                          <div className="font-black truncate uppercase text-[11px] md:text-sm tracking-tight text-white leading-none">
                             {appt.clientName || 'Cliente'}
                           </div>
                           
-                          <div className="flex flex-col gap-0.5 opacity-80 font-medium text-[10px] md:text-[11px]">
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="h-3 w-3 text-primary" /> {appt.time} - {service?.name || 'Corte'}
+                          <div className="flex flex-col gap-0.5 opacity-90 font-bold text-[9px] md:text-[10px]">
+                            <div className="flex items-center gap-1 truncate text-primary">
+                              <Scissors className="h-3 w-3 shrink-0" /> {service?.name || 'Serviço'}
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <User className="h-3 w-3 text-primary/60" /> {barber?.name || 'Profissional'}
+                            <div className="flex items-center gap-1 truncate opacity-70">
+                              <Clock className="h-3 w-3 shrink-0" /> {appt.time} • {service?.durationMinutes} min
+                            </div>
+                            <div className="flex items-center gap-1 truncate opacity-70">
+                              <User className="h-3 w-3 shrink-0" /> {barber?.name || 'Profissional'}
                             </div>
                           </div>
 
                           {isCompleted && (
-                            <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-black">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            <div className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-black">
+                              <CheckCircle2 className="h-3 w-3" />
                             </div>
                           )}
                         </div>
@@ -235,7 +240,7 @@ export default function AgendaPage() {
                           top: `${((differenceInMinutes(currentTime, startOfDay(currentTime)) - 480) / 60) * SLOT_HEIGHT}px` 
                         }}
                       >
-                        <div className="h-2.5 w-2.5 rounded-full bg-red-500 -ml-1 shadow-glow shadow-red-500" />
+                        <div className="h-2 w-2 rounded-full bg-red-500 -ml-1 shadow-glow shadow-red-500" />
                         <div className="h-px flex-1 bg-red-500/60" />
                       </div>
                     )}
@@ -268,8 +273,51 @@ export default function AgendaPage() {
             <DialogDescription className="font-body text-xs uppercase opacity-60">Gerencie este agendamento.</DialogDescription>
           </DialogHeader>
           {editingAppointment && (
-            <div className="space-y-6">
-              <div className="max-h-[60vh] overflow-y-auto px-1">
+            <div className="space-y-4">
+              {/* Resumo Detalhado (Solicitado pelo Usuário) */}
+              {editingAppointment.id && (
+                <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest flex items-center gap-1.5">
+                        <User className="h-3 w-3" /> Cliente
+                      </h4>
+                      <p className="font-headline text-xl text-white leading-none tracking-tight">{editingAppointment.clientName}</p>
+                    </div>
+                    <Badge variant="outline" className={cn(
+                      "uppercase text-[9px] font-bold tracking-widest border-2",
+                      editingAppointment.status === 'completed' ? "border-green-500/40 text-green-400" : "border-primary/20 text-primary"
+                    )}>
+                      {editingAppointment.status === 'completed' ? 'Finalizado' : 'Pendente'}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-primary/10">
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest flex items-center gap-1.5">
+                        <Scissors className="h-3 w-3" /> Serviço
+                      </h4>
+                      <p className="text-sm font-bold text-white leading-tight">
+                        {services?.find(s => s.id === editingAppointment.serviceId)?.name || 'N/A'}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-bold">
+                        Duração: {services?.find(s => s.id === editingAppointment.serviceId)?.durationMinutes || 0} minutos
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" /> Horário
+                      </h4>
+                      <p className="text-sm font-bold text-white">{editingAppointment.time}</p>
+                      <p className="text-[10px] text-muted-foreground font-bold">
+                        {format(parseISO(editingAppointment.date), 'dd/MM/yyyy')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="max-h-[50vh] overflow-y-auto px-1">
                 <BookingForm 
                   initialData={editingAppointment} 
                   onSuccess={() => setEditingAppointment(null)} 
