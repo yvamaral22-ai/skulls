@@ -1,9 +1,9 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo } from 'react';
+import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useEffect, useState } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth } from 'firebase/auth';
+import { Auth, onAuthStateChanged, signInAnonymously, User } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export interface FirebaseContextState {
@@ -26,6 +26,23 @@ export const FirebaseProvider: React.FC<{
   firestore,
   auth,
 }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Garante que sempre haja um usuário logado (anônimo) para as regras de segurança funcionarem
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
+        signInAnonymously(auth);
+      } else {
+        setUser(currentUser);
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
   const contextValue = useMemo((): FirebaseContextState => ({
     areServicesAvailable: true,
     firebaseApp,
@@ -50,14 +67,32 @@ export const useFirebase = () => {
 export const useFirestore = () => useFirebase().firestore!;
 export const useAuth = () => useFirebase().auth!;
 
-// Hook simplificado para o contexto single-user
+// Hook adaptado para o novo modelo de usuário único/interno
 export const useUser = () => {
+  const { auth } = useFirebase();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!auth) return;
+    return onAuthStateChanged(auth, (u) => {
+      if (u) {
+        setUser({
+          uid: u.uid,
+          displayName: u.displayName || 'Barbeiro Master',
+          email: u.email
+        });
+      }
+      setLoading(false);
+    });
+  }, [auth]);
+
   return {
-    user: { uid: 'admin-barber', displayName: 'Barbeiro Master' },
+    user,
     role: 'ADMIN' as const,
-    isUserLoading: false,
+    isUserLoading: loading,
     userError: null,
-    logout: () => {},
+    logout: () => auth?.signOut(),
   };
 };
 

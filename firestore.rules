@@ -2,90 +2,40 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /** 
-     * HELPER FUNCTIONS 
-     */
-    
     // Verifica se o usuário está autenticado
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Busca os metadados do usuário na coleção global
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    // Verifica se o usuário possui um papel específico (ADMIN ou CLIENT)
-    function hasRole(role) {
-      return isSignedIn() && getUserData().role == role;
-    }
-
-    // Verifica se o usuário logado é o dono desta barbearia (Barbeiro Admin)
-    function isBarberAdmin(profileId) {
-      return isSignedIn() && request.auth.uid == profileId;
-    }
-
-    /** 
-     * RULES BY COLLECTION 
-     */
-
-    // Perfil Global do Usuário (Metadata para RBAC)
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      // O usuário pode criar seu perfil, mas não pode definir seu próprio 'role' como ADMIN
-      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.role == 'CLIENT';
-      // Apenas o sistema ou o próprio usuário (em campos não sensíveis) pode atualizar
-      allow update: if isSignedIn() && request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
-    }
-
-    // Estrutura da Barbearia
+    // Estrutura da Barbearia (Modo Single-User / Uso Interno)
     match /barberProfiles/{profileId} {
-      allow get: if isSignedIn(); 
-      allow create, update, delete: if isBarberAdmin(profileId) || hasRole('ADMIN');
+      // Permite acesso total ao perfil master ou ao perfil do próprio usuário
+      allow read, write: if isSignedIn();
 
-      // Serviços e Equipe: Leitura para todos, Escrita apenas para Admin
       match /services/{serviceId} {
-        allow read: if isSignedIn();
-        allow write: if isBarberAdmin(profileId);
+        allow read, write: if isSignedIn();
       }
 
       match /staff/{staffId} {
-        allow read: if isSignedIn();
-        allow write: if isBarberAdmin(profileId);
+        allow read, write: if isSignedIn();
       }
 
-      // Clientes: Admin vê tudo. Cliente vê apenas a si mesmo
       match /clients/{clientId} {
-        allow read: if isBarberAdmin(profileId) || request.auth.uid == clientId;
-        allow create: if isBarberAdmin(profileId) || request.auth.uid == clientId;
-        allow update: if isBarberAdmin(profileId) || request.auth.uid == clientId;
-        allow delete: if isBarberAdmin(profileId);
+        allow read, write: if isSignedIn();
       }
 
-      // Agendamentos: A joia da coroa
       match /appointments/{appointmentId} {
-        // Barbeiro vê tudo. Cliente vê apenas o que ele agendou
-        allow read: if isBarberAdmin(profileId) || (isSignedIn() && resource.data.clientId == request.auth.uid);
-        
-        // Barbeiro cria para qualquer um. Cliente cria apenas para si mesmo
-        allow create: if isBarberAdmin(profileId) || (isSignedIn() && request.resource.data.clientId == request.auth.uid);
-        
-        // Barbeiro edita tudo. Cliente só pode cancelar (mudar status para Canceled)
-        allow update: if isBarberAdmin(profileId) || (
-          isSignedIn() && 
-          resource.data.clientId == request.auth.uid && 
-          request.resource.data.status == 'Canceled' &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-        );
-        
-        allow delete: if isBarberAdmin(profileId);
+        allow read, write: if isSignedIn();
       }
 
-      // Finanças: Estritamente Barbeiro Admin
       match /expenses/{expenseId} {
-        allow read, write: if isBarberAdmin(profileId);
+        allow read, write: if isSignedIn();
       }
+    }
+
+    // Coleção global de usuários (Metadata)
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
   }
 }

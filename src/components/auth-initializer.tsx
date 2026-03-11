@@ -1,16 +1,21 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth } from '@/firebase';
+import { signInAnonymously } from 'firebase/auth';
 
 /**
- * Monitora o estado de autenticação.
- * O login agora é gerenciado pela página /login.
+ * Garante que o usuário seja autenticado anonimamente de forma silenciosa.
+ * Isso permite que as regras de segurança do Firestore funcionem sem exigir uma tela de login.
  */
 export function AuthInitializer() {
-  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
 
-  // Não forçamos login anônimo automaticamente aqui para dar lugar à tela de login formal.
+  useEffect(() => {
+    if (auth && !auth.currentUser) {
+      signInAnonymously(auth).catch(console.error);
+    }
+  }, [auth]);
   
   return null;
 }
