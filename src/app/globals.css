@@ -42,40 +42,39 @@
 }
 
 /* Calendar Fixes for React Day Picker v9 */
-.calendar-custom .rdp-month_grid,
 .rdp-month_grid {
   display: table !important;
   width: 100% !important;
   border-collapse: collapse;
 }
 
-.calendar-custom .rdp-week,
 .rdp-week {
   display: flex !important;
   width: 100% !important;
 }
 
-.calendar-custom .rdp-day,
 .rdp-day {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   flex: 1 0 0;
+  position: relative;
+  z-index: 1;
 }
 
-.calendar-custom .rdp-day_button,
 .rdp-day_button {
-  @apply rounded-md transition-all h-9 w-9 flex items-center justify-center cursor-pointer;
+  @apply rounded-md transition-all h-9 w-9 flex items-center justify-center cursor-pointer bg-card;
+  position: relative !important;
+  z-index: 10 !important;
+  pointer-events: auto !important;
 }
 
-.calendar-custom .rdp-selected .rdp-day_button,
 .rdp-selected .rdp-day_button {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 !important;
 }
 
-.calendar-custom .rdp-day_button:hover:not(.rdp-selected),
 .rdp-day_button:hover:not(.rdp-selected) {
-  @apply bg-secondary text-secondary-foreground;
+  @apply bg-secondary text-secondary-foreground !important;
 }
 
 .rdp-month_caption {
@@ -87,5 +86,10 @@
 }
 
 .rdp-nav button {
-  @apply pointer-events-auto z-20;
+  @apply pointer-events-auto z-20 cursor-pointer;
+}
+
+/* Fix for Popover overlapping Dialog */
+[data-radix-popper-content-wrapper] {
+  z-index: 100 !important;
 }
