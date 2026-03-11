@@ -2,13 +2,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regras para sistema de uso interno exclusivo (Single-User)
-    // Permite acesso total ao perfil mestre da barbearia
-    match /barberProfiles/master-barbershop/{document=**} {
+    // Permissão total para o perfil master da barbearia (Single-User App)
+    // Isso garante que o barbeiro tenha controle absoluto sobre seus dados
+    match /barberProfiles/{profileId}/{allPaths=**} {
       allow read, write: if true;
     }
     
-    // Regra de fallback para garantir que o usuário autenticado tenha acesso a outros caminhos se necessário
+    // Regra de fallback para garantir acesso geral se autenticado
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

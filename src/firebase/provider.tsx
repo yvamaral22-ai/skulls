@@ -28,19 +28,20 @@ export const FirebaseProvider: React.FC<{
   firestore,
   auth,
 }) => {
-  const [loading, setLoading] = useState(true);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    // Garante que o usuário esteja autenticado anonimamente ANTES de liberar o app
-    // Isso evita erros de "insufficient permissions" no carregamento inicial
+    // Sistema de Autenticação Silenciosa para Single-User
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
+        // Se não houver usuário, entra como anônimo para satisfazer as regras do Firebase
         signInAnonymously(auth).catch(err => {
-          console.error("Erro na autenticação silenciosa:", err);
-          setLoading(false);
+          console.error("Falha na autenticação inicial:", err);
+          setIsAuthReady(true); // Libera mesmo com erro para evitar tela infinita
         });
       } else {
-        setLoading(false);
+        // Usuário identificado, pronto para ler o Firestore
+        setIsAuthReady(true);
       }
     });
 
@@ -54,8 +55,8 @@ export const FirebaseProvider: React.FC<{
     auth,
   }), [firebaseApp, firestore, auth]);
 
-  // Bloqueia a renderização de qualquer dado até que o Firebase esteja identificado
-  if (loading) {
+  // Bloqueio Crítico: Não renderiza os filhos (queries do Firestore) até que o Auth esteja pronto
+  if (!isAuthReady) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6">
@@ -64,7 +65,7 @@ export const FirebaseProvider: React.FC<{
           </div>
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Skull Barber</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Skull Barber - Iniciando</p>
           </div>
         </div>
       </div>
