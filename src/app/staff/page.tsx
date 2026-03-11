@@ -16,7 +16,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebas
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
-import { SERVICES } from "../lib/mock-data"
+import { cn } from "@/lib/utils"
 
 export default function StaffPage() {
   const db = useFirestore()
@@ -39,10 +39,17 @@ export default function StaffPage() {
     return collection(db, "barberProfiles", barberProfileId, "appointments")
   }, [db, barberProfileId])
 
+  // Buscar Serviços para traduzir IDs em nomes no histórico
+  const servicesQuery = useMemoFirebase(() => {
+    if (barberProfileId === "loading") return null;
+    return collection(db, "barberProfiles", barberProfileId, "services")
+  }, [db, barberProfileId])
+
   const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery)
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery)
+  const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery)
 
-  const todayStr = new Date().toISOString().split('T')[0] // Protótipo: usando data atual real
+  const todayStr = new Date().toISOString().split('T')[0]
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -94,7 +101,7 @@ export default function StaffPage() {
     setEditingStaff(null)
   }
 
-  if (isAuthLoading || isStaffLoading || isApptsLoading) {
+  if (isAuthLoading || isStaffLoading || isApptsLoading || isServicesLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -144,12 +151,10 @@ export default function StaffPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {staff?.map((member) => {
-          // Filtrar agendamentos deste barbeiro
           const memberAppts = appointments?.filter(a => a.staffId === member.id) || []
           const todayAppts = memberAppts.filter(a => a.date === todayStr && a.status !== 'completed')
           const completedAppts = memberAppts.filter(a => a.status === 'completed')
           
-          // Cálculo simples de média (atendimentos totais / dias únicos trabalhados ou padrão 22 dias)
           const uniqueDays = new Set(completedAppts.map(a => a.date)).size || 1
           const avgPerDay = (completedAppts.length / uniqueDays).toFixed(1)
 
@@ -203,12 +208,12 @@ export default function StaffPage() {
                   <TabsContent value="upcoming" className="space-y-3 pt-4">
                     {todayAppts.length > 0 ? (
                       todayAppts.map((appt) => {
-                        const service = SERVICES.find(s => s.id === appt.serviceId)
+                        const service = services?.find(s => s.id === appt.serviceId)
                         return (
                           <div key={appt.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 border border-border/20">
                             <div className="flex items-center gap-3">
                               <Clock className="h-3 w-3 text-primary" />
-                              <span className="text-xs font-medium">{appt.time} - {service?.name}</span>
+                              <span className="text-xs font-medium">{appt.time} - {service?.name || 'Serviço'}</span>
                             </div>
                             <Badge variant="outline" className="text-[9px] border-primary/20 text-primary">AGENDADO</Badge>
                           </div>
@@ -222,13 +227,13 @@ export default function StaffPage() {
                   <TabsContent value="history" className="space-y-3 pt-4">
                     {completedAppts.length > 0 ? (
                       completedAppts.slice(0, 5).map((appt) => {
-                        const service = SERVICES.find(s => s.id === appt.serviceId)
+                        const service = services?.find(s => s.id === appt.serviceId)
                         return (
                           <div key={appt.id} className="flex items-center justify-between p-2 rounded-lg bg-green-500/5 border border-green-500/10">
                             <div className="flex items-center gap-3">
                               <CheckCircle2 className="h-3 w-3 text-green-500" />
                               <span className="text-xs text-muted-foreground">
-                                {new Date(appt.date).toLocaleDateString('pt-BR')} - {service?.name}
+                                {new Date(appt.date).toLocaleDateString('pt-BR')} - {service?.name || 'Serviço'}
                               </span>
                             </div>
                             <span className="text-[10px] font-bold text-green-500">R$ {appt.priceAtAppointment?.toFixed(2)}</span>
@@ -281,8 +286,4 @@ export default function StaffPage() {
       </div>
     </div>
   )
-}
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
 }
