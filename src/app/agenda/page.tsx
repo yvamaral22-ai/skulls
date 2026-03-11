@@ -1,49 +1,77 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Clock, User, Scissors, Sparkles } from "lucide-react"
-import { APPOINTMENTS, CUSTOMERS, SERVICES, TRENDING_SERVICES, TRENDING_PRODUCTS, PRODUCTS } from "../lib/mock-data"
-import { AiUpsellDialog } from "@/components/ai-upsell-dialog"
+import * as React from 'react';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Plus, Clock, User, Scissors, Sparkles, CalendarDays } from 'lucide-react';
+import { APPOINTMENTS, CUSTOMERS, SERVICES, TRENDING_SERVICES, TRENDING_PRODUCTS, PRODUCTS } from '../lib/mock-data';
+import { AiUpsellDialog } from '@/components/ai-upsell-dialog';
+import { BookingForm } from '@/components/booking-form';
 
 export default function AgendaPage() {
-  const [date, setDate] = React.useState<Date | undefined>(undefined)
+  const [date, setDate] = React.useState<Date | undefined>(undefined);
+  const [isBookingOpen, setIsBookingOpen] = React.useState(false);
 
   React.useEffect(() => {
     // Initialize date after mount to avoid hydration mismatch due to timezones
-    setDate(new Date("2025-05-20T00:00:00"))
-  }, [])
+    setDate(new Date('2025-05-20T00:00:00'));
+  }, []);
 
   const filteredAppointments = React.useMemo(() => {
-    if (!date) return []
-    const targetDateStr = date.toDateString()
+    if (!date) return [];
+    const targetDateStr = date.toDateString();
     return APPOINTMENTS.filter(appt => {
-      const apptDate = new Date(appt.date + "T00:00:00")
-      return apptDate.toDateString() === targetDateStr
-    })
-  }, [date])
+      const apptDate = new Date(appt.date + 'T00:00:00');
+      return apptDate.toDateString() === targetDateStr;
+    });
+  }, [date]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-12 animate-in slide-in-from-bottom-4 duration-500">
       <div className="lg:col-span-12">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold font-headline">Minha Agenda</h1>
-            <p className="text-muted-foreground">Gerencie seus horários e atendimentos.</p>
+            <h1 className="text-3xl font-bold font-headline">Skull Barber - Agenda</h1>
+            <p className="text-muted-foreground">Gerencie o fluxo de atendimentos da equipe.</p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="mr-2 h-4 w-4" /> Novo Horário
-          </Button>
+          
+          <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
+                <Plus className="mr-2 h-4 w-4" /> Novo Agendamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px] bg-card border-border shadow-2xl">
+              <DialogHeader>
+                <DialogTitle className="font-headline text-2xl flex items-center gap-2">
+                  <CalendarDays className="h-6 w-6 text-primary" />
+                  Agendar Cliente
+                </DialogTitle>
+                <DialogDescription>
+                  Preencha os dados abaixo para reservar o horário.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <BookingForm onSuccess={() => setIsBookingOpen(false)} />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       <div className="lg:col-span-4 space-y-6">
         <Card className="border-none shadow-xl bg-card overflow-hidden">
           <CardHeader className="bg-primary/10">
-            <CardTitle className="text-lg">Selecione o Dia</CardTitle>
+            <CardTitle className="text-lg">Filtro por Data</CardTitle>
           </CardHeader>
           <CardContent className="p-4 flex justify-center calendar-custom">
             <Calendar
@@ -57,13 +85,13 @@ export default function AgendaPage() {
 
         <Card className="border-none shadow-xl bg-card overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-lg">Dica do Especialista</CardTitle>
+            <CardTitle className="text-lg">Gestão de Equipe</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 p-4 rounded-xl bg-accent/10 border border-accent/20">
               <Sparkles className="h-6 w-6 text-accent shrink-0" />
               <p className="text-sm leading-relaxed text-accent-foreground">
-                Ofereça uma <span className="font-bold">Massagem Capilar</span> como upgrade para clientes que agendarem Corte + Barba. Aumenta a satisfação em até 40%.
+                O cálculo de comissões agora considera a taxa individual de cada barbeiro definida no módulo <strong>Equipe</strong>.
               </p>
             </div>
           </CardContent>
@@ -74,8 +102,10 @@ export default function AgendaPage() {
         <Card className="border-none shadow-xl bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="font-headline">Horários de {date ? date.toLocaleDateString('pt-BR') : '...'}</CardTitle>
-              <CardDescription>{filteredAppointments.length} agendamentos previstos.</CardDescription>
+              <CardTitle className="font-headline">
+                Agenda de {date ? date.toLocaleDateString('pt-BR') : '...'}
+              </CardTitle>
+              <CardDescription>{filteredAppointments.length} horários ocupados.</CardDescription>
             </div>
             <Tabs defaultValue="list">
               <TabsList className="bg-secondary">
@@ -88,8 +118,8 @@ export default function AgendaPage() {
             <div className="space-y-6">
               {filteredAppointments.length > 0 ? (
                 filteredAppointments.sort((a, b) => a.time.localeCompare(b.time)).map((appt) => {
-                  const customer = CUSTOMERS.find(c => c.id === appt.customerId)
-                  const service = SERVICES.find(s => s.id === appt.serviceId)
+                  const customer = CUSTOMERS.find(c => c.id === appt.customerId);
+                  const service = SERVICES.find(s => s.id === appt.serviceId);
                   return (
                     <div key={appt.id} className="group relative">
                       <div className="flex items-center gap-6 p-5 rounded-2xl bg-secondary/20 border border-border/50 hover:bg-secondary/40 hover:border-primary/30 transition-all duration-300">
@@ -123,7 +153,7 @@ export default function AgendaPage() {
                         </div>
                       </div>
                     </div>
-                  )
+                  );
                 })
               ) : (
                 <div className="py-20 text-center flex flex-col items-center gap-4">
@@ -136,5 +166,5 @@ export default function AgendaPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
