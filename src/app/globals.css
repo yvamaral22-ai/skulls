@@ -42,38 +42,46 @@
 }
 
 /* Calendar Fixes for React Day Picker v9 */
-.calendar-custom .rdp-month_grid {
-  @apply w-full border-collapse;
-}
-
-.calendar-custom .rdp-week {
-  @apply flex w-full;
-}
-
-.calendar-custom .rdp-day_button {
-  @apply rounded-md transition-all;
-}
-
-.calendar-custom .rdp-selected .rdp-day_button {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90;
-}
-
-.calendar-custom .rdp-day_button:hover:not(.rdp-selected) {
-  @apply bg-secondary text-secondary-foreground;
-}
-
-/* Force grid layout for shadcn calendars */
+.calendar-custom .rdp-month_grid,
 .rdp-month_grid {
   display: table !important;
   width: 100% !important;
+  border-collapse: collapse;
 }
 
+.calendar-custom .rdp-week,
 .rdp-week {
   display: flex !important;
+  width: 100% !important;
 }
 
+.calendar-custom .rdp-day,
 .rdp-day {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  flex: 1 0 0;
+}
+
+.calendar-custom .rdp-day_button,
+.rdp-day_button {
+  @apply rounded-md transition-all h-9 w-9 flex items-center justify-center;
+}
+
+.calendar-custom .rdp-selected .rdp-day_button,
+.rdp-selected .rdp-day_button {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+}
+
+.calendar-custom .rdp-day_button:hover:not(.rdp-selected),
+.rdp-day_button:hover:not(.rdp-selected) {
+  @apply bg-secondary text-secondary-foreground;
+}
+
+.rdp-month_caption {
+  @apply flex justify-center items-center py-2 relative;
+}
+
+.rdp-nav {
+  @apply absolute left-0 right-0 flex justify-between px-2;
 }

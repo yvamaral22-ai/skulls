@@ -75,6 +75,7 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const selectedServiceId = form.watch('serviceId');
   const selectedTime = form.watch('time');
+  const selectedDate = form.watch('date');
 
   const selectedService = React.useMemo(() => 
     services?.find(s => s.id === selectedServiceId),
@@ -253,7 +254,8 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                       onSelect={(date) => {
                         if (date) {
                           field.onChange(date);
-                          setIsCalendarOpen(false);
+                          // Adicionamos um pequeno delay para garantir que o formulário pegue o valor
+                          setTimeout(() => setIsCalendarOpen(false), 100);
                         }
                       }}
                       locale={ptBR}
