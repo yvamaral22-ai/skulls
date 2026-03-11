@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -10,7 +11,7 @@ import {
 } from "recharts"
 import { 
   TrendingUp, DollarSign, ArrowDownRight, 
-  Calendar, Download, Briefcase, Wallet, Loader2
+  Calendar as CalendarIcon, Briefcase, Wallet, Loader2, Play
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -20,19 +21,23 @@ export default function ReportsPage() {
   const db = useFirestore()
   const { user } = useUser()
   
-  // Inicialização segura para evitar erros de hidratação
   const [startDate, setStartDate] = React.useState("")
   const [endDate, setEndDate] = React.useState("")
+  const [appliedStartDate, setAppliedStartDate] = React.useState("")
+  const [appliedEndDate, setAppliedEndDate] = React.useState("")
 
   React.useEffect(() => {
     const now = new Date();
-    setStartDate(format(startOfMonth(now), 'yyyy-MM-dd'));
-    setEndDate(format(endOfMonth(now), 'yyyy-MM-dd'));
+    const start = format(startOfMonth(now), 'yyyy-MM-dd');
+    const end = format(endOfMonth(now), 'yyyy-MM-dd');
+    setStartDate(start);
+    setEndDate(end);
+    setAppliedStartDate(start);
+    setAppliedEndDate(end);
   }, []);
 
   const barberProfileId = user?.uid
 
-  // Buscar todos os dados uma vez e filtrar localmente para máxima reatividade
   const appointmentsQuery = useMemoFirebase(() => {
     if (!barberProfileId) return null;
     return collection(db, "barberProfiles", barberProfileId, "appointments")
@@ -52,18 +57,23 @@ export default function ReportsPage() {
   const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery)
   const { data: expenses, isLoading: isExpensesLoading } = useCollection(expensesQuery)
 
+  const handleApplyFilters = () => {
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
+  }
+
   const stats = React.useMemo(() => {
-    if (!appointments || !startDate || !endDate) return null;
+    if (!appointments || !appliedStartDate || !appliedEndDate) return null;
 
     const filteredAppts = appointments.filter(a => 
-      a.date >= startDate && 
-      a.date <= endDate && 
+      a.date >= appliedStartDate && 
+      a.date <= appliedEndDate && 
       a.status === 'completed'
     )
 
     const filteredExps = expenses?.filter(e => 
-      e.date >= startDate && 
-      e.date <= endDate
+      e.date >= appliedStartDate && 
+      e.date <= appliedEndDate
     ) || []
 
     const totalRevenue = filteredAppts.reduce((sum, a) => sum + (Number(a.priceAtAppointment) || 0), 0)
@@ -98,7 +108,7 @@ export default function ReportsPage() {
     }))
 
     return { totalRevenue, totalCommissions, totalExpenses, netProfit, staffReport, chartData, count: filteredAppts.length }
-  }, [appointments, staff, expenses, startDate, endDate])
+  }, [appointments, staff, expenses, appliedStartDate, appliedEndDate])
 
   if (isApptsLoading || isStaffLoading || isExpensesLoading || !startDate) {
     return (
@@ -113,23 +123,31 @@ export default function ReportsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-headline text-primary">Relatórios Skull Barber</h1>
-          <p className="text-muted-foreground">Visão financeira reativa de faturamento e lucro.</p>
+          <p className="text-muted-foreground">Visão financeira de faturamento e lucro.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 bg-card p-2 rounded-xl border border-border shadow-lg">
-          <Calendar className="h-4 w-4 text-primary ml-2" />
-          <Input 
-            type="date" 
-            value={startDate} 
-            onChange={(e) => setStartDate(e.target.value)} 
-            className="w-40 bg-background border-none focus-visible:ring-0" 
-          />
-          <span className="text-muted-foreground font-bold">→</span>
-          <Input 
-            type="date" 
-            value={endDate} 
-            onChange={(e) => setEndDate(e.target.value)} 
-            className="w-40 bg-background border-none focus-visible:ring-0" 
-          />
+        <div className="flex flex-wrap items-center gap-2 bg-card p-3 rounded-2xl border border-border shadow-xl">
+          <div className="flex items-center gap-2 px-2 border-r border-border pr-4">
+            <CalendarIcon className="h-4 w-4 text-primary" />
+            <Input 
+              type="date" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+              className="w-36 bg-background border-none focus-visible:ring-0 text-xs h-8" 
+            />
+            <span className="text-muted-foreground font-bold">→</span>
+            <Input 
+              type="date" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)} 
+              className="w-36 bg-background border-none focus-visible:ring-0 text-xs h-8" 
+            />
+          </div>
+          <Button 
+            onClick={handleApplyFilters} 
+            className="bg-primary hover:bg-primary/90 text-white h-9 px-4 ml-2"
+          >
+            <Play className="mr-2 h-4 w-4 fill-current" /> Gerar Relatório
+          </Button>
         </div>
       </div>
 
@@ -174,7 +192,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-green-500">R$ {stats?.netProfit.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Resultado real no bolso</p>
+            <p className="text-xs text-muted-foreground mt-1">Resultado no período</p>
           </CardContent>
         </Card>
       </div>
@@ -211,7 +229,7 @@ export default function ReportsPage() {
                 {(!stats || stats.staffReport.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic">
-                      Sem movimentação financeira no período selecionado.
+                      Clique em "Gerar Relatório" para visualizar os dados.
                     </TableCell>
                   </TableRow>
                 )}
