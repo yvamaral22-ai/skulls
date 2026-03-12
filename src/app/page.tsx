@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -42,79 +41,82 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-headline text-primary">Barbearia Skull's</h1>
-          <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em]">Visão Geral do Sistema</p>
+          <h1 className="text-3xl md:text-4xl font-headline text-primary">Barbearia Skull's</h1>
+          <p className="text-muted-foreground text-[9px] md:text-[10px] uppercase tracking-[0.2em]">Visão Geral do Sistema</p>
         </div>
-        <Button className="h-12 font-bold bg-primary text-black shadow-xl shadow-primary/20" asChild>
+        <Button className="h-12 w-full sm:w-auto font-bold bg-primary text-black shadow-xl shadow-primary/20" asChild>
           <Link href="/agenda">
             <Plus className="mr-2 h-5 w-5" /> Novo Agendamento
           </Link>
         </Button>
       </div>
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">Agenda Hoje</CardTitle>
-            <Calendar className="h-4 w-4 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 md:px-6">
+            <CardTitle className="text-[9px] md:text-[10px] font-bold uppercase opacity-60 tracking-[0.15em]">Agenda Hoje</CardTitle>
+            <Calendar className="h-4 w-4 text-primary shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold font-headline tracking-widest">{todayAppointments.length}</div>
+          <CardContent className="px-4 md:px-6">
+            <div className="text-2xl md:text-3xl font-bold font-headline tracking-widest">{todayAppointments.length}</div>
           </CardContent>
         </Card>
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">Bruto Hoje</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 md:px-6">
+            <CardTitle className="text-[9px] md:text-[10px] font-bold uppercase opacity-60 tracking-[0.15em]">Bruto Hoje</CardTitle>
+            <TrendingUp className="h-4 w-4 text-primary shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold font-headline text-primary tracking-widest">R$ {totalRevenueToday.toFixed(0)}</div>
+          <CardContent className="px-4 md:px-6">
+            <div className="text-2xl md:text-3xl font-bold font-headline text-primary tracking-widest">R$ {totalRevenueToday.toFixed(0)}</div>
           </CardContent>
         </Card>
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">Serviços</CardTitle>
-            <Scissors className="h-4 w-4 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 md:px-6">
+            <CardTitle className="text-[9px] md:text-[10px] font-bold uppercase opacity-60 tracking-[0.15em]">Serviços</CardTitle>
+            <Scissors className="h-4 w-4 text-primary shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold font-headline tracking-widest">{services?.length || 0}</div>
+          <CardContent className="px-4 md:px-6">
+            <div className="text-2xl md:text-3xl font-bold font-headline tracking-widest">{services?.length || 0}</div>
           </CardContent>
         </Card>
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em]">Status</CardTitle>
-            <Briefcase className="h-4 w-4 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 md:px-6">
+            <CardTitle className="text-[9px] md:text-[10px] font-bold uppercase opacity-60 tracking-[0.15em]">Status</CardTitle>
+            <Briefcase className="h-4 w-4 text-primary shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold font-headline text-green-500 tracking-widest">ABERTO</div>
+          <CardContent className="px-4 md:px-6">
+            <div className="text-2xl md:text-3xl font-bold font-headline text-green-500 tracking-widest">ABERTO</div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border border-primary/10 bg-card shadow-lg overflow-hidden">
-          <CardHeader className="bg-primary/5 border-b border-primary/10">
-            <CardTitle className="text-xl font-headline text-primary">Próximos Clientes</CardTitle>
+          <CardHeader className="bg-primary/5 border-b border-primary/10 px-4 md:px-6 py-4">
+            <CardTitle className="text-lg md:text-xl font-headline text-primary">Próximos Clientes</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-border/50">
+            <div className="divide-y divide-border/50 max-h-[400px] overflow-y-auto scrollbar-thin">
               {todayAppointments.length > 0 ? (
-                todayAppointments.slice(0, 10).map((appt) => {
+                todayAppointments.slice(0, 15).map((appt) => {
                   const service = services?.find(s => s.id === appt.serviceId)
                   return (
-                    <div key={appt.id} className="flex items-center gap-4 p-4 hover:bg-primary/5 transition-colors">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-black font-headline text-lg tracking-normal">
+                    <div key={appt.id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 hover:bg-primary/5 transition-colors">
+                      <div className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-primary text-black font-headline text-base md:text-lg tracking-normal shrink-0">
                         {appt.time}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold truncate text-sm uppercase tracking-wide">{appt.clientName}</p>
-                        <p className="text-[10px] text-muted-foreground truncate uppercase tracking-[0.1em]">{service?.name || 'Serviço'}</p>
+                        <p className="font-bold truncate text-xs md:text-sm uppercase tracking-wide">{appt.clientName}</p>
+                        <p className="text-[9px] md:text-[10px] text-muted-foreground truncate uppercase tracking-[0.1em]">{service?.name || 'Serviço'}</p>
                       </div>
-                      <div className="text-right">
-                        <Badge variant={appt.status === 'completed' ? 'default' : 'outline'} className={appt.status === 'completed' ? 'bg-primary text-black' : 'border-primary/30 text-primary'}>
+                      <div className="text-right shrink-0">
+                        <Badge variant={appt.status === 'completed' ? 'default' : 'outline'} className={cn(
+                          "text-[8px] md:text-[9px]",
+                          appt.status === 'completed' ? 'bg-primary text-black' : 'border-primary/30 text-primary'
+                        )}>
                           {appt.status === 'completed' ? 'PAGO' : 'PENDENTE'}
                         </Badge>
                       </div>
@@ -129,34 +131,34 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="border border-primary/10 bg-card shadow-lg">
-          <CardHeader className="bg-primary/5 border-b border-primary/10">
-            <CardTitle className="text-xl font-headline text-primary">Acesso Rápido</CardTitle>
+          <CardHeader className="bg-primary/5 border-b border-primary/10 px-4 md:px-6 py-4">
+            <CardTitle className="text-lg md:text-xl font-headline text-primary">Acesso Rápido</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 pt-6">
-            <Button variant="outline" className="h-16 justify-start gap-4 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all" asChild>
+          <CardContent className="grid grid-cols-1 gap-3 md:gap-4 pt-6 px-4 md:px-6 pb-6">
+            <Button variant="outline" className="h-16 justify-start gap-3 md:gap-4 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all text-left" asChild>
               <Link href="/agenda">
-                <Calendar className="h-6 w-6 text-primary" /> 
-                <div className="text-left">
-                  <p className="font-headline text-base">Agenda Semanal</p>
-                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Gestão de horários</p>
+                <Calendar className="h-6 w-6 text-primary shrink-0" /> 
+                <div className="min-w-0">
+                  <p className="font-headline text-base truncate">Agenda Semanal</p>
+                  <p className="text-[9px] md:text-[10px] uppercase opacity-50 tracking-[0.1em] truncate">Gestão de horários</p>
                 </div>
               </Link>
             </Button>
-            <Button variant="outline" className="h-16 justify-start gap-4 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all" asChild>
+            <Button variant="outline" className="h-16 justify-start gap-3 md:gap-4 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all text-left" asChild>
               <Link href="/reports">
-                <TrendingUp className="h-6 w-6 text-primary" /> 
-                <div className="text-left">
-                  <p className="font-headline text-base">Relatório Financeiro</p>
-                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Resumo de faturamento</p>
+                <TrendingUp className="h-6 w-6 text-primary shrink-0" /> 
+                <div className="min-w-0">
+                  <p className="font-headline text-base truncate">Relatório Financeiro</p>
+                  <p className="text-[9px] md:text-[10px] uppercase opacity-50 tracking-[0.1em] truncate">Resumo de faturamento</p>
                 </div>
               </Link>
             </Button>
-            <Button variant="outline" className="h-16 justify-start gap-4 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all" asChild>
+            <Button variant="outline" className="h-16 justify-start gap-3 md:gap-4 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all text-left" asChild>
               <Link href="/services">
-                <Scissors className="h-6 w-6 text-primary" /> 
-                <div className="text-left">
-                  <p className="font-headline text-base">Serviços</p>
-                  <p className="text-[10px] uppercase opacity-50 tracking-[0.1em]">Gestão do catálogo</p>
+                <Scissors className="h-6 w-6 text-primary shrink-0" /> 
+                <div className="min-w-0">
+                  <p className="font-headline text-base truncate">Serviços</p>
+                  <p className="text-[9px] md:text-[10px] uppercase opacity-50 tracking-[0.1em] truncate">Gestão do catálogo</p>
                 </div>
               </Link>
             </Button>
