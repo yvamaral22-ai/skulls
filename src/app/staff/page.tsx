@@ -254,7 +254,7 @@ export default function StaffPage() {
                   
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                      <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-muted-foreground hover:text-primary hover:bg-destructive/10">
                         <Trash2 className="h-5 w-5" />
                       </Button>
                     </AlertDialogTrigger>
@@ -292,7 +292,7 @@ export default function StaffPage() {
                 <DialogTitle className="font-headline text-3xl text-primary flex items-center gap-3">
                   <User className="h-8 w-8 text-primary" /> {selectedStaffPanel.name}
                 </DialogTitle>
-                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Faturamento, Agenda e Histórico Detalhado</DialogDescription>
+                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Agenda e Histórico Detalhado</DialogDescription>
               </DialogHeader>
 
               <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6">
