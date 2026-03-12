@@ -97,20 +97,19 @@
 }
 
 /* FIX CRÍTICO: Garante que Portais (Calendários, Modais, Popovers) sejam clicáveis no Mobile/iOS */
-[data-radix-portal] {
+[data-radix-portal], 
+[data-radix-popper-content-wrapper],
+.rdp {
   pointer-events: auto !important;
   z-index: 10000 !important;
 }
 
-[data-radix-popper-content-wrapper] {
-  z-index: 10001 !important;
-  pointer-events: auto !important;
-}
-
-/* Garante que o corpo não bloqueie interações em portais quando um modal está aberto */
+/* Força a interatividade mesmo quando o body está travado pelo Dialog */
 body[style*="pointer-events: none"] [data-radix-portal],
-body[style*="pointer-events: none"] [data-radix-popper-content-wrapper] {
+body[style*="pointer-events: none"] [data-radix-popper-content-wrapper],
+body[style*="pointer-events: none"] .rdp {
   pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
 /* Estilização específica do calendário para evitar quebras de layout no mobile */

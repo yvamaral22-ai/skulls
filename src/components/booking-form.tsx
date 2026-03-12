@@ -184,13 +184,14 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             render={({ field }) => (
               <UIFormItem className="flex flex-col">
                 <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Data</UIFormLabel>
-                <Popover>
+                {/* modal={false} é CRÍTICO para o iPhone abrir o calendário dentro de um Dialog */}
+                <Popover modal={false}>
                   <PopoverTrigger asChild>
                     <UIFormControl>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full text-left font-normal h-12 bg-background/50 border-border hover:border-primary font-body flex items-center justify-between",
+                          "w-full text-left font-normal h-12 bg-background/50 border-border hover:border-primary font-body flex items-center justify-between pointer-events-auto",
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -199,7 +200,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                       </Button>
                     </UIFormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[10001] pointer-events-auto" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -229,7 +230,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                       <SelectValue placeholder="Hora" />
                     </SelectTrigger>
                   </UIFormControl>
-                  <SelectContent className="max-h-[300px] font-body">
+                  <SelectContent className="max-h-[300px] font-body z-[10001]">
                     {TIME_SLOTS.map((slot) => {
                       const isOccupied = occupiedSlots.includes(slot);
                       const isPast = isPastTime(slot);
@@ -259,7 +260,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                     <SelectValue placeholder={isStaffLoading ? "Carregando..." : "Selecione o profissional"} />
                   </SelectTrigger>
                 </UIFormControl>
-                <SelectContent className="font-body">
+                <SelectContent className="font-body z-[10001]">
                   {staff?.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -280,7 +281,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                     <SelectValue placeholder={isServicesLoading ? "Carregando..." : "Selecione o serviço"} />
                   </SelectTrigger>
                 </UIFormControl>
-                <SelectContent className="font-body">
+                <SelectContent className="font-body z-[10001]">
                   {services?.map(s => (
                     <SelectItem key={s.id} value={s.id} className="text-xs">
                       {s.name} - R$ {Number(s.price).toFixed(2)}

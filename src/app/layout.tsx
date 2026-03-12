@@ -42,15 +42,14 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <head>
+        <meta charSet="utf-8" />
         <title>Barbearia Skull's | Gestão Profissional</title>
         <meta name="description" content="Sistema de gestão profissional para a Barbearia Skull's" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
         {/* Apple Touch Icon - OBRIGATÓRIO PARA IPHONE */}
-        <link rel="apple-touch-icon" href={BARBER_POLE_APP_ICON} />
-        <link rel="apple-touch-icon-precomposed" href={BARBER_POLE_APP_ICON} />
+        <link rel="apple-touch-icon" sizes="180x180" href={BARBER_POLE_APP_ICON} />
         <link rel="icon" type="image/svg+xml" href={BARBER_POLE_APP_ICON} />
-        <link rel="shortcut icon" href={BARBER_POLE_APP_ICON} />
         
         {/* PWA Meta Tags */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -58,7 +57,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Skull's" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#facc15" />
-        <link rel="manifest" href="/manifest.json" />
         
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
