@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   React.useEffect(() => {
-    document.title = "Skulls Barber | Gestão Profissional";
+    document.title = "Barbearia Skull's | Gestão Profissional";
   }, []);
 
   return (
@@ -39,7 +39,7 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
-        {/* CONFIGURAÇÃO DE ÍCONE REAL - CAMINHO CORRIGIDO PARA .png.png */}
+        {/* CONFIGURAÇÃO DE ÍCONE REAL - USANDO O ARQUIVO NA PASTA PUBLIC */}
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png.png?v=3" />
         <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png.png?v=3" />
@@ -47,8 +47,8 @@ export default function RootLayout({
         
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Skulls Barber" />
-        <meta name="application-name" content="Skulls Barber" />
+        <meta name="apple-mobile-web-app-title" content="Barbearia Skull's" />
+        <meta name="application-name" content="Barbearia Skull's" />
         <meta name="theme-color" content="#000000" />
         
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -66,7 +66,7 @@ export default function RootLayout({
                     <div className="p-1.5 bg-primary rounded-md">
                       <BarberPoleIcon className="h-4 w-4 text-black" />
                     </div>
-                    <span className="font-headline text-primary text-sm uppercase tracking-tighter">Skulls Barber</span>
+                    <span className="font-headline text-primary text-sm uppercase tracking-tighter">Barbearia Skull's</span>
                   </div>
                   <SidebarTrigger />
                 </header>
