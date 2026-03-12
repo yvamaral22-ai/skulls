@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -202,7 +201,7 @@ export default function StaffPage() {
                     <p className="text-[8px] uppercase text-muted-foreground">Serviços feitos</p>
                   </div>
                   
-                  {/* ATALHO TÁTICO: CLICAR AQUI ABRE O PAINEL PESSOAL FILTRADO PARA HOJE */}
+                  {/* ATALHO TÁTICO: CLICAR NO CONTADOR DE HOJE ABRE O PAINEL PESSOAL FILTRADO */}
                   <div 
                     onClick={() => {
                       setFilterDate(todayStr);
@@ -284,6 +283,7 @@ export default function StaffPage() {
         })}
       </div>
 
+      {/* PAINEL PESSOAL DO BARBEIRO */}
       <Dialog open={!!selectedStaffPanel} onOpenChange={(open) => !open && setSelectedStaffPanel(null)}>
         <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden bg-card border-none shadow-2xl">
           {selectedStaffPanel && (
@@ -292,7 +292,7 @@ export default function StaffPage() {
                 <DialogTitle className="font-headline text-3xl text-primary flex items-center gap-3">
                   <User className="h-8 w-8 text-primary" /> {selectedStaffPanel.name}
                 </DialogTitle>
-                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Painel Pessoal de Gestão</DialogDescription>
+                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Painel de Gestão Direta</DialogDescription>
               </DialogHeader>
 
               <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6">
@@ -354,6 +354,9 @@ export default function StaffPage() {
                             </div>
                           )
                         })}
+                      {(!appointments || appointments.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled' && (!filterDate || a.date === filterDate)).length === 0) && (
+                        <div className="text-center py-10 text-muted-foreground italic text-xs uppercase tracking-widest">Nenhum horário marcado</div>
+                      )}
                     </TabsContent>
 
                     <TabsContent value="historico" className="space-y-3 m-0">
@@ -380,6 +383,9 @@ export default function StaffPage() {
                             </div>
                           )
                         })}
+                      {(!appointments || appointments.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'completed' && (!filterDate || a.date === filterDate)).length === 0) && (
+                        <div className="text-center py-10 text-muted-foreground italic text-xs uppercase tracking-widest">Sem histórico no período</div>
+                      )}
                     </TabsContent>
                   </div>
                 </Tabs>
