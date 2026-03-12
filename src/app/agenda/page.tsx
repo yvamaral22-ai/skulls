@@ -38,9 +38,11 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
-const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 08:00 às 21:00
-const SLOT_HEIGHT = 120; // Aumentado significativamente para legibilidade total
-const COLUMN_WIDTH = "min-w-[200px] md:min-w-[250px]";
+const START_HOUR = 8;
+const HOURS_COUNT = 14; // 08:00 às 22:00
+const HOURS = Array.from({ length: HOURS_COUNT }, (_, i) => i + START_HOUR);
+const SLOT_HEIGHT = 120; // Altura generosa para legibilidade
+const COLUMN_WIDTH = "min-w-[250px] md:min-w-[280px]";
 
 export default function AgendaPage() {
   const db = useFirestore();
@@ -69,17 +71,17 @@ export default function AgendaPage() {
   const { data: staff } = useCollection(staffQuery);
 
   const getAppointmentStyle = (appt: any, service: any) => {
-    if (!appt.time) return { top: '0px', height: '60px' };
+    if (!appt.time) return { display: 'none' };
     
     const [hours, minutes] = appt.time.split(':').map(Number);
-    // 8:00 é o ponto zero
-    const relativeMinutes = (hours - 8) * 60 + (minutes || 0);
+    // Cálculo absoluto baseado no início da agenda (8:00)
+    const relativeMinutes = (hours - START_HOUR) * 60 + (minutes || 0);
     const duration = Math.max(Number(service?.durationMinutes) || 30, 20);
     
     return {
       top: `${(relativeMinutes / 60) * SLOT_HEIGHT}px`, 
       height: `${(duration / 60) * SLOT_HEIGHT}px`,
-      minHeight: '70px' // Garante que o texto sempre caiba
+      minHeight: '80px' // Garante que o texto SEMPRE caiba
     };
   };
 
@@ -142,7 +144,7 @@ export default function AgendaPage() {
         <div className="w-16 md:w-20 flex-none bg-card border-r border-border flex flex-col pt-[120px]">
           {HOURS.map(hour => (
             <div key={hour} className="h-[120px] flex items-start justify-center pt-3 border-b border-border/10">
-              <span className="text-[10px] md:text-xs font-bold text-muted-foreground font-body">
+              <span className="text-[11px] md:text-xs font-black text-muted-foreground font-body">
                 {`${hour.toString().padStart(2, '0')}:00`}
               </span>
             </div>
@@ -200,14 +202,14 @@ export default function AgendaPage() {
                           style={style}
                           onClick={(e) => { e.stopPropagation(); setEditingAppointment(appt); }}
                           className={cn(
-                            "absolute left-1 right-1 rounded-xl p-3 md:p-4 text-xs overflow-hidden transition-all border shadow-lg cursor-pointer hover:shadow-xl hover:scale-[1.01] z-30 flex flex-col justify-between font-body",
+                            "absolute left-1.5 right-1.5 rounded-xl p-4 text-xs overflow-hidden transition-all border shadow-lg cursor-pointer hover:shadow-2xl hover:scale-[1.01] z-30 flex flex-col justify-between font-body",
                             isCompleted 
                               ? "bg-green-600/30 border-green-500/50 text-green-100" 
                               : "bg-primary/20 border-primary/40 text-white"
                           )}
                         >
-                          <div className="space-y-1">
-                            <div className="font-black uppercase text-[12px] md:text-sm tracking-tight text-white leading-none truncate">
+                          <div className="space-y-1.5">
+                            <div className="font-black uppercase text-[13px] md:text-sm tracking-tight text-white leading-none truncate drop-shadow-md">
                               {appt.clientName || 'Cliente'}
                             </div>
                             <div className="flex items-center gap-1.5 text-primary text-[10px] md:text-[11px] font-bold truncate">
@@ -215,12 +217,12 @@ export default function AgendaPage() {
                             </div>
                           </div>
                           
-                          <div className="flex flex-col gap-1 mt-2 border-t border-white/10 pt-2">
-                            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-medium opacity-80">
-                              <Clock className="h-3 w-3 shrink-0" /> {appt.time} • {service?.durationMinutes} min
+                          <div className="flex flex-col gap-1 mt-3 border-t border-white/10 pt-2.5">
+                            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-bold text-white/90">
+                              <Clock className="h-3 w-3 shrink-0 text-primary" /> {appt.time} • {service?.durationMinutes} min
                             </div>
-                            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-medium opacity-80">
-                              <User className="h-3 w-3 shrink-0" /> {barber?.name || 'Barbeiro'}
+                            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-bold text-white/70">
+                              <User className="h-3 w-3 shrink-0 text-primary" /> {barber?.name || 'Barbeiro'}
                             </div>
                           </div>
 
@@ -238,11 +240,11 @@ export default function AgendaPage() {
                       <div 
                         className="absolute left-0 right-0 z-50 flex items-center pointer-events-none"
                         style={{ 
-                          top: `${((differenceInMinutes(currentTime, startOfDay(currentTime)) - 480) / 60) * SLOT_HEIGHT}px` 
+                          top: `${((differenceInMinutes(currentTime, startOfDay(currentTime)) - (START_HOUR * 60)) / 60) * SLOT_HEIGHT}px` 
                         }}
                       >
-                        <div className="h-2 w-2 rounded-full bg-red-500 -ml-1 shadow-glow shadow-red-500" />
-                        <div className="h-px flex-1 bg-red-500/60" />
+                        <div className="h-2.5 w-2.5 rounded-full bg-red-500 -ml-1 shadow-glow shadow-red-500" />
+                        <div className="h-0.5 flex-1 bg-red-500/60" />
                       </div>
                     )}
                   </div>
@@ -253,7 +255,7 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      {/* Modal Novo Agendamento */}
+      {/* Modais omitidos para brevidade, lógica mantida */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
         <DialogContent className="sm:max-w-[450px] bg-card border-border">
           <DialogHeader>
@@ -266,7 +268,6 @@ export default function AgendaPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Edição/Detalhes */}
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
         <DialogContent className="sm:max-w-[450px] bg-card border-border">
           <DialogHeader>
@@ -275,9 +276,8 @@ export default function AgendaPage() {
           </DialogHeader>
           {editingAppointment && (
             <div className="space-y-4">
-              {/* Resumo Destacado para Legibilidade */}
               {editingAppointment.id && (
-                <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-4">
+                <div className="bg-primary/5 p-5 rounded-xl border border-primary/20 space-y-4">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest">Cliente</h4>
@@ -292,22 +292,22 @@ export default function AgendaPage() {
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-primary/10">
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest flex items-center gap-1.5">
                         <Scissors className="h-3 w-3" /> Serviço
                       </h4>
-                      <p className="text-sm font-bold text-white leading-tight">
+                      <p className="text-sm font-black text-white leading-tight">
                         {services?.find(s => s.id === editingAppointment.serviceId)?.name || 'N/A'}
                       </p>
                       <p className="text-[10px] text-muted-foreground font-bold">
                         Duração: {services?.find(s => s.id === editingAppointment.serviceId)?.durationMinutes || 0} min
                       </p>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest flex items-center gap-1.5">
                         <Clock className="h-3 w-3" /> Horário
                       </h4>
-                      <p className="text-sm font-bold text-white">{editingAppointment.time}</p>
+                      <p className="text-sm font-black text-white">{editingAppointment.time}</p>
                       <p className="text-[10px] text-muted-foreground font-bold">
                         {format(parseISO(editingAppointment.date), 'dd/MM/yyyy')}
                       </p>
@@ -348,7 +348,7 @@ export default function AgendaPage() {
                     <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                       <AlertDialogHeader>
                         <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Confirmar Exclusão?</AlertDialogTitle>
-                        <AlertDialogDescription className="font-body text-sm">
+                        <AlertDialogDescription className="font-body text-sm text-muted-foreground">
                           Esta operação removerá permanentemente o agendamento de {editingAppointment.clientName}.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
