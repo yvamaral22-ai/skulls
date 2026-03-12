@@ -39,10 +39,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
 const START_HOUR = 8;
-const HOURS_COUNT = 14; // 08:00 às 22:00
+const HOURS_COUNT = 15; // 08:00 às 22:00
 const HOURS = Array.from({ length: HOURS_COUNT }, (_, i) => i + START_HOUR);
-const SLOT_HEIGHT = 120; // Altura generosa para legibilidade
-const COLUMN_WIDTH = "min-w-[250px] md:min-w-[280px]";
+const SLOT_HEIGHT = 120; // Altura fixa e sagrada para o cálculo
+const COLUMN_WIDTH = "min-w-[280px]";
 
 export default function AgendaPage() {
   const db = useFirestore();
@@ -74,14 +74,19 @@ export default function AgendaPage() {
     if (!appt.time) return { display: 'none' };
     
     const [hours, minutes] = appt.time.split(':').map(Number);
-    // Cálculo absoluto baseado no início da agenda (8:00)
-    const relativeMinutes = (hours - START_HOUR) * 60 + (minutes || 0);
-    const duration = Math.max(Number(service?.durationMinutes) || 30, 20);
+    // Cálculo de minutos desde o início da agenda (START_HOUR)
+    const minutesSinceStart = (hours - START_HOUR) * 60 + (minutes || 0);
+    const durationMinutes = Math.max(Number(service?.durationMinutes) || 30, 30);
+    
+    // Converte minutos em pixels baseado no SLOT_HEIGHT (120px = 60min)
+    const topPx = (minutesSinceStart / 60) * SLOT_HEIGHT;
+    const heightPx = (durationMinutes / 60) * SLOT_HEIGHT;
     
     return {
-      top: `${(relativeMinutes / 60) * SLOT_HEIGHT}px`, 
-      height: `${(duration / 60) * SLOT_HEIGHT}px`,
-      minHeight: '80px' // Garante que o texto SEMPRE caiba
+      top: `${topPx}px`, 
+      height: `${heightPx}px`,
+      minHeight: '70px',
+      zIndex: 30
     };
   };
 
@@ -152,7 +157,7 @@ export default function AgendaPage() {
         </div>
 
         {/* Área de Scroll da Grade */}
-        <div className="flex-1 overflow-auto relative">
+        <div className="flex-1 overflow-auto relative scrollbar-thin">
           <div className="inline-flex min-w-full">
             {weekDays.map((day, dayIdx) => {
               const isToday = isSameDay(day, new Date());
@@ -161,7 +166,7 @@ export default function AgendaPage() {
 
               return (
                 <div key={dayIdx} className={cn("flex-1 relative border-r border-border last:border-r-0", COLUMN_WIDTH)}>
-                  {/* Cabeçalho da Coluna (Dia) */}
+                  {/* Cabeçalho do Dia (Fixo no topo da coluna) */}
                   <div className={cn(
                     "sticky top-0 z-40 h-[120px] flex flex-col items-center justify-center border-b border-border bg-card/95 backdrop-blur-md",
                     isToday ? "text-primary" : ""
@@ -177,19 +182,19 @@ export default function AgendaPage() {
                     </span>
                   </div>
 
-                  {/* Espaço dos Slots */}
+                  {/* Espaço dos Slots de Horário */}
                   <div className="relative" style={{ height: `${HOURS.length * SLOT_HEIGHT}px` }}>
                     {HOURS.map(hour => (
                       <div 
                         key={hour} 
-                        className="h-[120px] border-b border-border/10 hover:bg-primary/5 transition-colors cursor-pointer group"
+                        className="h-[120px] border-b border-border/5 hover:bg-primary/5 transition-colors cursor-pointer group"
                         onClick={() => handleCellClick(day, hour)}
                       >
-                        <div className="hidden group-hover:block absolute ml-2 mt-2 text-[8px] text-primary/40 font-bold uppercase">Livre</div>
+                        <div className="hidden group-hover:block absolute ml-2 mt-2 text-[8px] text-primary/40 font-bold uppercase tracking-widest">Livre</div>
                       </div>
                     ))}
 
-                    {/* Renderização dos Agendamentos */}
+                    {/* Renderização dos Agendamentos em Posição Absoluta */}
                     {dayAppts.map(appt => {
                       const service = services?.find(s => s.id === appt.serviceId);
                       const barber = staff?.find(s => s.id === appt.staffId);
@@ -202,26 +207,26 @@ export default function AgendaPage() {
                           style={style}
                           onClick={(e) => { e.stopPropagation(); setEditingAppointment(appt); }}
                           className={cn(
-                            "absolute left-1.5 right-1.5 rounded-xl p-4 text-xs overflow-hidden transition-all border shadow-lg cursor-pointer hover:shadow-2xl hover:scale-[1.01] z-30 flex flex-col justify-between font-body",
+                            "absolute left-1.5 right-1.5 rounded-xl p-3 text-xs overflow-hidden transition-all border shadow-lg cursor-pointer hover:shadow-2xl hover:scale-[1.01] flex flex-col justify-between font-body",
                             isCompleted 
                               ? "bg-green-600/30 border-green-500/50 text-green-100" 
-                              : "bg-primary/20 border-primary/40 text-white"
+                              : "bg-primary/10 border-primary/30 text-white"
                           )}
                         >
-                          <div className="space-y-1.5">
-                            <div className="font-black uppercase text-[13px] md:text-sm tracking-tight text-white leading-none truncate drop-shadow-md">
+                          <div className="space-y-1">
+                            <div className="font-black uppercase text-[12px] md:text-[14px] tracking-tight text-white leading-none truncate">
                               {appt.clientName || 'Cliente'}
                             </div>
-                            <div className="flex items-center gap-1.5 text-primary text-[10px] md:text-[11px] font-bold truncate">
+                            <div className="flex items-center gap-1.5 text-primary text-[10px] font-bold truncate">
                               <Scissors className="h-3 w-3 shrink-0" /> {service?.name || 'Serviço'}
                             </div>
                           </div>
                           
-                          <div className="flex flex-col gap-1 mt-3 border-t border-white/10 pt-2.5">
-                            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-bold text-white/90">
+                          <div className="flex flex-col gap-0.5 mt-2 border-t border-white/5 pt-2">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/90">
                               <Clock className="h-3 w-3 shrink-0 text-primary" /> {appt.time} • {service?.durationMinutes} min
                             </div>
-                            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-bold text-white/70">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/70">
                               <User className="h-3 w-3 shrink-0 text-primary" /> {barber?.name || 'Barbeiro'}
                             </div>
                           </div>
@@ -235,7 +240,7 @@ export default function AgendaPage() {
                       );
                     })}
 
-                    {/* Linha do Tempo Atual */}
+                    {/* Indicador de Hora Atual */}
                     {isToday && (
                       <div 
                         className="absolute left-0 right-0 z-50 flex items-center pointer-events-none"
@@ -243,8 +248,8 @@ export default function AgendaPage() {
                           top: `${((differenceInMinutes(currentTime, startOfDay(currentTime)) - (START_HOUR * 60)) / 60) * SLOT_HEIGHT}px` 
                         }}
                       >
-                        <div className="h-2.5 w-2.5 rounded-full bg-red-500 -ml-1 shadow-glow shadow-red-500" />
-                        <div className="h-0.5 flex-1 bg-red-500/60" />
+                        <div className="h-3 w-3 rounded-full bg-red-500 -ml-1.5 shadow-glow shadow-red-500" />
+                        <div className="h-0.5 flex-1 bg-red-500/50" />
                       </div>
                     )}
                   </div>
@@ -255,12 +260,12 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      {/* Modais omitidos para brevidade, lógica mantida */}
+      {/* Modais de Gerenciamento */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
         <DialogContent className="sm:max-w-[450px] bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl text-primary">Novo Agendamento</DialogTitle>
-            <DialogDescription className="font-body text-xs uppercase opacity-60">Preencha os dados abaixo.</DialogDescription>
+            <DialogDescription className="font-body text-xs uppercase opacity-60">Escolha o melhor horário para o cliente.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[80vh] overflow-y-auto px-1">
             <BookingForm onSuccess={() => setIsBookingOpen(false)} />
@@ -271,8 +276,8 @@ export default function AgendaPage() {
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
         <DialogContent className="sm:max-w-[450px] bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="font-headline text-2xl text-primary">{editingAppointment?.id ? 'Detalhes do Horário' : 'Marcar Horário'}</DialogTitle>
-            <DialogDescription className="font-body text-xs uppercase opacity-60">Informações completas do cliente.</DialogDescription>
+            <DialogTitle className="font-headline text-2xl text-primary">{editingAppointment?.id ? 'Detalhes do Atendimento' : 'Marcar Horário'}</DialogTitle>
+            <DialogDescription className="font-body text-xs uppercase opacity-60">Gestão de horário e checkout.</DialogDescription>
           </DialogHeader>
           {editingAppointment && (
             <div className="space-y-4">
@@ -281,29 +286,29 @@ export default function AgendaPage() {
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest">Cliente</h4>
-                      <p className="font-headline text-2xl text-white leading-none">{editingAppointment.clientName}</p>
+                      <p className="font-headline text-2xl text-white leading-none tracking-tight">{editingAppointment.clientName}</p>
                     </div>
                     <Badge variant="outline" className={cn(
                       "uppercase text-[9px] font-bold tracking-widest border-2",
                       editingAppointment.status === 'completed' ? "border-green-500/40 text-green-400" : "border-primary/20 text-primary"
                     )}>
-                      {editingAppointment.status === 'completed' ? 'Finalizado' : 'Pendente'}
+                      {editingAppointment.status === 'completed' ? 'Pago' : 'Pendente'}
                     </Badge>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-primary/10">
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest flex items-center gap-1.5">
                         <Scissors className="h-3 w-3" /> Serviço
                       </h4>
-                      <p className="text-sm font-black text-white leading-tight">
+                      <p className="text-sm font-black text-white truncate">
                         {services?.find(s => s.id === editingAppointment.serviceId)?.name || 'N/A'}
                       </p>
                       <p className="text-[10px] text-muted-foreground font-bold">
                         Duração: {services?.find(s => s.id === editingAppointment.serviceId)?.durationMinutes || 0} min
                       </p>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest flex items-center gap-1.5">
                         <Clock className="h-3 w-3" /> Horário
                       </h4>
@@ -340,25 +345,25 @@ export default function AgendaPage() {
                     <AlertDialogTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        className="flex-1 text-destructive hover:bg-destructive/10 font-bold uppercase text-[10px] font-body"
+                        className="flex-1 text-destructive hover:bg-destructive/10 font-bold uppercase text-[10px]"
                       >
-                        Excluir Horário
+                        Excluir
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Confirmar Exclusão?</AlertDialogTitle>
+                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Excluir Agendamento?</AlertDialogTitle>
                         <AlertDialogDescription className="font-body text-sm text-muted-foreground">
-                          Esta operação removerá permanentemente o agendamento de {editingAppointment.clientName}.
+                          O horário de {editingAppointment.clientName} será removido permanentemente.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-secondary font-bold font-body">Cancelar</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-secondary font-bold">Cancelar</AlertDialogCancel>
                         <AlertDialogAction 
                           onClick={() => handleDelete(editingAppointment.id)} 
-                          className="bg-destructive text-white hover:bg-destructive/90 font-bold font-body"
+                          className="bg-destructive text-white hover:bg-destructive/90 font-bold"
                         >
-                          Confirmar Exclusão
+                          Confirmar
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
