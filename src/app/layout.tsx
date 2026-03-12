@@ -40,9 +40,9 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
         {/* APPLE TOUCH ICON - PRIORIDADE MÁXIMA PARA IPHONE (CACHE BUSTER APLICADO) */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1" />
-        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=1" />
-        <link rel="icon" type="image/png" href="/apple-touch-icon.png?v=1" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" href="/apple-touch-icon.png" />
         
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
