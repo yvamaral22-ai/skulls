@@ -52,17 +52,17 @@
 
 /* Efeito Kamui (Sucked with Reading Pause) */
 @keyframes kamui-sucking {
-  0%, 60% {
+  0%, 65% {
     transform: perspective(1000px) rotate(0deg) scale(1) rotateY(0deg) translateZ(0);
     opacity: 1;
     filter: blur(0px) brightness(1);
   }
-  80% {
+  85% {
     transform: perspective(1000px) rotate(1080deg) scale(0) rotateY(360deg) translateZ(-500px);
     opacity: 0;
     filter: blur(12px) brightness(4);
   }
-  90% {
+  95% {
     transform: perspective(1000px) rotate(1080deg) scale(0) rotateY(360deg) translateZ(-500px);
     opacity: 0;
     filter: blur(12px) brightness(4);
@@ -74,14 +74,15 @@
   }
 }
 
-/* Barber Pole Rotation Animation */
+/* Barber Pole Realistic Axial Rotation */
 @keyframes barber-pole-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from { transform: perspective(400px) rotateY(0deg); }
+  to { transform: perspective(400px) rotateY(360deg); }
 }
 
 .animate-barber-spin {
-  animation: barber-pole-spin 6s linear infinite;
+  animation: barber-pole-spin 3s linear infinite;
+  transform-style: preserve-3d;
 }
 
 .dimension-text {
@@ -90,7 +91,7 @@
   text-shadow: 
     0 1px 0 #000,
     0 2px 0 #111,
-    0 0 15px rgba(250, 204, 21, 0.4);
+    0 0 25px rgba(250, 204, 21, 0.6);
   transform-style: preserve-3d;
   will-change: transform, opacity, filter;
 }
