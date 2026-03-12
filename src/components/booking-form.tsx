@@ -59,7 +59,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
   const barberShopId = "master-barbershop";
 
@@ -147,7 +146,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
 
       toast({
         title: isUpdate ? 'Sincronizado!' : 'Agendado!',
-        description: `${data.clientName} às ${data.time} no dia ${format(data.date, 'dd/MM')}.`,
+        description: `${data.clientName} às ${data.time} no dia ${format(data.date, 'dd/MM/yyyy')}.`,
       });
       
       if (onSuccess) onSuccess();
@@ -185,30 +184,27 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             render={({ field }) => (
               <UIFormItem className="flex flex-col">
                 <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Data</UIFormLabel>
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant={"outline"}
-                      className={cn(
-                        "w-full text-left font-normal h-12 bg-background/50 border-border hover:border-primary font-body flex items-center justify-between",
-                        !field.value && "text-muted-foreground"
-                      )}
-                      onClick={() => setIsCalendarOpen(true)}
-                    >
-                      <span>{field.value ? format(field.value, "dd/MM/yyyy") : "Data"}</span>
-                      <CalendarIcon className="h-4 w-4 opacity-40" />
-                    </Button>
+                    <UIFormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full text-left font-normal h-12 bg-background/50 border-border hover:border-primary font-body flex items-center justify-between",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        <span>{field.value ? format(field.value, "dd/MM/yyyy") : "Escolher data"}</span>
+                        <CalendarIcon className="h-4 w-4 opacity-40" />
+                      </Button>
+                    </UIFormControl>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
                       onSelect={(date) => { 
-                        if (date) { 
-                          field.onChange(date); 
-                          setIsCalendarOpen(false); 
-                        } 
+                        if (date) field.onChange(date); 
                       }}
                       locale={ptBR}
                       disabled={(date) => startOfDay(date) < startOfDay(new Date())}

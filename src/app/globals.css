@@ -96,7 +96,7 @@
   will-change: transform, opacity, filter;
 }
 
-/* FIX CRÍTICO: Garante que Portais (Modais, Popovers) sejam clicáveis no Mobile/iOS */
+/* FIX CRÍTICO: Garante que Portais (Calendários, Modais, Popovers) sejam clicáveis no Mobile/iOS */
 [data-radix-portal] {
   pointer-events: auto !important;
   z-index: 10000 !important;
@@ -113,7 +113,7 @@ body[style*="pointer-events: none"] [data-radix-popper-content-wrapper] {
   pointer-events: auto !important;
 }
 
-/* Estilização específica do calendário para evitar quebras de layout */
+/* Estilização específica do calendário para evitar quebras de layout no mobile */
 .rdp-month {
   width: 100%;
 }
@@ -126,12 +126,6 @@ body[style*="pointer-events: none"] [data-radix-popper-content-wrapper] {
 
 .rdp-day_button:hover {
   @apply bg-primary/20 !important;
-}
-
-/* Indicador de agendamento no calendário */
-.has-appointment .rdp-day_button::after {
-  content: '';
-  @apply absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary !important;
 }
 
 /* Scrollbar Style */
