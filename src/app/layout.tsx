@@ -25,12 +25,14 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// Ícone Barber Pole em SVG para uso no favicon (cor primária #facc15)
+const BARBER_POLE_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23facc15' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h4M10 22h4'/%3E%3Crect x='8' y='4' width='8' height='16' rx='1'/%3E%3Cpath d='M8 7l8 3M8 11l8 3M8 15l8 3'/%3E%3C/svg%3E";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Força a atualização do título para evitar caches de modelos anteriores
   React.useEffect(() => {
     document.title = "Barbearia Skull's | Gestão Profissional";
   }, []);
@@ -42,6 +44,10 @@ export default function RootLayout({
         <meta name="description" content="Sistema de gestão profissional para a Barbearia Skull's" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
         
+        {/* Favicon Oficial */}
+        <link rel="icon" type="image/svg+xml" href={BARBER_POLE_SVG} />
+        <link rel="shortcut icon" href={BARBER_POLE_SVG} />
+        
         {/* PWA Meta Tags */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -49,7 +55,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#050505" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="https://picsum.photos/seed/skull/192/192" />
+        <link rel="apple-touch-icon" href={BARBER_POLE_SVG} />
         
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -61,7 +67,6 @@ export default function RootLayout({
             <div className="flex min-h-screen w-full relative">
               <AppSidebar />
               <SidebarInset className="flex-1 overflow-auto">
-                {/* Header Mobile */}
                 <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card sticky top-0 z-40">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-primary rounded-md">
