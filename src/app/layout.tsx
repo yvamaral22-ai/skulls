@@ -46,7 +46,7 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
-        {/* APPLE PWA CONFIGURATION - PRIORIDADE MÁXIMA PARA EVITAR ÍCONE "B" */}
+        {/* APPLE PWA CONFIGURATION - PRIORIDADE MÁXIMA PARA EVITAR ÍCONES GENÉRICOS */}
         <link rel="apple-touch-icon" sizes="180x180" href={BARBER_POLE_APP_ICON} />
         <link rel="apple-touch-icon-precomposed" sizes="180x180" href={BARBER_POLE_APP_ICON} />
         <link rel="icon" type="image/svg+xml" href={BARBER_POLE_APP_ICON} />
