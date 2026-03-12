@@ -24,8 +24,11 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Ícone Barber Pole em SVG para uso no favicon (cor primária #facc15)
-const BARBER_POLE_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23facc15' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h4M10 22h4'/%3E%3Crect x='8' y='4' width='8' height='16' rx='1'/%3E%3Cpath d='M8 7l8 3M8 11l8 3M8 15l8 3'/%3E%3C/svg%3E";
+/**
+ * Ícone Barber Pole otimizado para iOS/PWA.
+ * Fundo amarelo sólido (#facc15) com ícone preto para máxima visibilidade e aceitação pelo Safari.
+ */
+const BARBER_POLE_APP_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23facc15'/%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 5h4M10 19h4'/%3E%3Crect x='8' y='7' width='8' height='10' rx='1'/%3E%3Cpath d='M8 9l8 3M8 12l8 3M8 15l8 3'/%3E%3C/g%3E%3C/svg%3E";
 
 export default function RootLayout({
   children,
@@ -41,20 +44,20 @@ export default function RootLayout({
       <head>
         <title>Barbearia Skull's | Gestão Profissional</title>
         <meta name="description" content="Sistema de gestão profissional para a Barbearia Skull's" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
-        {/* Favicon Oficial */}
-        <link rel="icon" type="image/svg+xml" href={BARBER_POLE_SVG} />
-        <link rel="shortcut icon" href={BARBER_POLE_SVG} />
+        {/* Favicon e Apple Touch Icon (Obrigatório para iOS) */}
+        <link rel="icon" type="image/svg+xml" href={BARBER_POLE_APP_ICON} />
+        <link rel="apple-touch-icon" href={BARBER_POLE_APP_ICON} />
+        <link rel="apple-touch-icon-precomposed" href={BARBER_POLE_APP_ICON} />
         
         {/* PWA Meta Tags */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Barbearia Skull's" />
+        <meta name="apple-mobile-web-app-title" content="Skull's" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#050505" />
+        <meta name="theme-color" content="#facc15" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href={BARBER_POLE_SVG} />
         
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
