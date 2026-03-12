@@ -202,130 +202,31 @@ export default function StaffPage() {
                     <p className="text-2xl font-black font-headline mt-1">{completedCount}</p>
                     <p className="text-[8px] uppercase text-muted-foreground">Serviços feitos</p>
                   </div>
-                  <div className="bg-secondary/20 p-4 rounded-2xl border border-border/50">
-                    <p className="text-[9px] uppercase font-bold text-muted-foreground flex items-center gap-2">
-                      <CalendarDays className="h-3 w-3 text-primary" /> Hoje
+                  
+                  {/* Card de Pendentes Clicável para abrir o Painel Pessoal */}
+                  <div 
+                    onClick={() => {
+                      setFilterDate(todayStr);
+                      setSelectedStaffPanel(member);
+                    }}
+                    className="bg-secondary/20 p-4 rounded-2xl border border-border/50 cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-all active:scale-95 group/pendente"
+                  >
+                    <p className="text-[9px] uppercase font-bold text-muted-foreground flex items-center justify-between gap-2 group-hover/pendente:text-primary">
+                      <span className="flex items-center gap-2"><CalendarDays className="h-3 w-3 text-primary" /> Hoje</span>
+                      <ChevronRight className="h-3 w-3 opacity-0 group-hover/pendente:opacity-100 transition-opacity" />
                     </p>
-                    <p className="text-2xl font-black font-headline mt-1">{pendingToday}</p>
-                    <p className="text-[8px] uppercase text-muted-foreground">Agendados</p>
+                    <p className="text-2xl font-black font-headline mt-1 group-hover/pendente:text-white">{pendingToday}</p>
+                    <p className="text-[8px] uppercase text-muted-foreground font-bold">Pendentes</p>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Dialog open={selectedStaffPanel?.id === member.id} onOpenChange={(open) => setSelectedStaffPanel(open ? member : null)}>
-                    <DialogTrigger asChild>
-                      <Button className="flex-1 bg-secondary hover:bg-primary hover:text-black font-bold h-12 uppercase text-[10px] tracking-widest transition-all">
-                        Painel Pessoal <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden bg-card border-none shadow-2xl">
-                      <DialogHeader className="p-6 pb-0">
-                        <DialogTitle className="font-headline text-3xl text-primary flex items-center gap-3">
-                          <User className="h-8 w-8 text-primary" /> {member.name}
-                        </DialogTitle>
-                        <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Faturamento, Agenda e Histórico Detalhado</DialogDescription>
-                      </DialogHeader>
-
-                      <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6">
-                        {/* Filtros do Painel */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-6 bg-background/50 p-4 rounded-2xl border border-border">
-                          <div className="space-y-1">
-                            <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar por Data</Label>
-                            <Input 
-                              type="date" 
-                              value={filterDate} 
-                              onChange={(e) => setFilterDate(e.target.value)} 
-                              className="h-10 bg-card border-primary/10"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar por Hora</Label>
-                            <Input 
-                              type="time" 
-                              value={filterTime} 
-                              onChange={(e) => setFilterTime(e.target.value)} 
-                              className="h-10 bg-card border-primary/10"
-                            />
-                          </div>
-                          <div className="flex items-end">
-                            <Button 
-                              variant="outline" 
-                              onClick={() => { setFilterDate(""); setFilterTime(""); }}
-                              className="w-full h-10 text-[9px] uppercase font-bold"
-                            >
-                              Limpar Filtros
-                            </Button>
-                          </div>
-                        </div>
-
-                        <Tabs defaultValue="agenda" className="flex-1 flex flex-col overflow-hidden">
-                          <TabsList className="bg-secondary/50 p-1 h-12 rounded-xl border border-border">
-                            <TabsTrigger value="agenda" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Agenda Tática</TabsTrigger>
-                            <TabsTrigger value="historico" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Histórico de Batalha</TabsTrigger>
-                          </TabsList>
-                          
-                          <div className="flex-1 overflow-y-auto mt-4 pr-2 scrollbar-thin">
-                            <TabsContent value="agenda" className="space-y-3 m-0">
-                              {memberAppts
-                                .filter(a => a.status === 'scheduled')
-                                .filter(a => !filterDate || a.date === filterDate)
-                                .filter(a => !filterTime || a.time.startsWith(filterTime))
-                                .sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
-                                .map((appt) => {
-                                  const service = services?.find(s => s.id === appt.serviceId)
-                                  return (
-                                    <div key={appt.id} className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between group hover:bg-primary/10 transition-all">
-                                      <div className="space-y-1">
-                                        <p className="font-bold text-sm uppercase text-white">{appt.clientName}</p>
-                                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold">
-                                          <span className="flex items-center gap-1"><Clock className="h-3 w-3 text-primary" /> {appt.time}</span>
-                                          <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3 text-primary" /> {format(parseISO(appt.date), 'dd/MM/yyyy')}</span>
-                                          <span className="flex items-center gap-1"><Scissors className="h-3 w-3 text-primary" /> {service?.name}</span>
-                                        </div>
-                                      </div>
-                                      <Badge className="bg-primary text-black font-bold uppercase text-[8px]">Agendado</Badge>
-                                    </div>
-                                  )
-                                })}
-                              {memberAppts.filter(a => a.status === 'scheduled').length === 0 && (
-                                <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum agendamento pendente</p>
-                              )}
-                            </TabsContent>
-
-                            <TabsContent value="historico" className="space-y-3 m-0">
-                              {memberAppts
-                                .filter(a => a.status === 'completed')
-                                .filter(a => !filterDate || a.date === filterDate)
-                                .filter(a => !filterTime || a.time.startsWith(filterTime))
-                                .sort((a,b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time))
-                                .map((appt) => {
-                                  const service = services?.find(s => s.id === appt.serviceId)
-                                  return (
-                                    <div key={appt.id} className="p-4 rounded-2xl bg-green-500/5 border border-green-500/10 flex items-center justify-between group">
-                                      <div className="space-y-1">
-                                        <p className="font-bold text-sm uppercase text-white">{appt.clientName}</p>
-                                        <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground font-bold">
-                                          <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3 text-green-500" /> {format(parseISO(appt.date), 'dd/MM/yyyy')}</span>
-                                          <span className="flex items-center gap-1"><Scissors className="h-3 w-3 text-green-500" /> {service?.name}</span>
-                                          <span className="text-green-400">R$ {Number(appt.priceAtAppointment).toFixed(2)}</span>
-                                        </div>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className="text-[8px] uppercase font-bold text-muted-foreground">Comissão</p>
-                                        <p className="text-sm font-black text-green-400">R$ {Number(appt.commissionAtAppointment).toFixed(2)}</p>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
-                              {memberAppts.filter(a => a.status === 'completed').length === 0 && (
-                                <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum serviço finalizado no período</p>
-                              )}
-                            </TabsContent>
-                          </div>
-                        </Tabs>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <Button 
+                    onClick={() => setSelectedStaffPanel(member)}
+                    className="flex-1 bg-secondary hover:bg-primary hover:text-black font-bold h-12 uppercase text-[10px] tracking-widest transition-all"
+                  >
+                    Painel Pessoal <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
 
                   <Dialog open={editingStaff?.id === member.id} onOpenChange={(open) => setEditingStaff(open ? member : null)}>
                     <DialogTrigger asChild>
@@ -384,6 +285,115 @@ export default function StaffPage() {
           </div>
         )}
       </div>
+
+      {/* Modal Unificado do Painel Pessoal */}
+      <Dialog open={!!selectedStaffPanel} onOpenChange={(open) => !open && setSelectedStaffPanel(null)}>
+        <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden bg-card border-none shadow-2xl">
+          {selectedStaffPanel && (
+            <>
+              <DialogHeader className="p-6 pb-0">
+                <DialogTitle className="font-headline text-3xl text-primary flex items-center gap-3">
+                  <User className="h-8 w-8 text-primary" /> {selectedStaffPanel.name}
+                </DialogTitle>
+                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Faturamento, Agenda e Histórico Detalhado</DialogDescription>
+              </DialogHeader>
+
+              <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-6 bg-background/50 p-4 rounded-2xl border border-border">
+                  <div className="space-y-1">
+                    <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar por Data</Label>
+                    <Input 
+                      type="date" 
+                      value={filterDate} 
+                      onChange={(e) => setFilterDate(e.target.value)} 
+                      className="h-10 bg-card border-primary/10"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar por Hora</Label>
+                    <Input 
+                      type="time" 
+                      value={filterTime} 
+                      onChange={(e) => setFilterTime(e.target.value)} 
+                      className="h-10 bg-card border-primary/10"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => { setFilterDate(""); setFilterTime(""); }}
+                      className="w-full h-10 text-[9px] uppercase font-bold"
+                    >
+                      Limpar Filtros
+                    </Button>
+                  </div>
+                </div>
+
+                <Tabs defaultValue="agenda" className="flex-1 flex flex-col overflow-hidden">
+                  <TabsList className="bg-secondary/50 p-1 h-12 rounded-xl border border-border">
+                    <TabsTrigger value="agenda" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Agenda Tática</TabsTrigger>
+                    <TabsTrigger value="historico" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Histórico de Batalha</TabsTrigger>
+                  </TabsList>
+                  
+                  <div className="flex-1 overflow-y-auto mt-4 pr-2 scrollbar-thin">
+                    <TabsContent value="agenda" className="space-y-3 m-0">
+                      {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled')
+                        .filter(a => !filterDate || a.date === filterDate)
+                        .filter(a => !filterTime || a.time.startsWith(filterTime))
+                        .sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+                        .map((appt) => {
+                          const service = services?.find(s => s.id === appt.serviceId)
+                          return (
+                            <div key={appt.id} className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between group hover:bg-primary/10 transition-all">
+                              <div className="space-y-1">
+                                <p className="font-bold text-sm uppercase text-white">{appt.clientName}</p>
+                                <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold">
+                                  <span className="flex items-center gap-1"><Clock className="h-3 w-3 text-primary" /> {appt.time}</span>
+                                  <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3 text-primary" /> {format(parseISO(appt.date), 'dd/MM/yyyy')}</span>
+                                  <span className="flex items-center gap-1"><Scissors className="h-3 w-3 text-primary" /> {service?.name}</span>
+                                </div>
+                              </div>
+                              <Badge className="bg-primary text-black font-bold uppercase text-[8px]">Agendado</Badge>
+                            </div>
+                          )
+                        })}
+                      {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled').length === 0 && (
+                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum agendamento pendente</p>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="historico" className="space-y-3 m-0">
+                      {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'completed')
+                        .filter(a => !filterDate || a.date === filterDate)
+                        .filter(a => !filterTime || a.time.startsWith(filterTime))
+                        .sort((a,b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time))
+                        .map((appt) => {
+                          const service = services?.find(s => s.id === appt.serviceId)
+                          return (
+                            <div key={appt.id} className="p-4 rounded-2xl bg-green-500/5 border border-green-500/10 flex items-center justify-between group">
+                              <div className="space-y-1">
+                                <p className="font-bold text-sm uppercase text-white">{appt.clientName}</p>
+                                <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground font-bold">
+                                  <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3 text-green-500" /> {format(parseISO(appt.date), 'dd/MM/yyyy')}</span>
+                                  <span className="flex items-center gap-1"><Scissors className="h-3 w-3 text-green-500" /> {service?.name}</span>
+                                  <span className="text-green-400">R$ {Number(appt.priceAtAppointment).toFixed(2)}</span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[8px] uppercase font-bold text-muted-foreground">Comissão</p>
+                                <p className="text-sm font-black text-green-400">R$ {Number(appt.commissionAtAppointment).toFixed(2)}</p>
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

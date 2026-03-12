@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -45,10 +46,11 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
-        {/* APPLE PWA CONFIGURATION - ORDEM DE PRIORIDADE MÁXIMA */}
+        {/* APPLE PWA CONFIGURATION - PRIORIDADE MÁXIMA PARA EVITAR ÍCONE "B" */}
         <link rel="apple-touch-icon" sizes="180x180" href={BARBER_POLE_APP_ICON} />
         <link rel="apple-touch-icon-precomposed" sizes="180x180" href={BARBER_POLE_APP_ICON} />
         <link rel="icon" type="image/svg+xml" href={BARBER_POLE_APP_ICON} />
+        <link rel="shortcut icon" href={BARBER_POLE_APP_ICON} />
         
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
