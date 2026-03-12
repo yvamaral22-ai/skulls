@@ -169,10 +169,10 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
               <UIFormControl>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/40" />
-                  <Input {...field} placeholder="Ex: João Silva" className="pl-10 h-12 bg-background/50 border-border focus:border-primary transition-all font-body" />
+                  <Input {...field} placeholder="Ex: João Silva" className="pl-10 h-12 bg-background/50 border-border" />
                 </div>
               </UIFormControl>
-              <UIFormMessage className="text-[10px]" />
+              <UIFormMessage />
             </UIFormItem>
           )}
         />
@@ -184,36 +184,52 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             render={({ field }) => (
               <UIFormItem className="flex flex-col">
                 <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Data</UIFormLabel>
-                {/* modal={false} é CRÍTICO para o iPhone abrir o calendário dentro de um Dialog */}
-                <Popover modal={false}>
-                  <PopoverTrigger asChild>
-                    <UIFormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full text-left font-normal h-12 bg-background/50 border-border hover:border-primary font-body flex items-center justify-between pointer-events-auto",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        <span>{field.value ? format(field.value, "dd/MM/yyyy") : "Escolher data"}</span>
-                        <CalendarIcon className="h-4 w-4 opacity-40" />
-                      </Button>
-                    </UIFormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[10001] pointer-events-auto" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={(date) => { 
-                        if (date) field.onChange(date); 
+                <div className="relative">
+                  {/* INPUT NATIVO PARA MOBILE - MÁXIMA COMPATIBILIDADE */}
+                  <div className="md:hidden">
+                    <input 
+                      type="date" 
+                      className="w-full h-12 rounded-md border border-border bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary pointer-events-auto"
+                      value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                      min={format(new Date(), 'yyyy-MM-dd')}
+                      onChange={(e) => {
+                        const date = e.target.value ? parseISO(e.target.value) : new Date();
+                        field.onChange(date);
                       }}
-                      locale={ptBR}
-                      disabled={(date) => startOfDay(date) < startOfDay(new Date())}
-                      initialFocus
                     />
-                  </PopoverContent>
-                </Popover>
-                <UIFormMessage className="text-[10px]" />
+                  </div>
+                  
+                  {/* CALENDÁRIO VISUAL PARA PC */}
+                  <div className="hidden md:block">
+                    <Popover modal={false}>
+                      <PopoverTrigger asChild>
+                        <UIFormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full text-left font-normal h-12 bg-background/50 border-border",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <span>{field.value ? format(field.value, "dd/MM/yyyy") : "Escolher"}</span>
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
+                          </Button>
+                        </UIFormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => { if (date) field.onChange(date); }}
+                          locale={ptBR}
+                          disabled={(date) => startOfDay(date) < startOfDay(new Date())}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+                <UIFormMessage />
               </UIFormItem>
             )}
           />
@@ -226,11 +242,11 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                 <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Horário</UIFormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <UIFormControl>
-                    <SelectTrigger className="h-12 bg-background/50 border-border font-body">
+                    <SelectTrigger className="h-12 bg-background/50 border-border">
                       <SelectValue placeholder="Hora" />
                     </SelectTrigger>
                   </UIFormControl>
-                  <SelectContent className="max-h-[300px] font-body z-[10001]">
+                  <SelectContent className="max-h-[300px]">
                     {TIME_SLOTS.map((slot) => {
                       const isOccupied = occupiedSlots.includes(slot);
                       const isPast = isPastTime(slot);
@@ -242,7 +258,7 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                     })}
                   </SelectContent>
                 </Select>
-                <UIFormMessage className="text-[10px]" />
+                <UIFormMessage />
               </UIFormItem>
             )}
           />
@@ -254,17 +270,17 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           render={({ field }) => (
             <UIFormItem>
               <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Barbeiro</UIFormLabel>
-              <Select onValueChange={field.onChange} value={field.value} disabled={isStaffLoading}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <UIFormControl>
-                  <SelectTrigger className="h-12 bg-background/50 border-border font-body">
-                    <SelectValue placeholder={isStaffLoading ? "Carregando..." : "Selecione o profissional"} />
+                  <SelectTrigger className="h-12 bg-background/50 border-border">
+                    <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                 </UIFormControl>
-                <SelectContent className="font-body z-[10001]">
+                <SelectContent>
                   {staff?.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <UIFormMessage className="text-[10px]" />
+              <UIFormMessage />
             </UIFormItem>
           )}
         />
@@ -275,13 +291,13 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           render={({ field }) => (
             <UIFormItem>
               <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Serviço</UIFormLabel>
-              <Select onValueChange={field.onChange} value={field.value} disabled={isServicesLoading}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <UIFormControl>
-                  <SelectTrigger className="h-12 bg-background/50 border-border font-body">
-                    <SelectValue placeholder={isServicesLoading ? "Carregando..." : "Selecione o serviço"} />
+                  <SelectTrigger className="h-12 bg-background/50 border-border">
+                    <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                 </UIFormControl>
-                <SelectContent className="font-body z-[10001]">
+                <SelectContent>
                   {services?.map(s => (
                     <SelectItem key={s.id} value={s.id} className="text-xs">
                       {s.name} - R$ {Number(s.price).toFixed(2)}
@@ -289,14 +305,14 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <UIFormMessage className="text-[10px]" />
+              <UIFormMessage />
             </UIFormItem>
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting} className="w-full h-12 text-sm font-bold shadow-xl bg-primary text-black hover:bg-primary/90 mt-4 uppercase font-body">
+        <Button type="submit" disabled={isSubmitting} className="w-full h-12 text-sm font-bold shadow-xl bg-primary text-black hover:bg-primary/90 mt-4 uppercase">
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-          {initialData?.id ? 'Salvar Alterações' : 'Confirmar Agendamento'}
+          Confirmar
         </Button>
       </form>
     </UIForm>

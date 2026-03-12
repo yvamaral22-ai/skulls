@@ -38,6 +38,8 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased;
+    /* Previne que o iOS bloqueie cliques em portais */
+    -webkit-tap-highlight-color: transparent;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline uppercase tracking-[0.15em] leading-tight;
@@ -96,35 +98,24 @@
   will-change: transform, opacity, filter;
 }
 
-/* FIX CRÍTICO: Garante que Portais (Calendários, Modais, Popovers) sejam clicáveis no Mobile/iOS */
+/* FIX CRÍTICO: Força interatividade total no iOS */
 [data-radix-portal], 
 [data-radix-popper-content-wrapper],
-.rdp {
+.rdp,
+.popover-content {
   pointer-events: auto !important;
-  z-index: 10000 !important;
+  z-index: 99999 !important;
 }
 
-/* Força a interatividade mesmo quando o body está travado pelo Dialog */
-body[style*="pointer-events: none"] [data-radix-portal],
-body[style*="pointer-events: none"] [data-radix-popper-content-wrapper],
-body[style*="pointer-events: none"] .rdp {
+/* Garante que diálogos não matem cliques em popups no mobile */
+body[data-radix-scroll-lock] {
   pointer-events: auto !important;
-  cursor: pointer !important;
 }
 
-/* Estilização específica do calendário para evitar quebras de layout no mobile */
-.rdp-month {
-  width: 100%;
-}
-
+/* Estilização do calendário */
 .rdp-day_button {
   cursor: pointer !important;
   pointer-events: auto !important;
-  @apply flex items-center justify-center rounded-md transition-colors !important;
-}
-
-.rdp-day_button:hover {
-  @apply bg-primary/20 !important;
 }
 
 /* Scrollbar Style */
