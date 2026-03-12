@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -40,8 +39,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 08:00 às 21:00
-const SLOT_HEIGHT = 90; // Aumentado para dar mais respiro
-const COLUMN_WIDTH = "min-w-[180px] md:min-w-[220px]";
+const SLOT_HEIGHT = 120; // Aumentado significativamente para legibilidade total
+const COLUMN_WIDTH = "min-w-[200px] md:min-w-[250px]";
 
 export default function AgendaPage() {
   const db = useFirestore();
@@ -70,17 +69,17 @@ export default function AgendaPage() {
   const { data: staff } = useCollection(staffQuery);
 
   const getAppointmentStyle = (appt: any, service: any) => {
-    if (!appt.time) return { top: '0px', height: '50px' };
+    if (!appt.time) return { top: '0px', height: '60px' };
     
     const [hours, minutes] = appt.time.split(':').map(Number);
     // 8:00 é o ponto zero
     const relativeMinutes = (hours - 8) * 60 + (minutes || 0);
-    const duration = Math.max(Number(service?.durationMinutes) || 30, 30);
+    const duration = Math.max(Number(service?.durationMinutes) || 30, 20);
     
     return {
       top: `${(relativeMinutes / 60) * SLOT_HEIGHT}px`, 
       height: `${(duration / 60) * SLOT_HEIGHT}px`,
-      minHeight: '45px'
+      minHeight: '70px' // Garante que o texto sempre caiba
     };
   };
 
@@ -140,9 +139,9 @@ export default function AgendaPage() {
       {/* Grade de Agenda */}
       <div className="flex flex-1 overflow-hidden">
         {/* Coluna de Horários Fixa */}
-        <div className="w-16 md:w-20 flex-none bg-card border-r border-border flex flex-col pt-[90px]">
+        <div className="w-16 md:w-20 flex-none bg-card border-r border-border flex flex-col pt-[120px]">
           {HOURS.map(hour => (
-            <div key={hour} className="h-[90px] flex items-start justify-center pt-2">
+            <div key={hour} className="h-[120px] flex items-start justify-center pt-3 border-b border-border/10">
               <span className="text-[10px] md:text-xs font-bold text-muted-foreground font-body">
                 {`${hour.toString().padStart(2, '0')}:00`}
               </span>
@@ -162,7 +161,7 @@ export default function AgendaPage() {
                 <div key={dayIdx} className={cn("flex-1 relative border-r border-border last:border-r-0", COLUMN_WIDTH)}>
                   {/* Cabeçalho da Coluna (Dia) */}
                   <div className={cn(
-                    "sticky top-0 z-40 h-[90px] flex flex-col items-center justify-center border-b border-border bg-card/95 backdrop-blur-md",
+                    "sticky top-0 z-40 h-[120px] flex flex-col items-center justify-center border-b border-border bg-card/95 backdrop-blur-md",
                     isToday ? "text-primary" : ""
                   )}>
                     <span className="text-[10px] uppercase font-bold opacity-60 font-body">
@@ -181,10 +180,10 @@ export default function AgendaPage() {
                     {HOURS.map(hour => (
                       <div 
                         key={hour} 
-                        className="h-[90px] border-b border-border/10 hover:bg-primary/5 transition-colors cursor-pointer group"
+                        className="h-[120px] border-b border-border/10 hover:bg-primary/5 transition-colors cursor-pointer group"
                         onClick={() => handleCellClick(day, hour)}
                       >
-                        <div className="hidden group-hover:block absolute ml-2 mt-2 text-[8px] text-primary/40 font-bold uppercase">Disponível</div>
+                        <div className="hidden group-hover:block absolute ml-2 mt-2 text-[8px] text-primary/40 font-bold uppercase">Livre</div>
                       </div>
                     ))}
 
@@ -201,31 +200,33 @@ export default function AgendaPage() {
                           style={style}
                           onClick={(e) => { e.stopPropagation(); setEditingAppointment(appt); }}
                           className={cn(
-                            "absolute left-1 right-1 rounded-xl p-2 md:p-3 text-xs overflow-hidden transition-all border shadow-lg cursor-pointer hover:shadow-xl hover:scale-[1.01] z-30 flex flex-col justify-start gap-1 font-body",
+                            "absolute left-1 right-1 rounded-xl p-3 md:p-4 text-xs overflow-hidden transition-all border shadow-lg cursor-pointer hover:shadow-xl hover:scale-[1.01] z-30 flex flex-col justify-between font-body",
                             isCompleted 
-                              ? "bg-green-500/20 border-green-500/40 text-green-300" 
+                              ? "bg-green-600/30 border-green-500/50 text-green-100" 
                               : "bg-primary/20 border-primary/40 text-white"
                           )}
                         >
-                          <div className="font-black truncate uppercase text-[11px] md:text-sm tracking-tight text-white leading-none">
-                            {appt.clientName || 'Cliente'}
-                          </div>
-                          
-                          <div className="flex flex-col gap-0.5 opacity-90 font-bold text-[9px] md:text-[10px]">
-                            <div className="flex items-center gap-1 truncate text-primary">
+                          <div className="space-y-1">
+                            <div className="font-black uppercase text-[12px] md:text-sm tracking-tight text-white leading-none truncate">
+                              {appt.clientName || 'Cliente'}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-primary text-[10px] md:text-[11px] font-bold truncate">
                               <Scissors className="h-3 w-3 shrink-0" /> {service?.name || 'Serviço'}
                             </div>
-                            <div className="flex items-center gap-1 truncate opacity-70">
+                          </div>
+                          
+                          <div className="flex flex-col gap-1 mt-2 border-t border-white/10 pt-2">
+                            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-medium opacity-80">
                               <Clock className="h-3 w-3 shrink-0" /> {appt.time} • {service?.durationMinutes} min
                             </div>
-                            <div className="flex items-center gap-1 truncate opacity-70">
-                              <User className="h-3 w-3 shrink-0" /> {barber?.name || 'Profissional'}
+                            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-medium opacity-80">
+                              <User className="h-3 w-3 shrink-0" /> {barber?.name || 'Barbeiro'}
                             </div>
                           </div>
 
                           {isCompleted && (
-                            <div className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-black">
-                              <CheckCircle2 className="h-3 w-3" />
+                            <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-black">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
                             </div>
                           )}
                         </div>
@@ -257,7 +258,7 @@ export default function AgendaPage() {
         <DialogContent className="sm:max-w-[450px] bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl text-primary">Novo Agendamento</DialogTitle>
-            <DialogDescription className="font-body text-xs uppercase opacity-60">Preencha os dados do cliente e horário.</DialogDescription>
+            <DialogDescription className="font-body text-xs uppercase opacity-60">Preencha os dados abaixo.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[80vh] overflow-y-auto px-1">
             <BookingForm onSuccess={() => setIsBookingOpen(false)} />
@@ -270,19 +271,17 @@ export default function AgendaPage() {
         <DialogContent className="sm:max-w-[450px] bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl text-primary">{editingAppointment?.id ? 'Detalhes do Horário' : 'Marcar Horário'}</DialogTitle>
-            <DialogDescription className="font-body text-xs uppercase opacity-60">Gerencie este agendamento.</DialogDescription>
+            <DialogDescription className="font-body text-xs uppercase opacity-60">Informações completas do cliente.</DialogDescription>
           </DialogHeader>
           {editingAppointment && (
             <div className="space-y-4">
-              {/* Resumo Detalhado (Solicitado pelo Usuário) */}
+              {/* Resumo Destacado para Legibilidade */}
               {editingAppointment.id && (
-                <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-3">
+                <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-4">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest flex items-center gap-1.5">
-                        <User className="h-3 w-3" /> Cliente
-                      </h4>
-                      <p className="font-headline text-xl text-white leading-none tracking-tight">{editingAppointment.clientName}</p>
+                      <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest">Cliente</h4>
+                      <p className="font-headline text-2xl text-white leading-none">{editingAppointment.clientName}</p>
                     </div>
                     <Badge variant="outline" className={cn(
                       "uppercase text-[9px] font-bold tracking-widest border-2",
@@ -292,7 +291,7 @@ export default function AgendaPage() {
                     </Badge>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-primary/10">
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-primary/10">
                     <div className="space-y-1">
                       <h4 className="text-[10px] uppercase font-bold text-primary/60 tracking-widest flex items-center gap-1.5">
                         <Scissors className="h-3 w-3" /> Serviço
@@ -301,7 +300,7 @@ export default function AgendaPage() {
                         {services?.find(s => s.id === editingAppointment.serviceId)?.name || 'N/A'}
                       </p>
                       <p className="text-[10px] text-muted-foreground font-bold">
-                        Duração: {services?.find(s => s.id === editingAppointment.serviceId)?.durationMinutes || 0} minutos
+                        Duração: {services?.find(s => s.id === editingAppointment.serviceId)?.durationMinutes || 0} min
                       </p>
                     </div>
                     <div className="space-y-1">
@@ -343,14 +342,14 @@ export default function AgendaPage() {
                         variant="ghost" 
                         className="flex-1 text-destructive hover:bg-destructive/10 font-bold uppercase text-[10px] font-body"
                       >
-                        Excluir
+                        Excluir Horário
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Excluir Registro?</AlertDialogTitle>
+                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Confirmar Exclusão?</AlertDialogTitle>
                         <AlertDialogDescription className="font-body text-sm">
-                          Esta operação removerá o agendamento permanentemente.
+                          Esta operação removerá permanentemente o agendamento de {editingAppointment.clientName}.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
