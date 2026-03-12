@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, parseISO, startOfDay } from 'date-fns';
+import { format, parseISO, startOfDay, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Clock, Loader2, Check, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -100,6 +100,20 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       .filter(a => a.id !== initialData?.id && a.status !== 'canceled')
       .map(a => a.time);
   }, [existingAppointments, initialData]);
+
+  // Função para verificar se um horário já passou (caso a data seja hoje)
+  const isPastTime = (slot: string) => {
+    if (selectedDate && isSameDay(selectedDate, new Date())) {
+      const [slotHours, slotMinutes] = slot.split(':').map(Number);
+      const now = new Date();
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      
+      if (slotHours < currentHours) return true;
+      if (slotHours === currentHours && slotMinutes <= currentMinutes) return true;
+    }
+    return false;
+  };
 
   async function onSubmit(data: BookingFormValues) {
     setIsSubmitting(true);
@@ -216,9 +230,10 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                   <SelectContent className="max-h-[300px] z-[10001] font-body">
                     {TIME_SLOTS.map((slot) => {
                       const isOccupied = occupiedSlots.includes(slot);
+                      const isPast = isPastTime(slot);
                       return (
-                        <SelectItem key={slot} value={slot} disabled={isOccupied} className="text-xs">
-                          {slot} {isOccupied ? '(Ocupado)' : ''}
+                        <SelectItem key={slot} value={slot} disabled={isOccupied || isPast} className="text-xs">
+                          {slot} {isOccupied ? '(Ocupado)' : isPast ? '(Indisponível)' : ''}
                         </SelectItem>
                       );
                     })}
