@@ -1,4 +1,3 @@
-
 'use client';
 
 import './globals.css';
@@ -17,7 +16,7 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
     strokeWidth="2" 
     strokeLinecap="round" 
     strokeLinejoin="round" 
-    className={className}
+    className={`${className} animate-barber-spin`}
   >
     <path d="M10 2h4M10 22h4" />
     <rect x="8" y="4" width="8" height="16" rx="1" />
