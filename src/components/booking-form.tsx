@@ -10,14 +10,6 @@ import { CalendarIcon, Clock, Loader2, Check, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/form-components'; // Fixed import if needed, assuming local components
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,7 +23,6 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, serverTimestamp, query, where, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
-// Simplified imports to ensure consistency
 import { 
   Form as UIForm, 
   FormField as UIFormField, 
