@@ -50,24 +50,39 @@
   letter-spacing: 0.15em !important;
 }
 
-/* Efeito 3D e Flutuante Dimensional */
-@keyframes dimension-float {
-  0% { transform: perspective(800px) rotateX(20deg) rotateY(-15deg) translateY(0); }
-  50% { transform: perspective(800px) rotateX(-10deg) rotateY(20deg) translateY(-20px); }
-  100% { transform: perspective(800px) rotateX(20deg) rotateY(-15deg) translateY(0); }
+/* Efeito Kamui (Sugado para outra dimensão) */
+@keyframes kamui-sucking {
+  0% {
+    transform: perspective(1000px) rotate(0deg) scale(1) rotateY(0deg) translateZ(0);
+    opacity: 1;
+    filter: blur(0px) brightness(1);
+  }
+  45% {
+    transform: perspective(1000px) rotate(1080deg) scale(0) rotateY(360deg) translateZ(-500px);
+    opacity: 0;
+    filter: blur(12px) brightness(4);
+  }
+  55% {
+    transform: perspective(1000px) rotate(1080deg) scale(0) rotateY(360deg) translateZ(-500px);
+    opacity: 0;
+    filter: blur(12px) brightness(4);
+  }
+  100% {
+    transform: perspective(1000px) rotate(2160deg) scale(1) rotateY(720deg) translateZ(0);
+    opacity: 1;
+    filter: blur(0px) brightness(1);
+  }
 }
 
 .dimension-text {
   display: inline-block;
-  animation: dimension-float 6s ease-in-out infinite;
+  animation: kamui-sucking 5s cubic-bezier(0.6, -0.28, 0.735, 0.045) infinite;
   text-shadow: 
     0 1px 0 #000,
     0 2px 0 #111,
-    0 3px 0 #222,
-    0 4px 0 #333,
-    0 15px 20px rgba(250, 204, 21, 0.4);
+    0 0 15px rgba(250, 204, 21, 0.4);
   transform-style: preserve-3d;
-  filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.3));
+  will-change: transform, opacity, filter;
 }
 
 /* FIX CRÍTICO: Garante que Popovers dentro de Modais sejam clicáveis e fiquem acima de tudo */
