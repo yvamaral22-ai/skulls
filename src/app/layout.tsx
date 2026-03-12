@@ -27,8 +27,8 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 
 /**
  * ÍCONE OFICIAL SKULL BARBER - VERSÃO PNG/SVG BASE64
- * Design: Fundo amarelo (#facc15), cantos arredondados, Barber Pole preto.
- * Configuração de 180x180 para compatibilidade total com Apple.
+ * Design: Fundo amarelo (#facc15) sólido, Barber Pole preto.
+ * O fundo sólido é CRÍTICO para o iOS não gerar ícones genéricos.
  */
 const ICON_BASE64 = "data:image/png;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjZmFjYzE1Ii8+PHBhdGggZD0iTTc1IDUwaDMwTTc1IDEzMGgzMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxyZWN0IHg9IjgwIiB5PSI1OCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjY0IiByeD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjYiLz48cGF0aCBkPSJNODAgNzBsMjAgOE04MCA4NWwyMCA4TTgwIDEwMGwyMCA4IiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+";
 
@@ -47,7 +47,7 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
-        {/* APPLE PWA CONFIGURATION - FORÇA BRUTA PARA ÍCONE */}
+        {/* APPLE PWA CONFIGURATION - PRIORIDADE MÁXIMA PARA EVITAR O "B" */}
         <link rel="apple-touch-icon" href={ICON_BASE64} />
         <link rel="apple-touch-icon-precomposed" href={ICON_BASE64} />
         <link rel="icon" type="image/png" href={ICON_BASE64} />
@@ -55,6 +55,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Barbearia Skull's" />
+        <meta name="application-name" content="Barbearia Skull's" />
         <meta name="theme-color" content="#facc15" />
         
         <link rel="preconnect" href="https://fonts.googleapis.com" />
