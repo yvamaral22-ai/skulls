@@ -92,7 +92,7 @@ export default function StaffPage() {
       createdAt: serverTimestamp()
     })
 
-    toast({ title: "Equipe Skull Barber", description: `${name} foi adicionado à equipe.` })
+    toast({ title: "Equipe Skulls Barber", description: `${name} foi adicionado à equipe.` })
     setIsAddOpen(false)
   }
 
@@ -131,33 +131,33 @@ export default function StaffPage() {
             <BarberPoleIcon className="h-6 w-6 text-black" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold font-headline text-primary">Nossa Tropa</h1>
-            <p className="text-muted-foreground uppercase text-[9px] tracking-[0.2em]">Gestão Tática de Barbeiros</p>
+            <h1 className="text-3xl font-bold font-headline text-primary">Nossa Equipe</h1>
+            <p className="text-muted-foreground uppercase text-[9px] tracking-[0.2em]">Gestão de Profissionais</p>
           </div>
         </div>
 
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-black font-bold h-12 shadow-xl shadow-primary/20">
-              <Plus className="mr-2 h-5 w-5" /> Recrutar Barbeiro
+              <Plus className="mr-2 h-5 w-5" /> Novo Barbeiro
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl text-primary">Novo Recruta</DialogTitle>
+              <DialogTitle className="font-headline text-2xl text-primary">Novo Cadastro</DialogTitle>
               <DialogDescription className="uppercase text-[9px] tracking-widest">Defina o nome e a taxa de comissão.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-primary/60">Nome de Guerra</Label>
-                <Input name="name" placeholder="Ex: Tony Navalha" required className="h-12 bg-background border-primary/20" />
+                <Label className="text-[10px] uppercase font-bold text-primary/60">Nome</Label>
+                <Input name="name" placeholder="Ex: Tony" required className="h-12 bg-background border-primary/20" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-bold text-primary/60">Comissão (%)</Label>
                 <Input name="commissionRate" type="number" placeholder="40" required className="h-12 bg-background border-primary/20" />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Salvar Barbeiro</Button>
+                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Salvar</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -201,7 +201,6 @@ export default function StaffPage() {
                     <p className="text-[8px] uppercase text-muted-foreground">Serviços feitos</p>
                   </div>
                   
-                  {/* ATALHO TÁTICO: CLICAR NO CONTADOR DE HOJE ABRE O PAINEL PESSOAL FILTRADO */}
                   <div 
                     onClick={() => {
                       setFilterDate(todayStr);
@@ -239,11 +238,11 @@ export default function StaffPage() {
                     </DialogTrigger>
                     <DialogContent className="bg-card border-border shadow-2xl">
                       <DialogHeader>
-                        <DialogTitle className="font-headline text-2xl">Editar Profissional</DialogTitle>
+                        <DialogTitle className="font-headline text-2xl">Editar</DialogTitle>
                       </DialogHeader>
                       <form onSubmit={handleUpdate} className="space-y-4 py-4">
                         <div className="space-y-2">
-                          <Label>Nome Artístico</Label>
+                          <Label>Nome</Label>
                           <Input name="name" defaultValue={member.name} className="h-12 bg-background" required />
                         </div>
                         <div className="space-y-2">
@@ -251,7 +250,7 @@ export default function StaffPage() {
                           <Input name="commissionRate" defaultValue={member.commissionRate * 100} type="number" className="h-12 bg-background" required />
                         </div>
                         <DialogFooter className="pt-4">
-                          <Button type="submit" className="w-full h-14 bg-primary text-black font-bold">Salvar Alterações</Button>
+                          <Button type="submit" className="w-full h-14 bg-primary text-black font-bold">Salvar</Button>
                         </DialogFooter>
                       </form>
                     </DialogContent>
@@ -265,7 +264,7 @@ export default function StaffPage() {
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Excluir Profissional?</AlertDialogTitle>
+                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Excluir?</AlertDialogTitle>
                         <AlertDialogDescription className="uppercase tracking-tighter text-[9px]">
                           Esta operação removerá {member.name} permanentemente.
                         </AlertDialogDescription>
@@ -283,7 +282,6 @@ export default function StaffPage() {
         })}
       </div>
 
-      {/* PAINEL PESSOAL DO BARBEIRO */}
       <Dialog open={!!selectedStaffPanel} onOpenChange={(open) => !open && setSelectedStaffPanel(null)}>
         <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden bg-card border-none shadow-2xl">
           {selectedStaffPanel && (
@@ -292,13 +290,13 @@ export default function StaffPage() {
                 <DialogTitle className="font-headline text-3xl text-primary flex items-center gap-3">
                   <User className="h-8 w-8 text-primary" /> {selectedStaffPanel.name}
                 </DialogTitle>
-                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Painel de Gestão Direta</DialogDescription>
+                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Painel Pessoal</DialogDescription>
               </DialogHeader>
 
               <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-6 bg-background/50 p-4 rounded-2xl border border-border">
                   <div className="space-y-1">
-                    <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar por Data</Label>
+                    <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar Data</Label>
                     <Input 
                       type="date" 
                       value={filterDate} 
@@ -307,7 +305,7 @@ export default function StaffPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar por Hora</Label>
+                    <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar Hora</Label>
                     <Input 
                       type="time" 
                       value={filterTime} 
@@ -321,7 +319,7 @@ export default function StaffPage() {
                       onClick={() => { setFilterDate(""); setFilterTime(""); }}
                       className="w-full h-10 text-[9px] uppercase font-bold"
                     >
-                      Limpar Filtros
+                      Limpar
                     </Button>
                   </div>
                 </div>
@@ -355,7 +353,7 @@ export default function StaffPage() {
                           )
                         })}
                       {(!appointments || appointments.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled' && (!filterDate || a.date === filterDate)).length === 0) && (
-                        <div className="text-center py-10 text-muted-foreground italic text-xs uppercase tracking-widest">Nenhum horário marcado</div>
+                        <div className="text-center py-10 text-muted-foreground italic text-xs uppercase tracking-widest">Nenhum horário</div>
                       )}
                     </TabsContent>
 
@@ -384,7 +382,7 @@ export default function StaffPage() {
                           )
                         })}
                       {(!appointments || appointments.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'completed' && (!filterDate || a.date === filterDate)).length === 0) && (
-                        <div className="text-center py-10 text-muted-foreground italic text-xs uppercase tracking-widest">Sem histórico no período</div>
+                        <div className="text-center py-10 text-muted-foreground italic text-xs uppercase tracking-widest">Sem histórico</div>
                       )}
                     </TabsContent>
                   </div>

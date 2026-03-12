@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   React.useEffect(() => {
-    document.title = "Barbearia Skull's | Gestão Profissional";
+    document.title = "Skulls Barber | Gestão Profissional";
   }, []);
 
   return (
@@ -39,16 +39,17 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
-        {/* APPLE TOUCH ICON - PRIORIDADE MÁXIMA PARA IPHONE (CACHE BUSTER APLICADO) */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
-        <link rel="icon" type="image/png" href="/apple-touch-icon.png" />
+        {/* CONFIGURAÇÃO DE ÍCONE E MANIFESTO (SOLUÇÃO DE PRIORIDADE) */}
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
+        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=2" />
+        <link rel="icon" type="image/png" href="/apple-touch-icon.png?v=2" />
         
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Barbearia Skull's" />
-        <meta name="application-name" content="Barbearia Skull's" />
-        <meta name="theme-color" content="#facc15" />
+        <meta name="apple-mobile-web-app-title" content="Skulls Barber" />
+        <meta name="application-name" content="Skulls Barber" />
+        <meta name="theme-color" content="#000000" />
         
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -65,7 +66,7 @@ export default function RootLayout({
                     <div className="p-1.5 bg-primary rounded-md">
                       <BarberPoleIcon className="h-4 w-4 text-black" />
                     </div>
-                    <span className="font-headline text-primary text-sm uppercase tracking-tighter">Barbearia Skull's</span>
+                    <span className="font-headline text-primary text-sm uppercase tracking-tighter">Skulls Barber</span>
                   </div>
                   <SidebarTrigger />
                 </header>
