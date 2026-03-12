@@ -52,9 +52,9 @@
 
 /* Efeito 3D e Flutuante Dimensional */
 @keyframes dimension-float {
-  0% { transform: perspective(500px) rotateX(20deg) rotateY(-10deg) translateY(0); }
-  50% { transform: perspective(500px) rotateX(-10deg) rotateY(15deg) translateY(-15px); }
-  100% { transform: perspective(500px) rotateX(20deg) rotateY(-10deg) translateY(0); }
+  0% { transform: perspective(800px) rotateX(20deg) rotateY(-15deg) translateY(0); }
+  50% { transform: perspective(800px) rotateX(-10deg) rotateY(20deg) translateY(-20px); }
+  100% { transform: perspective(800px) rotateX(20deg) rotateY(-15deg) translateY(0); }
 }
 
 .dimension-text {
@@ -64,9 +64,10 @@
     0 1px 0 #000,
     0 2px 0 #111,
     0 3px 0 #222,
-    0 10px 15px rgba(250, 204, 21, 0.3);
+    0 4px 0 #333,
+    0 15px 20px rgba(250, 204, 21, 0.4);
   transform-style: preserve-3d;
-  filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.2));
+  filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.3));
 }
 
 /* FIX CRÍTICO: Garante que Popovers dentro de Modais sejam clicáveis e fiquem acima de tudo */

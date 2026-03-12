@@ -76,10 +76,10 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       
-      {/* Footer com Frase 3D Flutuante */}
+      {/* Footer com Frase 3D Flutuante - Tamanho Aumentado */}
       <SidebarFooter className="p-8 mt-auto flex items-center justify-center overflow-hidden min-h-[150px]">
         <div className="relative group select-none">
-          <span className="dimension-text font-headline text-primary text-sm text-center leading-tight tracking-[0.2em] px-4 block">
+          <span className="dimension-text font-headline text-primary text-2xl text-center leading-tight tracking-[0.2em] px-4 block">
             O Baiano tem o molho
           </span>
         </div>
