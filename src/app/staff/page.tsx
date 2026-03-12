@@ -202,10 +202,9 @@ export default function StaffPage() {
                     <p className="text-[8px] uppercase text-muted-foreground">Serviços feitos</p>
                   </div>
                   
-                  {/* Card de Pendentes Clicável - Abre Painel Pessoal para HOJE */}
                   <div 
                     onClick={() => {
-                      setFilterDate(todayStr); // Força filtro para hoje
+                      setFilterDate(todayStr);
                       setSelectedStaffPanel(member);
                     }}
                     className="bg-secondary/20 p-4 rounded-2xl border border-border/50 cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-all active:scale-95 group/pendente"
@@ -222,7 +221,7 @@ export default function StaffPage() {
                 <div className="flex gap-2">
                   <Button 
                     onClick={() => {
-                      setFilterDate(""); // Limpa filtro de data para ver visão geral
+                      setFilterDate(""); 
                       setSelectedStaffPanel(member);
                     }}
                     className="flex-1 bg-secondary hover:bg-primary hover:text-black font-bold h-12 uppercase text-[10px] tracking-widest transition-all"
@@ -282,7 +281,6 @@ export default function StaffPage() {
         })}
       </div>
 
-      {/* PAINEL PESSOAL DO BARBEIRO (MODAL DETALHADO) */}
       <Dialog open={!!selectedStaffPanel} onOpenChange={(open) => !open && setSelectedStaffPanel(null)}>
         <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden bg-card border-none shadow-2xl">
           {selectedStaffPanel && (
@@ -295,7 +293,6 @@ export default function StaffPage() {
               </DialogHeader>
 
               <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6">
-                {/* Filtros Táticos */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-6 bg-background/50 p-4 rounded-2xl border border-border">
                   <div className="space-y-1">
                     <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar por Data</Label>
@@ -354,9 +351,6 @@ export default function StaffPage() {
                             </div>
                           )
                         })}
-                      {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled').length === 0 && (
-                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Agenda limpa para este filtro</p>
-                      )}
                     </TabsContent>
 
                     <TabsContent value="historico" className="space-y-3 m-0">
@@ -383,9 +377,6 @@ export default function StaffPage() {
                             </div>
                           )
                         })}
-                      {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'completed').length === 0 && (
-                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum histórico encontrado</p>
-                      )}
                     </TabsContent>
                   </div>
                 </Tabs>
