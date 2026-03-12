@@ -30,7 +30,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Briefcase, Plus, TrendingUp, CalendarDays, Pencil, Loader2, Trash2, 
-  Filter, Clock, Scissors, User, Search, ChevronRight
+  Clock, Scissors, User, ChevronRight
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase"
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
@@ -220,7 +220,10 @@ export default function StaffPage() {
 
                 <div className="flex gap-2">
                   <Button 
-                    onClick={() => setSelectedStaffPanel(member)}
+                    onClick={() => {
+                      setFilterDate(""); 
+                      setSelectedStaffPanel(member);
+                    }}
                     className="flex-1 bg-secondary hover:bg-primary hover:text-black font-bold h-12 uppercase text-[10px] tracking-widest transition-all"
                   >
                     Painel Pessoal <ChevronRight className="ml-2 h-4 w-4" />
@@ -276,12 +279,6 @@ export default function StaffPage() {
             </Card>
           )
         })}
-        {staff?.length === 0 && !isStaffLoading && (
-          <div className="col-span-full py-32 text-center bg-card rounded-3xl border-2 border-dashed border-border opacity-60">
-            <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-20" />
-            <p className="text-muted-foreground uppercase font-headline tracking-widest text-xl">Nenhum barbeiro recrutado</p>
-          </div>
-        )}
       </div>
 
       <Dialog open={!!selectedStaffPanel} onOpenChange={(open) => !open && setSelectedStaffPanel(null)}>
@@ -292,7 +289,7 @@ export default function StaffPage() {
                 <DialogTitle className="font-headline text-3xl text-primary flex items-center gap-3">
                   <User className="h-8 w-8 text-primary" /> {selectedStaffPanel.name}
                 </DialogTitle>
-                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Agenda e Histórico Detalhado</DialogDescription>
+                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Painel Pessoal de Gestão</DialogDescription>
               </DialogHeader>
 
               <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6">
@@ -355,7 +352,7 @@ export default function StaffPage() {
                           )
                         })}
                       {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled').length === 0 && (
-                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum agendamento na agenda</p>
+                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Agenda limpa para este filtro</p>
                       )}
                     </TabsContent>
 
@@ -384,7 +381,7 @@ export default function StaffPage() {
                           )
                         })}
                       {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'completed').length === 0 && (
-                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum registro no histórico</p>
+                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum histórico encontrado</p>
                       )}
                     </TabsContent>
                   </div>

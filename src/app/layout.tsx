@@ -26,10 +26,11 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 );
 
 /**
- * Ícone Oficial Barber Pole - Versão Base64 para compatibilidade total com iOS.
- * Fundo sólido amarelo (#facc15) para evitar ícones genéricos do sistema.
+ * ÍCONE OFICIAL SKULL BARBER - VERSÃO PNG/SVG BASE64
+ * Design: Fundo amarelo (#facc15), cantos arredondados, Barber Pole preto.
+ * Configuração de 180x180 para compatibilidade total com Apple.
  */
-const BARBER_POLE_BASE64 = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZhY2MxNSIvPjxnIHRyYW5zZm9ybT0ndHJhbnNsYXRlKDEyOCwgMTI4KSBzY2FsZSgxMC42KScgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xMCAyaDRNMTAgMjJoNCIvPjxyZWN0IHg9IjgiIHk9IjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjE2IiByeD0iMSIvPjxwYXRoIGQ9Ik04IDdsOCAzTTggMTFsOCAzTTggMTVscDggMyIvPjwvZz48L3N2Zz4=";
+const ICON_BASE64 = "data:image/png;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjZmFjYzE1Ii8+PHBhdGggZD0iTTc1IDUwaDMwTTc1IDEzMGgzMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxyZWN0IHg9IjgwIiB5PSI1OCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjY0IiByeD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjYiLz48cGF0aCBkPSJNODAgNzBsMjAgOE04MCA4NWwyMCA4TTgwIDEwMGwyMCA4IiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+";
 
 export default function RootLayout({
   children,
@@ -46,17 +47,15 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
-        {/* APPLE PWA CONFIGURATION - FORÇA BRUTA PARA EVITAR ÍCONES GENÉRICOS */}
-        <link rel="apple-touch-icon" href={BARBER_POLE_BASE64} />
-        <link rel="apple-touch-icon-precomposed" href={BARBER_POLE_BASE64} />
-        <link rel="icon" type="image/svg+xml" href={BARBER_POLE_BASE64} />
-        <link rel="shortcut icon" href={BARBER_POLE_BASE64} />
+        {/* APPLE PWA CONFIGURATION - FORÇA BRUTA PARA ÍCONE */}
+        <link rel="apple-touch-icon" href={ICON_BASE64} />
+        <link rel="apple-touch-icon-precomposed" href={ICON_BASE64} />
+        <link rel="icon" type="image/png" href={ICON_BASE64} />
         
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Barbearia Skull's" />
         <meta name="theme-color" content="#facc15" />
-        <meta name="application-name" content="Barbearia Skull's" />
         
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

@@ -2,10 +2,7 @@
 import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
-  /**
-   * Versão Base64 para garantir que o manifesto não falhe ao carregar o ícone.
-   */
-  const BARBER_POLE_BASE64 = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZhY2MxNSIvPjxnIHRyYW5zZm9ybT0ndHJhbnNsYXRlKDEyOCwgMTI4KSBzY2FsZSgxMC42KScgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xMCAyaDRNMTAgMjJoNCIvPjxyZWN0IHg9IjgiIHk9IjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjE2IiByeD0iMSIvPjxwYXRoIGQ9Ik04IDdsOCAzTTggMTFsOCAzTTggMTVscDggMyIvPjwvZz48L3N2Zz4=";
+  const ICON_BASE64 = "data:image/png;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjZmFjYzE1Ii8+PHBhdGggZD0iTTc1IDUwaDMwTTc1IDEzMGgzMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxyZWN0IHg9IjgwIiB5PSI1OCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjY0IiByeD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjYiLz48cGF0aCBkPSJNODAgNzBsMjAgOE04MCA4NWwyMCA4TTgwIDEwMGwyMCA4IiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+";
 
   return {
     name: "Barbearia Skull's",
@@ -17,15 +14,15 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#facc15',
     icons: [
       {
-        src: BARBER_POLE_BASE64,
-        sizes: '192x192',
-        type: 'image/svg+xml',
+        src: ICON_BASE64,
+        sizes: '180x180',
+        type: 'image/png',
         purpose: 'any'
       },
       {
-        src: BARBER_POLE_BASE64,
+        src: ICON_BASE64,
         sizes: '512x512',
-        type: 'image/svg+xml',
+        type: 'image/png',
         purpose: 'maskable'
       },
     ],
