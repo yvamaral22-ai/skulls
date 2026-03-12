@@ -344,7 +344,7 @@ export default function StaffPage() {
                             <div key={appt.id} className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between group hover:bg-primary/10 transition-all">
                               <div className="space-y-1">
                                 <p className="font-bold text-sm uppercase text-white">{appt.clientName}</p>
-                                <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold">
+                                <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground font-bold">
                                   <span className="flex items-center gap-1"><Clock className="h-3 w-3 text-primary" /> {appt.time}</span>
                                   <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3 text-primary" /> {format(parseISO(appt.date), 'dd/MM/yyyy')}</span>
                                   <span className="flex items-center gap-1"><Scissors className="h-3 w-3 text-primary" /> {service?.name}</span>
