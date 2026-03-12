@@ -25,10 +25,10 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 );
 
 /**
- * Ícone Barber Pole oficial com fundo sólido para máxima compatibilidade iOS/Android.
- * O fundo sólido evita que o iOS mostre apenas a primeira letra do nome do app.
+ * Ícone Oficial Barber Pole - Versão Ultra-Compatível para iOS/Android.
+ * Fundo sólido amarelo (#facc15) sem transparências para evitar ícones genéricos do sistema.
  */
-const BARBER_POLE_APP_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='120' fill='%23facc15'/%3E%3Cg transform='translate(128, 128) scale(10.6)' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h4M10 22h4'/%3E%3Crect x='8' y='4' width='8' height='16' rx='1'/%3E%3Cpath d='M8 7l8 3M8 11l8 3M8 15l8 3'/%3E%3C/g%3E%3C/svg%3E";
+const BARBER_POLE_APP_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23facc15'/%3E%3Cg transform='translate(128, 128) scale(10.6)' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h4M10 22h4'/%3E%3Crect x='8' y='4' width='8' height='16' rx='1'/%3E%3Cpath d='M8 7l8 3M8 11l8 3M8 15l8 3'/%3E%3C/g%3E%3C/svg%3E";
 
 export default function RootLayout({
   children,
@@ -45,16 +45,16 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
-        {/* APPLE PWA CONFIGURATION */}
-        <link rel="apple-touch-icon" href={BARBER_POLE_APP_ICON} />
-        <link rel="apple-touch-icon-precomposed" href={BARBER_POLE_APP_ICON} />
+        {/* APPLE PWA CONFIGURATION - ORDEM DE PRIORIDADE MÁXIMA */}
+        <link rel="apple-touch-icon" sizes="180x180" href={BARBER_POLE_APP_ICON} />
+        <link rel="apple-touch-icon-precomposed" sizes="180x180" href={BARBER_POLE_APP_ICON} />
         <link rel="icon" type="image/svg+xml" href={BARBER_POLE_APP_ICON} />
-        <link rel="shortcut icon" href={BARBER_POLE_APP_ICON} />
         
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Barbearia Skull's" />
         <meta name="theme-color" content="#facc15" />
+        <meta name="application-name" content="Barbearia Skull's" />
         
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
