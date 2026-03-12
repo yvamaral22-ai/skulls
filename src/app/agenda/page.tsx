@@ -41,8 +41,8 @@ import { Badge } from '@/components/ui/badge';
 const START_HOUR = 8;
 const HOURS_COUNT = 15; // 08:00 às 22:00
 const HOURS = Array.from({ length: HOURS_COUNT }, (_, i) => i + START_HOUR);
-const SLOT_HEIGHT = 120; // Altura fixa e sagrada para o cálculo
-const COLUMN_WIDTH = "min-w-[280px]";
+const SLOT_HEIGHT = 120; // Altura fixa para sincronia perfeita
+const COLUMN_WIDTH = "min-w-[180px] md:min-w-[200px]"; // Ajustado para mostrar + dias
 
 export default function AgendaPage() {
   const db = useFirestore();
@@ -74,11 +74,9 @@ export default function AgendaPage() {
     if (!appt.time) return { display: 'none' };
     
     const [hours, minutes] = appt.time.split(':').map(Number);
-    // Cálculo de minutos desde o início da agenda (START_HOUR)
     const minutesSinceStart = (hours - START_HOUR) * 60 + (minutes || 0);
     const durationMinutes = Math.max(Number(service?.durationMinutes) || 30, 30);
     
-    // Converte minutos em pixels baseado no SLOT_HEIGHT (120px = 60min)
     const topPx = (minutesSinceStart / 60) * SLOT_HEIGHT;
     const heightPx = (durationMinutes / 60) * SLOT_HEIGHT;
     
@@ -119,7 +117,7 @@ export default function AgendaPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] overflow-hidden bg-background rounded-2xl border border-border shadow-2xl">
-      {/* Header Fixo */}
+      {/* Header Fixo de Topo */}
       <header className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-border bg-card gap-4 z-50">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="font-bold h-9 bg-secondary/50">Hoje</Button>
@@ -143,22 +141,51 @@ export default function AgendaPage() {
         </div>
       </header>
 
-      {/* Grade de Agenda */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Coluna de Horários Fixa */}
-        <div className="w-16 md:w-20 flex-none bg-card border-r border-border flex flex-col pt-[120px]">
-          {HOURS.map(hour => (
-            <div key={hour} className="h-[120px] flex items-start justify-center pt-3 border-b border-border/10">
-              <span className="text-[11px] md:text-xs font-black text-muted-foreground font-body">
-                {`${hour.toString().padStart(2, '0')}:00`}
-              </span>
-            </div>
-          ))}
-        </div>
+      {/* Grade de Agenda com Scroll Unificado */}
+      <div className="flex-1 overflow-auto relative scrollbar-thin">
+        <div className="inline-flex min-w-full flex-col">
+          
+          {/* Cabeçalho de Dias (Sticky no topo do scroll) */}
+          <div className="sticky top-0 z-50 flex bg-card border-b border-border">
+            {/* Canto Vazio (Sticky na esquerda e no topo) */}
+            <div className="sticky left-0 z-[60] w-16 md:w-20 flex-none bg-card border-r border-border h-[120px]" />
+            
+            {weekDays.map((day, dayIdx) => {
+              const isToday = isSameDay(day, new Date());
+              return (
+                <div key={dayIdx} className={cn(
+                  "flex-1 flex flex-col items-center justify-center h-[120px] bg-card/95 backdrop-blur-md border-r border-border last:border-r-0",
+                  COLUMN_WIDTH,
+                  isToday ? "text-primary" : ""
+                )}>
+                  <span className="text-[10px] uppercase font-bold opacity-60 font-body">
+                    {format(day, 'eee', { locale: ptBR })}
+                  </span>
+                  <span className={cn(
+                    "text-xl font-black h-10 w-10 flex items-center justify-center rounded-full mt-0.5 font-body",
+                    isToday ? "bg-primary text-black shadow-lg shadow-primary/30" : ""
+                  )}>
+                    {format(day, 'd')}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
 
-        {/* Área de Scroll da Grade */}
-        <div className="flex-1 overflow-auto relative scrollbar-thin">
-          <div className="inline-flex min-w-full">
+          {/* Área Principal da Grade */}
+          <div className="flex">
+            {/* Coluna de Horários (Sticky na esquerda do scroll) */}
+            <div className="sticky left-0 z-40 w-16 md:w-20 flex-none bg-card border-r border-border flex flex-col">
+              {HOURS.map(hour => (
+                <div key={hour} className="h-[120px] flex items-start justify-center pt-3 border-b border-border/10 bg-card">
+                  <span className="text-[11px] md:text-xs font-black text-muted-foreground font-body">
+                    {`${hour.toString().padStart(2, '0')}:00`}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Colunas de Agendamentos */}
             {weekDays.map((day, dayIdx) => {
               const isToday = isSameDay(day, new Date());
               const dateStr = format(day, 'yyyy-MM-dd');
@@ -166,24 +193,9 @@ export default function AgendaPage() {
 
               return (
                 <div key={dayIdx} className={cn("flex-1 relative border-r border-border last:border-r-0", COLUMN_WIDTH)}>
-                  {/* Cabeçalho do Dia (Fixo no topo da coluna) */}
-                  <div className={cn(
-                    "sticky top-0 z-40 h-[120px] flex flex-col items-center justify-center border-b border-border bg-card/95 backdrop-blur-md",
-                    isToday ? "text-primary" : ""
-                  )}>
-                    <span className="text-[10px] uppercase font-bold opacity-60 font-body">
-                      {format(day, 'eee', { locale: ptBR })}
-                    </span>
-                    <span className={cn(
-                      "text-xl font-black h-10 w-10 flex items-center justify-center rounded-full mt-0.5 font-body",
-                      isToday ? "bg-primary text-black shadow-lg shadow-primary/30" : ""
-                    )}>
-                      {format(day, 'd')}
-                    </span>
-                  </div>
-
+                  
                   {/* Espaço dos Slots de Horário */}
-                  <div className="relative" style={{ height: `${HOURS.length * SLOT_HEIGHT}px` }}>
+                  <div className="relative bg-background/20" style={{ height: `${HOURS.length * SLOT_HEIGHT}px` }}>
                     {HOURS.map(hour => (
                       <div 
                         key={hour} 
@@ -194,7 +206,7 @@ export default function AgendaPage() {
                       </div>
                     ))}
 
-                    {/* Renderização dos Agendamentos em Posição Absoluta */}
+                    {/* Renderização dos Agendamentos */}
                     {dayAppts.map(appt => {
                       const service = services?.find(s => s.id === appt.serviceId);
                       const barber = staff?.find(s => s.id === appt.staffId);
@@ -243,7 +255,7 @@ export default function AgendaPage() {
                     {/* Indicador de Hora Atual */}
                     {isToday && (
                       <div 
-                        className="absolute left-0 right-0 z-50 flex items-center pointer-events-none"
+                        className="absolute left-0 right-0 z-40 flex items-center pointer-events-none"
                         style={{ 
                           top: `${((differenceInMinutes(currentTime, startOfDay(currentTime)) - (START_HOUR * 60)) / 60) * SLOT_HEIGHT}px` 
                         }}
