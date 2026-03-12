@@ -36,7 +36,7 @@ import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
 
 const BarberPoleIcon = ({ className }: { className?: string }) => (
@@ -62,7 +62,6 @@ export default function StaffPage() {
   const [editingStaff, setEditingStaff] = React.useState<any | null>(null)
   const [selectedStaffPanel, setSelectedStaffPanel] = React.useState<any | null>(null)
   
-  // Estados para filtros do painel pessoal
   const [filterDate, setFilterDate] = React.useState(format(new Date(), 'yyyy-MM-dd'))
   const [filterTime, setFilterTime] = React.useState("")
 
@@ -203,7 +202,6 @@ export default function StaffPage() {
                     <p className="text-[8px] uppercase text-muted-foreground">Serviços feitos</p>
                   </div>
                   
-                  {/* Card de Pendentes Clicável para abrir o Painel Pessoal */}
                   <div 
                     onClick={() => {
                       setFilterDate(todayStr);
@@ -286,7 +284,6 @@ export default function StaffPage() {
         )}
       </div>
 
-      {/* Modal Unificado do Painel Pessoal */}
       <Dialog open={!!selectedStaffPanel} onOpenChange={(open) => !open && setSelectedStaffPanel(null)}>
         <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden bg-card border-none shadow-2xl">
           {selectedStaffPanel && (
@@ -331,8 +328,8 @@ export default function StaffPage() {
 
                 <Tabs defaultValue="agenda" className="flex-1 flex flex-col overflow-hidden">
                   <TabsList className="bg-secondary/50 p-1 h-12 rounded-xl border border-border">
-                    <TabsTrigger value="agenda" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Agenda Tática</TabsTrigger>
-                    <TabsTrigger value="historico" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Histórico de Batalha</TabsTrigger>
+                    <TabsTrigger value="agenda" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Agenda</TabsTrigger>
+                    <TabsTrigger value="historico" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Histórico</TabsTrigger>
                   </TabsList>
                   
                   <div className="flex-1 overflow-y-auto mt-4 pr-2 scrollbar-thin">
@@ -358,7 +355,7 @@ export default function StaffPage() {
                           )
                         })}
                       {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled').length === 0 && (
-                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum agendamento pendente</p>
+                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum agendamento na agenda</p>
                       )}
                     </TabsContent>
 
@@ -386,6 +383,9 @@ export default function StaffPage() {
                             </div>
                           )
                         })}
+                      {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'completed').length === 0 && (
+                        <p className="text-center py-12 text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">Nenhum registro no histórico</p>
+                      )}
                     </TabsContent>
                   </div>
                 </Tabs>
