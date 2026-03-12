@@ -202,9 +202,11 @@ export default function StaffPage() {
                     <p className="text-[8px] uppercase text-muted-foreground">Serviços feitos</p>
                   </div>
                   
+                  {/* ATALHO TÁTICO: CLICAR AQUI ABRE O PAINEL PESSOAL FILTRADO PARA HOJE */}
                   <div 
                     onClick={() => {
                       setFilterDate(todayStr);
+                      setFilterTime("");
                       setSelectedStaffPanel(member);
                     }}
                     className="bg-secondary/20 p-4 rounded-2xl border border-border/50 cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-all active:scale-95 group/pendente"
@@ -222,6 +224,7 @@ export default function StaffPage() {
                   <Button 
                     onClick={() => {
                       setFilterDate(""); 
+                      setFilterTime("");
                       setSelectedStaffPanel(member);
                     }}
                     className="flex-1 bg-secondary hover:bg-primary hover:text-black font-bold h-12 uppercase text-[10px] tracking-widest transition-all"
@@ -333,7 +336,7 @@ export default function StaffPage() {
                     <TabsContent value="agenda" className="space-y-3 m-0">
                       {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled')
                         .filter(a => !filterDate || a.date === filterDate)
-                        .filter(a => !filterTime || a.time.startsWith(filterTime))
+                        .filter(a => !filterTime || a.time.includes(filterTime))
                         .sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
                         .map((appt) => {
                           const service = services?.find(s => s.id === appt.serviceId)
@@ -356,7 +359,7 @@ export default function StaffPage() {
                     <TabsContent value="historico" className="space-y-3 m-0">
                       {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'completed')
                         .filter(a => !filterDate || a.date === filterDate)
-                        .filter(a => !filterTime || a.time.startsWith(filterTime))
+                        .filter(a => !filterTime || a.time.includes(filterTime))
                         .sort((a,b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time))
                         .map((appt) => {
                           const service = services?.find(s => s.id === appt.serviceId)
