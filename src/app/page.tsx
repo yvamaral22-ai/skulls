@@ -9,6 +9,7 @@ import { collection } from "firebase/firestore"
 import * as React from "react"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 export default function DashboardPage() {
   const db = useFirestore()
@@ -23,7 +24,9 @@ export default function DashboardPage() {
 
   const todayAppointments = React.useMemo(() => {
     if (!appointments) return [];
-    return appointments.filter(a => a.date === today);
+    return appointments
+      .filter(a => a.date === today)
+      .sort((a, b) => a.time.localeCompare(b.time));
   }, [appointments, today]);
 
   const totalRevenueToday = React.useMemo(() => {
@@ -101,7 +104,7 @@ export default function DashboardPage() {
           <CardContent className="p-0">
             <div className="divide-y divide-border/50 max-h-[400px] overflow-y-auto scrollbar-thin">
               {todayAppointments.length > 0 ? (
-                todayAppointments.slice(0, 15).map((appt) => {
+                todayAppointments.map((appt) => {
                   const service = services?.find(s => s.id === appt.serviceId)
                   return (
                     <div key={appt.id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 hover:bg-primary/5 transition-colors">
