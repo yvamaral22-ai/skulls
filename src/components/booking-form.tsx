@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -17,7 +16,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/form-components'; // Fixed import if needed, assuming local components
 import {
   Select,
   SelectContent,
@@ -31,6 +30,16 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, serverTimestamp, query, where, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+
+// Simplified imports to ensure consistency
+import { 
+  Form as UIForm, 
+  FormField as UIFormField, 
+  FormItem as UIFormItem, 
+  FormLabel as UIFormLabel, 
+  FormControl as UIFormControl, 
+  FormMessage as UIFormMessage 
+} from '@/components/ui/form';
 
 const bookingSchema = z.object({
   clientName: z.string().min(2, 'Informe o nome do cliente'),
@@ -101,7 +110,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       .map(a => a.time);
   }, [existingAppointments, initialData]);
 
-  // Função para verificar se um horário já passou (caso a data seja hoje)
   const isPastTime = (slot: string) => {
     if (selectedDate && isSameDay(selectedDate, new Date())) {
       const [slotHours, slotMinutes] = slot.split(':').map(Number);
@@ -160,74 +168,81 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   }
 
   return (
-    <Form {...form}>
+    <UIForm {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
-        <FormField
+        <UIFormField
           control={form.control}
           name="clientName"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Nome do Cliente</FormLabel>
-              <FormControl>
+            <UIFormItem>
+              <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Nome do Cliente</UIFormLabel>
+              <UIFormControl>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/40" />
                   <Input {...field} placeholder="Ex: João Silva" className="pl-10 h-12 bg-background/50 border-border focus:border-primary transition-all font-body" />
                 </div>
-              </FormControl>
-              <FormMessage className="text-[10px]" />
-            </FormItem>
+              </UIFormControl>
+              <UIFormMessage className="text-[10px]" />
+            </UIFormItem>
           )}
         />
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField
+          <UIFormField
             control={form.control}
             name="date"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Data</FormLabel>
+              <UIFormItem className="flex flex-col">
+                <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Data</UIFormLabel>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        type="button"
-                        variant={"outline"}
-                        className={cn("w-full text-left font-normal h-12 bg-background/50 border-border hover:border-primary font-body", !field.value && "text-muted-foreground")}
-                      >
-                        {field.value ? format(field.value, "dd/MM/yyyy") : "Data"}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
-                      </Button>
-                    </FormControl>
+                    <Button
+                      type="button"
+                      variant={"outline"}
+                      className={cn(
+                        "w-full text-left font-normal h-12 bg-background/50 border-border hover:border-primary font-body flex items-center justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                      onClick={() => setIsCalendarOpen(true)}
+                    >
+                      <span>{field.value ? format(field.value, "dd/MM/yyyy") : "Data"}</span>
+                      <CalendarIcon className="h-4 w-4 opacity-40" />
+                    </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[10001]">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
-                      onSelect={(date) => { if (date) { field.onChange(date); setIsCalendarOpen(false); } }}
+                      onSelect={(date) => { 
+                        if (date) { 
+                          field.onChange(date); 
+                          setIsCalendarOpen(false); 
+                        } 
+                      }}
                       locale={ptBR}
                       disabled={(date) => startOfDay(date) < startOfDay(new Date())}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
-                <FormMessage className="text-[10px]" />
-              </FormItem>
+                <UIFormMessage className="text-[10px]" />
+              </UIFormItem>
             )}
           />
 
-          <FormField
+          <UIFormField
             control={form.control}
             name="time"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Horário</FormLabel>
+              <UIFormItem>
+                <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Horário</UIFormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
+                  <UIFormControl>
                     <SelectTrigger className="h-12 bg-background/50 border-border font-body">
                       <SelectValue placeholder="Hora" />
                     </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="max-h-[300px] z-[10001] font-body">
+                  </UIFormControl>
+                  <SelectContent className="max-h-[300px] font-body">
                     {TIME_SLOTS.map((slot) => {
                       const isOccupied = occupiedSlots.includes(slot);
                       const isPast = isPastTime(slot);
@@ -239,46 +254,46 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                     })}
                   </SelectContent>
                 </Select>
-                <FormMessage className="text-[10px]" />
-              </FormItem>
+                <UIFormMessage className="text-[10px]" />
+              </UIFormItem>
             )}
           />
         </div>
 
-        <FormField
+        <UIFormField
           control={form.control}
           name="staffId"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Barbeiro</FormLabel>
+            <UIFormItem>
+              <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Barbeiro</UIFormLabel>
               <Select onValueChange={field.onChange} value={field.value} disabled={isStaffLoading}>
-                <FormControl>
+                <UIFormControl>
                   <SelectTrigger className="h-12 bg-background/50 border-border font-body">
                     <SelectValue placeholder={isStaffLoading ? "Carregando..." : "Selecione o profissional"} />
                   </SelectTrigger>
-                </FormControl>
-                <SelectContent className="z-[10001] font-body">
+                </UIFormControl>
+                <SelectContent className="font-body">
                   {staff?.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <FormMessage className="text-[10px]" />
-            </FormItem>
+              <UIFormMessage className="text-[10px]" />
+            </UIFormItem>
           )}
         />
 
-        <FormField
+        <UIFormField
           control={form.control}
           name="serviceId"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Serviço</FormLabel>
+            <UIFormItem>
+              <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Serviço</UIFormLabel>
               <Select onValueChange={field.onChange} value={field.value} disabled={isServicesLoading}>
-                <FormControl>
+                <UIFormControl>
                   <SelectTrigger className="h-12 bg-background/50 border-border font-body">
                     <SelectValue placeholder={isServicesLoading ? "Carregando..." : "Selecione o serviço"} />
                   </SelectTrigger>
-                </FormControl>
-                <SelectContent className="z-[10001] font-body">
+                </UIFormControl>
+                <SelectContent className="font-body">
                   {services?.map(s => (
                     <SelectItem key={s.id} value={s.id} className="text-xs">
                       {s.name} - R$ {Number(s.price).toFixed(2)}
@@ -286,8 +301,8 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <FormMessage className="text-[10px]" />
-            </FormItem>
+              <UIFormMessage className="text-[10px]" />
+            </UIFormItem>
           )}
         />
 
@@ -296,6 +311,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           {initialData?.id ? 'Salvar Alterações' : 'Confirmar Agendamento'}
         </Button>
       </form>
-    </Form>
+    </UIForm>
   );
 }

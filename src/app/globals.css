@@ -96,13 +96,19 @@
   will-change: transform, opacity, filter;
 }
 
-/* FIX CRÍTICO: Garante que Popovers dentro de Modais sejam clicáveis e fiquem acima de tudo */
-[data-radix-popper-content-wrapper] {
+/* FIX CRÍTICO: Garante que Portais (Modais, Popovers) sejam clicáveis no Mobile/iOS */
+[data-radix-portal] {
+  pointer-events: auto !important;
   z-index: 10000 !important;
+}
+
+[data-radix-popper-content-wrapper] {
+  z-index: 10001 !important;
   pointer-events: auto !important;
 }
 
 /* Garante que o corpo não bloqueie interações em portais quando um modal está aberto */
+body[style*="pointer-events: none"] [data-radix-portal],
 body[style*="pointer-events: none"] [data-radix-popper-content-wrapper] {
   pointer-events: auto !important;
 }
