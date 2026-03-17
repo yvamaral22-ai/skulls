@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -55,7 +56,7 @@ export function AppSidebar() {
             <BarberPoleIcon className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-headline text-primary text-xl leading-none">Skulls Barber</span>
+            <span className="font-headline text-primary text-xl leading-none uppercase">Skulls Barber</span>
             <span className="text-[10px] uppercase tracking-widest opacity-60">Gestão Profissional</span>
           </div>
         </div>

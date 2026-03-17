@@ -77,9 +77,9 @@ export default function DashboardPage() {
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-headline text-primary">Skulls Barber</h1>
+          <h1 className="text-3xl md:text-4xl font-headline text-primary uppercase">Barbearia Skull's</h1>
           <p className="text-muted-foreground text-[9px] uppercase tracking-[0.2em]">
-            {role === 'ADMIN' ? 'Painel Administrativo' : 'Painel do Barbeiro'}
+            {role === 'ADMIN' ? 'Painel Administrativo' : 'Painel do Profissional'}
           </p>
         </div>
         <Button className="h-12 w-full sm:w-auto font-bold bg-primary text-black" asChild>
@@ -99,15 +99,19 @@ export default function DashboardPage() {
             <div className="text-2xl md:text-3xl font-bold font-headline">{todayAppointments.length}</div>
           </CardContent>
         </Card>
-        <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4">
-            <CardTitle className="text-[9px] font-bold uppercase opacity-60">Bruto Hoje</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent className="px-4">
-            <div className="text-2xl md:text-3xl font-bold font-headline text-primary">R$ {totalRevenueToday.toFixed(0)}</div>
-          </CardContent>
-        </Card>
+
+        {role === 'ADMIN' && (
+          <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4">
+              <CardTitle className="text-[9px] font-bold uppercase opacity-60">Bruto Hoje</CardTitle>
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent className="px-4">
+              <div className="text-2xl md:text-3xl font-bold font-headline text-primary">R$ {totalRevenueToday.toFixed(0)}</div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4">
             <CardTitle className="text-[9px] font-bold uppercase opacity-60">Total Serviços</CardTitle>
@@ -122,7 +126,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border border-primary/10 bg-card shadow-lg overflow-hidden">
           <CardHeader className="bg-primary/5 border-b border-primary/10 px-4 py-4">
-            <CardTitle className="text-lg font-headline text-primary">Próximos Clientes</CardTitle>
+            <CardTitle className="text-lg font-headline text-primary">Meus Próximos Clientes</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/50 max-h-[400px] overflow-y-auto scrollbar-thin">
@@ -170,7 +174,7 @@ export default function DashboardPage() {
                 <Calendar className="h-6 w-6 text-primary shrink-0" /> 
                 <div className="min-w-0">
                   <p className="font-headline text-base truncate">Agenda</p>
-                  <p className="text-[9px] uppercase opacity-50 truncate">Gestão de horários</p>
+                  <p className="text-[9px] uppercase opacity-50 truncate">Meus horários</p>
                 </div>
               </Link>
             </Button>

@@ -11,7 +11,7 @@ import {
 } from "recharts"
 import { 
   TrendingUp, DollarSign, 
-  Calendar as CalendarIcon, Briefcase, Loader2, Play, FileBarChart, Clock, Scissors
+  Calendar as CalendarIcon, Briefcase, Loader2, Play, FileBarChart, Clock, Scissors, Lock
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function ReportsPage() {
   const db = useFirestore()
-  const { barberProfileId } = useUser();
+  const { barberProfileId, role } = useUser();
   const { toast } = useToast()
   
   const [startDate, setStartDate] = React.useState("")
@@ -126,6 +126,19 @@ export default function ReportsPage() {
       count: filteredAppts.length 
     }
   }, [appointments, staff, services, appliedFilters])
+
+  if (role === 'STAFF') {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
+        <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+          <Lock className="h-10 w-10 text-destructive" />
+        </div>
+        <h1 className="text-2xl font-headline text-destructive">ACESSO RESTRITO</h1>
+        <p className="text-muted-foreground max-w-xs mx-auto">Esta área é exclusiva para o administrador da barbearia.</p>
+        <Button asChild variant="outline" className="mt-4"><a href="/">Voltar ao Início</a></Button>
+      </div>
+    );
+  }
 
   if (isApptsLoading && !appointments) {
     return (
