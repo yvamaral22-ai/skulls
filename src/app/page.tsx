@@ -1,9 +1,8 @@
-
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Scissors, TrendingUp, Calendar, Plus, Loader2, Briefcase, Clock, User } from "lucide-react"
+import { Scissors, TrendingUp, Calendar, Plus, Loader2, Briefcase } from "lucide-react"
 import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, deleteDoc, query, where } from "firebase/firestore"
@@ -31,6 +30,7 @@ export default function DashboardPage() {
 
   const appointmentsQuery = useMemoFirebase(() => {
     const baseCol = collection(db, 'barberProfiles', barberProfileId, 'appointments');
+    // Filtro STAFF: vê apenas seus próprios dados
     if (role === 'STAFF' && staffId) {
       return query(baseCol, where('staffId', '==', staffId));
     }
@@ -79,7 +79,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl md:text-4xl font-headline text-primary uppercase">Barbearia Skull's</h1>
           <p className="text-muted-foreground text-[9px] uppercase tracking-[0.2em]">
-            {role === 'ADMIN' ? 'Painel Administrativo' : 'Painel do Profissional'}
+            {role === 'ADMIN' ? 'Painel Administrativo' : 'Meu Painel de Controle'}
           </p>
         </div>
         <Button className="h-12 w-full sm:w-auto font-bold bg-primary text-black" asChild>
@@ -175,8 +175,8 @@ export default function DashboardPage() {
               <Link href="/agenda">
                 <Calendar className="h-6 w-6 text-primary shrink-0" /> 
                 <div className="min-w-0">
-                  <p className="font-headline text-base truncate">Agenda</p>
-                  <p className="text-[9px] uppercase opacity-50 truncate">Meus horários</p>
+                  <p className="font-headline text-base truncate">Minha Agenda</p>
+                  <p className="text-[9px] uppercase opacity-50 truncate">Meus horários e clientes</p>
                 </div>
               </Link>
             </Button>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
                     <TrendingUp className="h-6 w-6 text-primary shrink-0" /> 
                     <div className="min-w-0">
                       <p className="font-headline text-base truncate">Relatórios</p>
-                      <p className="text-[9px] uppercase opacity-50 truncate">Financeiro consolidado</p>
+                      <p className="text-[9px] uppercase opacity-50 truncate">Faturamento bruto consolidado</p>
                     </div>
                   </Link>
                 </Button>
@@ -196,7 +196,7 @@ export default function DashboardPage() {
                     <Briefcase className="h-6 w-6 text-primary shrink-0" /> 
                     <div className="min-w-0">
                       <p className="font-headline text-base truncate">Equipe</p>
-                      <p className="text-[9px] uppercase opacity-50 truncate">Gestão de barbeiros</p>
+                      <p className="text-[9px] uppercase opacity-50 truncate">Gestão e produtividade</p>
                     </div>
                   </Link>
                 </Button>

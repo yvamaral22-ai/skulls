@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -56,7 +55,7 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 
 export default function StaffPage() {
   const db = useFirestore()
-  const { barberProfileId } = useUser();
+  const { barberProfileId, role } = useUser();
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingStaff, setEditingStaff] = React.useState<any | null>(null)
@@ -109,6 +108,16 @@ export default function StaffPage() {
     const staffRef = doc(db, "barberProfiles", barberProfileId, "staff", id);
     deleteDocumentNonBlocking(staffRef);
     toast({ variant: "destructive", title: "Profissional Removido", description: `${name} foi excluído.` })
+  }
+
+  if (role === 'STAFF') {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
+        <h1 className="text-2xl font-headline text-primary">ACESSO RESTRITO</h1>
+        <p className="text-muted-foreground">Esta área é exclusiva para o administrador.</p>
+        <Button asChild variant="outline" className="mt-4"><a href="/">Voltar ao Início</a></Button>
+      </div>
+    );
   }
 
   if (isStaffLoading || isApptsLoading) {
@@ -351,7 +360,7 @@ export default function StaffPage() {
                                 <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground font-bold">
                                   <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3 text-green-500" /> {format(parseISO(appt.date), 'dd/MM/yyyy')}</span>
                                   <span className="flex items-center gap-1"><Scissors className="h-3 w-3 text-green-500" /> {service?.name}</span>
-                                  <span className="text-green-400">R$ {Number(appt.priceAtAppointment).toFixed(2)}</span>
+                                  <span className="text-green-400 font-black">R$ {Number(appt.priceAtAppointment).toFixed(2)}</span>
                                 </div>
                               </div>
                             </div>

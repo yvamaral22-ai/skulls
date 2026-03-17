@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -39,7 +38,7 @@ export function AppSidebar() {
 
   const menuItems = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ['ADMIN', 'STAFF'] },
-    { title: "Agenda", url: "/agenda", icon: CalendarDays, roles: ['ADMIN', 'STAFF'] },
+    { title: "Minha Agenda", url: "/agenda", icon: CalendarDays, roles: ['ADMIN', 'STAFF'] },
     { title: "Clientes", url: "/customers", icon: Users, roles: ['ADMIN'] },
     { title: "Serviços", url: "/services", icon: Scissors, roles: ['ADMIN'] },
     { title: "Equipe", url: "/staff", icon: Briefcase, roles: ['ADMIN'] },

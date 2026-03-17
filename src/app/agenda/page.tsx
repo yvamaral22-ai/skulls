@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { 
   Plus, ChevronLeft, ChevronRight, 
-  Loader2, CheckCircle2, Clock, User, Scissors, Calendar as CalendarIcon, Filter
+  Loader2, CheckCircle2, Clock, User, Scissors, Filter
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
@@ -28,7 +27,7 @@ import { collection, doc, deleteDoc, query, where } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
 import { 
   format, addDays, startOfWeek, isSameDay, 
-  startOfDay, differenceInMinutes, parseISO
+  startOfDay, differenceInMinutes
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +48,7 @@ export default function AgendaPage() {
   const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
   const [currentTime, setCurrentTime] = React.useState(new Date());
   
-  // Filtro de profissional para Admin
+  // Filtro de profissional (Apenas para ADMIN)
   const [staffFilter, setStaffFilter] = React.useState<string>("all");
 
   React.useEffect(() => {
@@ -66,20 +65,21 @@ export default function AgendaPage() {
   const { data: staff } = useCollection(staffQuery);
   const { data: services } = useCollection(servicesQuery);
 
-  // Consulta de Agendamentos Filtrada
+  // Consulta de Agendamentos com Restrição de Role
   const appointmentsQuery = useMemoFirebase(() => {
     const baseCol = collection(db, 'barberProfiles', barberProfileId, 'appointments');
     
-    // Se for Barbeiro, vê apenas os seus
+    // Se for Barbeiro (STAFF), vê APENAS os seus
     if (role === 'STAFF' && loggedStaffId) {
       return query(baseCol, where('staffId', '==', loggedStaffId));
     }
     
-    // Se for Admin e tiver filtro selecionado
+    // Se for Admin e tiver filtro de barbeiro selecionado
     if (role === 'ADMIN' && staffFilter !== 'all') {
       return query(baseCol, where('staffId', '==', staffFilter));
     }
     
+    // Admin sem filtro vê todos
     return baseCol;
   }, [db, barberProfileId, role, loggedStaffId, staffFilter]);
 
@@ -137,10 +137,10 @@ export default function AgendaPage() {
               <Filter className="h-4 w-4 text-primary opacity-60" />
               <Select value={staffFilter} onValueChange={setStaffFilter}>
                 <SelectTrigger className="w-[140px] md:w-[180px] h-8 bg-transparent border-none focus:ring-0 text-[10px] uppercase font-bold">
-                  <SelectValue placeholder="Todos Barbeiros" />
+                  <SelectValue placeholder="Filtrar Barbeiro" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos Profissionais</SelectItem>
+                  <SelectItem value="all">Ver Todos Barbeiros</SelectItem>
                   {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -148,12 +148,12 @@ export default function AgendaPage() {
           )}
           
           {role === 'STAFF' && (
-            <Badge variant="outline" className="border-primary/50 text-primary hidden sm:flex uppercase text-[9px]">
+            <Badge variant="outline" className="border-primary/50 text-primary uppercase text-[9px] font-bold px-3 py-1">
               Minha Agenda: {staff?.find(s => s.id === loggedStaffId)?.name || 'Carregando...'}
             </Badge>
           )}
           
-          <Button className="bg-primary text-black font-bold h-9 shadow-lg" onClick={() => setIsBookingOpen(true)}>
+          <Button className="bg-primary text-black font-bold h-9 shadow-lg hover:bg-primary/90" onClick={() => setIsBookingOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo Horário
           </Button>
         </div>

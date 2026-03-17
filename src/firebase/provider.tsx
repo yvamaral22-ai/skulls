@@ -76,7 +76,7 @@ export const FirebaseProvider: React.FC<{
           </div>
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Skulls Barber</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Barbearia Skull's</p>
           </div>
         </div>
       </div>
@@ -120,29 +120,34 @@ export const useUser = () => {
   useEffect(() => {
     if (!auth || !firestore) return;
     return onAuthStateChanged(auth, async (u) => {
+      setLoading(true);
       if (u) {
         setUser({
           uid: u.uid,
-          displayName: u.displayName || 'Usuário',
+          displayName: u.displayName || u.email?.split('@')[0] || 'Usuário',
           email: u.email
         });
 
-        // Tenta encontrar a barbearia do dono
+        // 1. Tenta encontrar se o usuário é o DONO (Admin)
         const ownerDoc = await getDoc(doc(firestore, 'barberProfiles', u.uid));
         if (ownerDoc.exists()) {
           setUserData({ role: 'ADMIN', barberProfileId: u.uid });
         } else {
-          // Busca em todos os staffs (SaaS lookup)
+          // 2. Tenta encontrar se o usuário é um FUNCIONÁRIO (Staff)
+          // Busca em todos os staffs pelo UID (SaaS lookup)
           const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', u.uid));
           const staffSnap = await getDocs(staffQuery);
+          
           if (!staffSnap.empty) {
             const staffDoc = staffSnap.docs[0];
+            const profileId = staffDoc.ref.parent.parent?.id || 'master-barbershop';
             setUserData({ 
               role: 'STAFF', 
-              barberProfileId: staffDoc.ref.parent.parent?.id || 'master-barbershop',
+              barberProfileId: profileId,
               staffId: staffDoc.id
             });
           } else {
+            // 3. Caso contrário, é um CLIENTE
             setUserData({ role: 'CLIENT', barberProfileId: 'master-barbershop' });
           }
         }
