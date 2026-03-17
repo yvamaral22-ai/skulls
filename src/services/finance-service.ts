@@ -1,35 +1,20 @@
+
 'use client';
 
 /**
- * @fileOverview Lógica de negócio para cálculos financeiros e comissões.
+ * @fileOverview Lógica de negócio simplificada para cálculos de faturamento.
  */
 
 interface AppointmentData {
   price: number;
-  commissionRate?: number;
-}
-
-interface StaffData {
-  commissionRate: number;
 }
 
 /**
- * Calcula a comissão de um barbeiro para um serviço específico.
- * Prioriza a taxa de comissão definida no momento do agendamento (histórico),
- * caso contrário, utiliza a taxa atual do barbeiro.
+ * Calcula o faturamento total bruto de uma lista de agendamentos.
  * 
- * @param appointment Dados do agendamento
- * @param staff Dados do barbeiro
- * @returns O valor em reais da comissão
+ * @param appointments Lista de agendamentos finalizados.
+ * @returns O valor total em reais.
  */
-export function calculateStaffCommission(appointment: AppointmentData, staff: StaffData): number {
-  const rate = appointment.commissionRate ?? staff.commissionRate;
-  return appointment.price * rate;
-}
-
-/**
- * Calcula o resumo financeiro de um período.
- */
-export function calculateNetProfit(totalRevenue: number, totalCommissions: number, totalExpenses: number): number {
-  return totalRevenue - totalCommissions - totalExpenses;
+export function calculateTotalRevenue(appointments: AppointmentData[]): number {
+  return appointments.reduce((sum, appt) => sum + (appt.price || 0), 0);
 }

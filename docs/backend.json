@@ -13,7 +13,6 @@
         "businessName": { "type": "string" },
         "address": { "type": "string" },
         "logoUrl": { "type": "string" },
-        "commissionRate": { "type": "number", "description": "Comissão padrão (ex: 0.4 para 40%)" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name", "email", "businessName", "createdAt"]
@@ -28,7 +27,6 @@
         "name": { "type": "string" },
         "phone": { "type": "string" },
         "photoUrl": { "type": "string" },
-        "commissionRate": { "type": "number" },
         "bio": { "type": "string" },
         "isActive": { "type": "boolean" }
       },
@@ -77,24 +75,9 @@
         "status": { "type": "string", "enum": ["scheduled", "completed", "canceled"] },
         "paymentMethod": { "type": "string", "enum": ["Cash", "Credit", "Debit", "PIX"] },
         "priceAtAppointment": { "type": "number" },
-        "commissionAtAppointment": { "type": "number" },
         "notes": { "type": "string" }
       },
       "required": ["id", "barberProfileId", "staffId", "clientName", "serviceId", "date", "time", "status"]
-    },
-    "Expense": {
-      "title": "Expense",
-      "type": "object",
-      "description": "Despesas operacionais da barbearia.",
-      "properties": {
-        "id": { "type": "string" },
-        "barberProfileId": { "type": "string" },
-        "description": { "type": "string" },
-        "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date" },
-        "category": { "type": "string" }
-      },
-      "required": ["id", "barberProfileId", "description", "amount", "date"]
     }
   },
   "auth": {
@@ -120,10 +103,6 @@
     "/barberProfiles/{barberProfileId}/appointments/{appointmentId}": {
       "schema": "#/entities/Appointment",
       "description": "Histórico de agendamentos e vendas."
-    },
-    "/barberProfiles/{barberProfileId}/expenses/{expenseId}": {
-      "schema": "#/entities/Expense",
-      "description": "Controle de saídas financeiras."
     }
   }
 }

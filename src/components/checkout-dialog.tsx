@@ -13,9 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CreditCard, Banknote, QrCode, CheckCircle2, ShoppingCart, Loader2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 interface CheckoutDialogProps {
@@ -39,14 +39,14 @@ export function CheckoutDialog({
   customerName,
   serviceName,
   price,
-  staffId,
   onSuccess,
 }: CheckoutDialogProps) {
   const db = useFirestore();
+  const { barberProfileId } = useUser();
   const [selectedMethod, setSelectedMethod] = React.useState<string | null>(null);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
-  const barberShopId = "master-barbershop";
+  const { toast } = useToast();
 
   const handleCheckout = async () => {
     if (!selectedMethod) {
@@ -56,22 +56,13 @@ export function CheckoutDialog({
 
     setIsProcessing(true);
     try {
-      // Busca a comissão atual do barbeiro
-      const staffRef = doc(db, 'barberProfiles', barberShopId, 'staff', staffId);
-      const staffSnap = await getDoc(staffRef);
-      const staffData = staffSnap.data();
-      const commissionRate = staffData?.commissionRate || 0.4;
-      
       const appointmentPrice = Number(price);
-      const commissionAmount = appointmentPrice * commissionRate;
-
-      const appointmentRef = doc(db, 'barberProfiles', barberShopId, 'appointments', appointmentId);
+      const appointmentRef = doc(db, 'barberProfiles', barberProfileId, 'appointments', appointmentId);
       
       await updateDoc(appointmentRef, {
         status: 'completed',
         paymentMethod: selectedMethod,
         priceAtAppointment: appointmentPrice,
-        commissionAtAppointment: commissionAmount,
         completedAt: new Date().toISOString()
       });
 
@@ -87,7 +78,6 @@ export function CheckoutDialog({
       toast({
         variant: 'destructive',
         title: 'Erro no Processamento',
-        description: 'Não foi possível finalizar o atendimento no banco de dados.',
       });
     } finally {
       setIsProcessing(false);

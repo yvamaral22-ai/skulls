@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -31,12 +32,11 @@ import {
   Briefcase, Plus, TrendingUp, CalendarDays, Pencil, Loader2, Trash2, 
   Clock, Scissors, User, ChevronRight
 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 import { format, parseISO } from "date-fns"
-import { cn } from "@/lib/utils"
 
 const BarberPoleIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -56,6 +56,7 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 
 export default function StaffPage() {
   const db = useFirestore()
+  const { barberProfileId } = useUser();
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingStaff, setEditingStaff] = React.useState<any | null>(null)
@@ -64,11 +65,9 @@ export default function StaffPage() {
   const [filterDate, setFilterDate] = React.useState(format(new Date(), 'yyyy-MM-dd'))
   const [filterTime, setFilterTime] = React.useState("")
 
-  const barberShopId = "master-barbershop";
-
-  const staffQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "staff"), [db, barberShopId])
-  const appointmentsQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "appointments"), [db, barberShopId])
-  const servicesQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberShopId, "services"), [db, barberShopId])
+  const staffQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberProfileId, "staff"), [db, barberProfileId])
+  const appointmentsQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberProfileId, "appointments"), [db, barberProfileId])
+  const servicesQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberProfileId, "services"), [db, barberProfileId])
 
   const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery)
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery)
@@ -80,14 +79,12 @@ export default function StaffPage() {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
-    const commissionRate = parseFloat(formData.get("commissionRate") as string) / 100
 
-    const staffRef = doc(collection(db, "barberProfiles", barberShopId, "staff"))
+    const staffRef = doc(collection(db, "barberProfiles", barberProfileId, "staff"))
     await setDoc(staffRef, {
       id: staffRef.id,
-      barberProfileId: barberShopId,
+      barberProfileId: barberProfileId,
       name,
-      commissionRate,
       isActive: true,
       createdAt: serverTimestamp()
     })
@@ -101,16 +98,15 @@ export default function StaffPage() {
     if (!editingStaff) return
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
-    const commissionRate = parseFloat(formData.get("commissionRate") as string) / 100
 
-    const staffRef = doc(db, "barberProfiles", barberShopId, "staff", editingStaff.id)
-    updateDocumentNonBlocking(staffRef, { name, commissionRate })
+    const staffRef = doc(db, "barberProfiles", barberProfileId, "staff", editingStaff.id)
+    updateDocumentNonBlocking(staffRef, { name })
     toast({ title: "Perfil Atualizado", description: "As informações foram sincronizadas." })
     setEditingStaff(null)
   }
 
   const handleDelete = (id: string, name: string) => {
-    const staffRef = doc(db, "barberProfiles", barberShopId, "staff", id);
+    const staffRef = doc(db, "barberProfiles", barberProfileId, "staff", id);
     deleteDocumentNonBlocking(staffRef);
     toast({ variant: "destructive", title: "Profissional Removido", description: `${name} foi excluído.` })
   }
@@ -145,16 +141,12 @@ export default function StaffPage() {
           <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl text-primary">Novo Cadastro</DialogTitle>
-              <DialogDescription className="uppercase text-[9px] tracking-widest">Defina o nome e a taxa de comissão.</DialogDescription>
+              <DialogDescription className="uppercase text-[9px] tracking-widest">Insira o nome do profissional.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-bold text-primary/60">Nome</Label>
                 <Input name="name" placeholder="Ex: Tony" required className="h-12 bg-background border-primary/20" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-primary/60">Comissão (%)</Label>
-                <Input name="commissionRate" type="number" placeholder="40" required className="h-12 bg-background border-primary/20" />
               </div>
               <DialogFooter className="pt-4">
                 <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Salvar</Button>
@@ -180,14 +172,9 @@ export default function StaffPage() {
                     </div>
                     <div>
                       <CardTitle className="font-headline text-2xl group-hover:text-primary transition-colors">{member.name}</CardTitle>
-                      <Badge variant="outline" className="text-[9px] uppercase mt-1 border-primary/30 text-primary font-bold">
-                        Comissão: {(member.commissionRate * 100).toFixed(0)}%
-                      </Badge>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1 items-end">
-                    <Badge className="bg-green-500/20 text-green-400 border-none text-[8px] font-bold">ATIVO</Badge>
-                  </div>
+                  <Badge className="bg-green-500/20 text-green-400 border-none text-[8px] font-bold">ATIVO</Badge>
                 </div>
               </CardHeader>
 
@@ -244,10 +231,6 @@ export default function StaffPage() {
                         <div className="space-y-2">
                           <Label>Nome</Label>
                           <Input name="name" defaultValue={member.name} className="h-12 bg-background" required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Comissão (%)</Label>
-                          <Input name="commissionRate" defaultValue={member.commissionRate * 100} type="number" className="h-12 bg-background" required />
                         </div>
                         <DialogFooter className="pt-4">
                           <Button type="submit" className="w-full h-14 bg-primary text-black font-bold">Salvar</Button>
@@ -352,9 +335,6 @@ export default function StaffPage() {
                             </div>
                           )
                         })}
-                      {(!appointments || appointments.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled' && (!filterDate || a.date === filterDate)).length === 0) && (
-                        <div className="text-center py-10 text-muted-foreground italic text-xs uppercase tracking-widest">Nenhum horário</div>
-                      )}
                     </TabsContent>
 
                     <TabsContent value="historico" className="space-y-3 m-0">
@@ -374,16 +354,9 @@ export default function StaffPage() {
                                   <span className="text-green-400">R$ {Number(appt.priceAtAppointment).toFixed(2)}</span>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <p className="text-[8px] uppercase font-bold text-muted-foreground">Comissão</p>
-                                <p className="text-sm font-black text-green-400">R$ {Number(appt.commissionAtAppointment).toFixed(2)}</p>
-                              </div>
                             </div>
                           )
                         })}
-                      {(!appointments || appointments.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'completed' && (!filterDate || a.date === filterDate)).length === 0) && (
-                        <div className="text-center py-10 text-muted-foreground italic text-xs uppercase tracking-widest">Sem histórico</div>
-                      )}
                     </TabsContent>
                   </div>
                 </Tabs>

@@ -1,13 +1,14 @@
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Scissors, TrendingUp, Calendar, Plus, Loader2, Briefcase, Clock, User, Scissors as ScissorsIcon } from "lucide-react"
+import { Scissors, TrendingUp, Calendar, Plus, Loader2, Briefcase, Clock, User } from "lucide-react"
 import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, deleteDoc, query, where } from "firebase/firestore"
 import * as React from "react"
-import { format, parseISO } from "date-fns"
+import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import {
@@ -15,19 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { BookingForm } from "@/components/booking-form"
 import { CheckoutDialog } from "@/components/checkout-dialog"
 import { useToast } from "@/hooks/use-toast"
@@ -63,11 +52,8 @@ export default function DashboardPage() {
   const totalRevenueToday = React.useMemo(() => {
     return todayAppointments
       .filter(a => a.status === 'completed')
-      .reduce((acc, appt) => {
-        const val = role === 'STAFF' ? (appt.commissionAtAppointment || 0) : (appt.priceAtAppointment || 0);
-        return acc + Number(val);
-      }, 0);
-  }, [todayAppointments, role]);
+      .reduce((acc, appt) => acc + Number(appt.priceAtAppointment || 0), 0);
+  }, [todayAppointments]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -103,7 +89,7 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-3">
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4">
             <CardTitle className="text-[9px] font-bold uppercase opacity-60">Agenda Hoje</CardTitle>
@@ -115,9 +101,7 @@ export default function DashboardPage() {
         </Card>
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4">
-            <CardTitle className="text-[9px] font-bold uppercase opacity-60">
-              {role === 'STAFF' ? 'Sua Comissão' : 'Bruto Hoje'}
-            </CardTitle>
+            <CardTitle className="text-[9px] font-bold uppercase opacity-60">Bruto Hoje</CardTitle>
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent className="px-4">
@@ -131,15 +115,6 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="px-4">
             <div className="text-2xl md:text-3xl font-bold font-headline">{appointments?.filter(a => a.status === 'completed').length || 0}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4">
-            <CardTitle className="text-[9px] font-bold uppercase opacity-60">Status</CardTitle>
-            <Briefcase className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent className="px-4">
-            <div className="text-2xl md:text-3xl font-bold font-headline text-green-500">ABERTO</div>
           </CardContent>
         </Card>
       </div>
