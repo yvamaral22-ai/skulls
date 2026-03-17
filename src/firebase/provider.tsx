@@ -2,7 +2,7 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useEffect, useState } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, collection, doc, getDoc, getDocs, query, where, collectionGroup } from 'firebase/firestore';
 import { Auth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { Loader2 } from 'lucide-react';
@@ -48,23 +48,15 @@ export const FirebaseProvider: React.FC<{
 
   useEffect(() => {
     setMounted(true);
-    
-    // Inicia a sessão anônima silenciosamente para garantir as permissões do Firestore
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
         signInAnonymously(auth)
-          .then(() => {
-            setIsAuthReady(true);
-          })
-          .catch(err => {
-            console.error("Erro Crítico de Auth:", err);
-            setIsAuthReady(true); // Tenta prosseguir mesmo com erro para não travar a UI
-          });
+          .then(() => setIsAuthReady(true))
+          .catch(() => setIsAuthReady(true));
       } else {
         setIsAuthReady(true);
       }
     });
-
     return () => unsubscribe();
   }, [auth]);
 
@@ -75,7 +67,6 @@ export const FirebaseProvider: React.FC<{
     auth,
   }), [firebaseApp, firestore, auth]);
 
-  // Previne erro de hidratação: servidor e cliente renderizam o mesmo estado inicial (null/loader)
   if (!mounted || !isAuthReady) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -85,7 +76,7 @@ export const FirebaseProvider: React.FC<{
           </div>
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Barbearia Skull's</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Skulls Barber</p>
           </div>
         </div>
       </div>
@@ -117,29 +108,58 @@ export const useAuth = () => {
 };
 
 export const useUser = () => {
-  const { auth } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const [user, setUser] = useState<any>(null);
+  const [userData, setUserData] = useState<{
+    role: 'ADMIN' | 'STAFF' | 'CLIENT';
+    barberProfileId: string;
+    staffId?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth) return;
-    return onAuthStateChanged(auth, (u) => {
+    if (!auth || !firestore) return;
+    return onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser({
           uid: u.uid,
-          displayName: u.displayName || 'Barbeiro Mestre',
+          displayName: u.displayName || 'Usuário',
           email: u.email
         });
+
+        // Tenta encontrar a barbearia do dono
+        const ownerDoc = await getDoc(doc(firestore, 'barberProfiles', u.uid));
+        if (ownerDoc.exists()) {
+          setUserData({ role: 'ADMIN', barberProfileId: u.uid });
+        } else {
+          // Busca em todos os staffs (SaaS lookup)
+          const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', u.uid));
+          const staffSnap = await getDocs(staffQuery);
+          if (!staffSnap.empty) {
+            const staffDoc = staffSnap.docs[0];
+            setUserData({ 
+              role: 'STAFF', 
+              barberProfileId: staffDoc.ref.parent.parent?.id || 'master-barbershop',
+              staffId: staffDoc.id
+            });
+          } else {
+            setUserData({ role: 'CLIENT', barberProfileId: 'master-barbershop' });
+          }
+        }
+      } else {
+        setUser(null);
+        setUserData(null);
       }
       setLoading(false);
     });
-  }, [auth]);
+  }, [auth, firestore]);
 
   return {
     user,
-    role: 'ADMIN' as const,
+    role: userData?.role || 'CLIENT',
+    barberProfileId: userData?.barberProfileId || 'master-barbershop',
+    staffId: userData?.staffId,
     isUserLoading: loading,
-    userError: null,
     logout: () => auth?.signOut(),
   };
 };

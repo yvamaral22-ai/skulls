@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useUser } from "@/firebase"
 
 const BarberPoleIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -33,15 +34,18 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { role } = useUser();
 
-  const items = [
-    { title: "Dashboard", url: "/", icon: LayoutDashboard },
-    { title: "Agenda", url: "/agenda", icon: CalendarDays },
-    { title: "Clientes", url: "/customers", icon: Users },
-    { title: "Serviços", url: "/services", icon: Scissors },
-    { title: "Equipe", url: "/staff", icon: Briefcase },
-    { title: "Relatórios", url: "/reports", icon: BarChart3 },
-  ]
+  const menuItems = [
+    { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ['ADMIN', 'STAFF'] },
+    { title: "Agenda", url: "/agenda", icon: CalendarDays, roles: ['ADMIN', 'STAFF'] },
+    { title: "Clientes", url: "/customers", icon: Users, roles: ['ADMIN'] },
+    { title: "Serviços", url: "/services", icon: Scissors, roles: ['ADMIN'] },
+    { title: "Equipe", url: "/staff", icon: Briefcase, roles: ['ADMIN'] },
+    { title: "Relatórios", url: "/reports", icon: BarChart3, roles: ['ADMIN'] },
+  ];
+
+  const filteredItems = menuItems.filter(item => item.roles.includes(role));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-card">
@@ -51,14 +55,14 @@ export function AppSidebar() {
             <BarberPoleIcon className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-headline text-primary text-xl leading-none">Barbearia Skull's</span>
-            <span className="text-[10px] uppercase tracking-widest opacity-60">Gestão de Barbearia</span>
+            <span className="font-headline text-primary text-xl leading-none">Skulls Barber</span>
+            <span className="text-[10px] uppercase tracking-widest opacity-60">Gestão Profissional</span>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 asChild
@@ -75,8 +79,6 @@ export function AppSidebar() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      
-      {/* Footer com Frase 3D Flutuante - Efeito Kamui */}
       <SidebarFooter className="p-8 mt-auto flex items-center justify-center overflow-hidden min-h-[180px]">
         <div className="relative group select-none">
           <span className="dimension-text font-headline text-primary text-3xl text-center leading-tight tracking-[0.2em] px-4 block">
@@ -84,7 +86,6 @@ export function AppSidebar() {
           </span>
         </div>
       </SidebarFooter>
-      
       <SidebarRail />
     </Sidebar>
   )

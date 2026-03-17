@@ -19,7 +19,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, setDoc, serverTimestamp, query, where, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -57,22 +57,21 @@ const TIME_SLOTS = [
 
 export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const db = useFirestore();
+  const { role, staffId: currentUserStaffId, barberProfileId } = useUser();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const barberShopId = "master-barbershop";
+  const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'services'), [db, barberProfileId]);
+  const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'staff'), [db, barberProfileId]);
 
-  const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'services'), [db]);
-  const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'staff'), [db]);
-
-  const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
-  const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery);
+  const { data: services } = useCollection(servicesQuery);
+  const { data: staff } = useCollection(staffQuery);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
       clientName: initialData?.clientName || '',
-      staffId: initialData?.staffId || '',
+      staffId: initialData?.staffId || (role === 'STAFF' ? currentUserStaffId : ''),
       serviceId: initialData?.serviceId || '',
       time: initialData?.time || '',
       date: initialData?.date ? (typeof initialData.date === 'string' ? parseISO(initialData.date) : initialData.date) : new Date(),
@@ -85,11 +84,11 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const appointmentsQuery = useMemoFirebase(() => {
     if (!selectedDate || !selectedStaffId) return null;
     return query(
-      collection(db, 'barberProfiles', barberShopId, 'appointments'),
+      collection(db, 'barberProfiles', barberProfileId, 'appointments'),
       where('date', '==', format(selectedDate, 'yyyy-MM-dd')),
       where('staffId', '==', selectedStaffId)
     );
-  }, [db, selectedDate, selectedStaffId]);
+  }, [db, barberProfileId, selectedDate, selectedStaffId]);
 
   const { data: existingAppointments } = useCollection(appointmentsQuery);
   
@@ -100,19 +99,6 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       .map(a => a.time);
   }, [existingAppointments, initialData]);
 
-  const isPastTime = (slot: string) => {
-    if (selectedDate && isSameDay(selectedDate, new Date())) {
-      const [slotHours, slotMinutes] = slot.split(':').map(Number);
-      const now = new Date();
-      const currentHours = now.getHours();
-      const currentMinutes = now.getMinutes();
-      
-      if (slotHours < currentHours) return true;
-      if (slotHours === currentHours && slotMinutes <= currentMinutes) return true;
-    }
-    return false;
-  };
-
   async function onSubmit(data: BookingFormValues) {
     setIsSubmitting(true);
     const targetDateStr = format(data.date, 'yyyy-MM-dd');
@@ -120,11 +106,11 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
     try {
       const selectedService = services?.find(s => s.id === data.serviceId);
       const isUpdate = !!initialData?.id;
-      const apptId = initialData?.id || doc(collection(db, 'barberProfiles', barberShopId, 'appointments')).id;
+      const apptId = initialData?.id || doc(collection(db, 'barberProfiles', barberProfileId, 'appointments')).id;
       
       const appointmentData = {
         id: apptId,
-        barberProfileId: barberShopId,
+        barberProfileId: barberProfileId,
         clientName: data.clientName,
         staffId: data.staffId,
         serviceId: data.serviceId,
@@ -136,19 +122,15 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       };
 
       if (isUpdate) {
-        await updateDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', apptId), appointmentData);
+        await updateDoc(doc(db, 'barberProfiles', barberProfileId, 'appointments', apptId), appointmentData);
       } else {
-        await setDoc(doc(db, 'barberProfiles', barberShopId, 'appointments', apptId), {
+        await setDoc(doc(db, 'barberProfiles', barberProfileId, 'appointments', apptId), {
           ...appointmentData,
           createdAt: serverTimestamp(),
         });
       }
 
-      toast({
-        title: isUpdate ? 'Sincronizado!' : 'Agendado!',
-        description: `${data.clientName} às ${data.time} no dia ${format(data.date, 'dd/MM/yyyy')}.`,
-      });
-      
+      toast({ title: isUpdate ? 'Sincronizado!' : 'Agendado!', description: `${data.clientName} às ${data.time}.` });
       if (onSuccess) onSuccess();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erro ao salvar' });
@@ -165,11 +147,11 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           name="clientName"
           render={({ field }) => (
             <UIFormItem>
-              <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Nome do Cliente</UIFormLabel>
+              <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Cliente</UIFormLabel>
               <UIFormControl>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/40" />
-                  <Input {...field} placeholder="Ex: João Silva" className="pl-10 h-12 bg-background/50 border-border" />
+                  <Input {...field} placeholder="Nome do cliente" className="pl-10 h-12 bg-background/50" />
                 </div>
               </UIFormControl>
               <UIFormMessage />
@@ -184,51 +166,25 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
             render={({ field }) => (
               <UIFormItem className="flex flex-col">
                 <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Data</UIFormLabel>
-                <div className="relative">
-                  {/* INPUT NATIVO PARA MOBILE - MÁXIMA COMPATIBILIDADE */}
-                  <div className="md:hidden">
-                    <input 
-                      type="date" 
-                      className="w-full h-12 rounded-md border border-border bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary pointer-events-auto"
-                      value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                      min={format(new Date(), 'yyyy-MM-dd')}
-                      onChange={(e) => {
-                        const date = e.target.value ? parseISO(e.target.value) : new Date();
-                        field.onChange(date);
-                      }}
+                <Popover modal={false}>
+                  <PopoverTrigger asChild>
+                    <UIFormControl>
+                      <Button variant="outline" className={cn("w-full text-left font-normal h-12 bg-background/50", !field.value && "text-muted-foreground")}>
+                        <span>{field.value ? format(field.value, "dd/MM/yyyy") : "Data"}</span>
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
+                      </Button>
+                    </UIFormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => { if (date) field.onChange(date); }}
+                      locale={ptBR}
+                      disabled={(date) => startOfDay(date) < startOfDay(new Date())}
                     />
-                  </div>
-                  
-                  {/* CALENDÁRIO VISUAL PARA PC */}
-                  <div className="hidden md:block">
-                    <Popover modal={false}>
-                      <PopoverTrigger asChild>
-                        <UIFormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full text-left font-normal h-12 bg-background/50 border-border",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            <span>{field.value ? format(field.value, "dd/MM/yyyy") : "Escolher"}</span>
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
-                          </Button>
-                        </UIFormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={(date) => { if (date) field.onChange(date); }}
-                          locale={ptBR}
-                          disabled={(date) => startOfDay(date) < startOfDay(new Date())}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
+                  </PopoverContent>
+                </Popover>
                 <UIFormMessage />
               </UIFormItem>
             )}
@@ -242,19 +198,14 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
                 <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Horário</UIFormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <UIFormControl>
-                    <SelectTrigger className="h-12 bg-background/50 border-border">
+                    <SelectTrigger className="h-12 bg-background/50">
                       <SelectValue placeholder="Hora" />
                     </SelectTrigger>
                   </UIFormControl>
                   <SelectContent className="max-h-[300px]">
                     {TIME_SLOTS.map((slot) => {
                       const isOccupied = occupiedSlots.includes(slot);
-                      const isPast = isPastTime(slot);
-                      return (
-                        <SelectItem key={slot} value={slot} disabled={isOccupied || isPast} className="text-xs">
-                          {slot} {isOccupied ? '(Ocupado)' : isPast ? '(Indisponível)' : ''}
-                        </SelectItem>
-                      );
+                      return <SelectItem key={slot} value={slot} disabled={isOccupied}>{slot} {isOccupied ? '(Ocupado)' : ''}</SelectItem>;
                     })}
                   </SelectContent>
                 </Select>
@@ -270,14 +221,14 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           render={({ field }) => (
             <UIFormItem>
               <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Barbeiro</UIFormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={role === 'STAFF'}>
                 <UIFormControl>
-                  <SelectTrigger className="h-12 bg-background/50 border-border">
+                  <SelectTrigger className="h-12 bg-background/50">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                 </UIFormControl>
                 <SelectContent>
-                  {staff?.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
+                  {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <UIFormMessage />
@@ -293,13 +244,13 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
               <UIFormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Serviço</UIFormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <UIFormControl>
-                  <SelectTrigger className="h-12 bg-background/50 border-border">
+                  <SelectTrigger className="h-12 bg-background/50">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                 </UIFormControl>
                 <SelectContent>
                   {services?.map(s => (
-                    <SelectItem key={s.id} value={s.id} className="text-xs">
+                    <SelectItem key={s.id} value={s.id}>
                       {s.name} - R$ {Number(s.price).toFixed(2)}
                     </SelectItem>
                   ))}
@@ -310,9 +261,9 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting} className="w-full h-12 text-sm font-bold shadow-xl bg-primary text-black hover:bg-primary/90 mt-4 uppercase">
+        <Button type="submit" disabled={isSubmitting} className="w-full h-12 text-sm font-bold bg-primary text-black hover:bg-primary/90 mt-4 uppercase">
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-          Confirmar
+          Confirmar Agendamento
         </Button>
       </form>
     </UIForm>
