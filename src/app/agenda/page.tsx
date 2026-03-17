@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -8,22 +9,17 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Plus, ChevronLeft, ChevronRight, 
-  Loader2, CheckCircle2, Clock, User, Scissors, Calendar as CalendarIcon, Info
+  Loader2, CheckCircle2, Clock, User, Scissors, Calendar as CalendarIcon, Filter
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
@@ -32,7 +28,7 @@ import { collection, doc, deleteDoc, query, where } from 'firebase/firestore';
 import { ptBR } from 'date-fns/locale';
 import { 
   format, addDays, startOfWeek, isSameDay, 
-  startOfDay, differenceInMinutes, parseISO, addMinutes
+  startOfDay, differenceInMinutes, parseISO
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -46,12 +42,15 @@ const COLUMN_WIDTH = "min-w-[140px] sm:min-w-[180px] md:min-w-[200px] lg:flex-1"
 
 export default function AgendaPage() {
   const db = useFirestore();
-  const { role, staffId, barberProfileId, isUserLoading } = useUser();
+  const { role, staffId: loggedStaffId, barberProfileId, isUserLoading } = useUser();
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [isBookingOpen, setIsBookingOpen] = React.useState(false);
   const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
   const [currentTime, setCurrentTime] = React.useState(new Date());
+  
+  // Filtro de profissional para Admin
+  const [staffFilter, setStaffFilter] = React.useState<string>("all");
 
   React.useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -61,21 +60,30 @@ export default function AgendaPage() {
   const weekStart = startOfWeek(selectedDate, { locale: ptBR });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  // Consulta de Agendamentos Filtrada por Role
+  const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'staff'), [db, barberProfileId]);
+  const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'services'), [db, barberProfileId]);
+  
+  const { data: staff } = useCollection(staffQuery);
+  const { data: services } = useCollection(servicesQuery);
+
+  // Consulta de Agendamentos Filtrada
   const appointmentsQuery = useMemoFirebase(() => {
     const baseCol = collection(db, 'barberProfiles', barberProfileId, 'appointments');
-    if (role === 'STAFF' && staffId) {
-      return query(baseCol, where('staffId', '==', staffId));
+    
+    // Se for Barbeiro, vê apenas os seus
+    if (role === 'STAFF' && loggedStaffId) {
+      return query(baseCol, where('staffId', '==', loggedStaffId));
     }
+    
+    // Se for Admin e tiver filtro selecionado
+    if (role === 'ADMIN' && staffFilter !== 'all') {
+      return query(baseCol, where('staffId', '==', staffFilter));
+    }
+    
     return baseCol;
-  }, [db, barberProfileId, role, staffId]);
-
-  const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'services'), [db, barberProfileId]);
-  const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'staff'), [db, barberProfileId]);
+  }, [db, barberProfileId, role, loggedStaffId, staffFilter]);
 
   const { data: appointments, isLoading: isLoadingAppts } = useCollection(appointmentsQuery);
-  const { data: services } = useCollection(servicesQuery);
-  const { data: staff } = useCollection(staffQuery);
 
   const getAppointmentStyle = (appt: any, service: any) => {
     if (!appt.time) return { display: 'none' };
@@ -107,8 +115,8 @@ export default function AgendaPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] overflow-hidden bg-background rounded-2xl border border-border shadow-2xl relative">
-      <header className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-border bg-card gap-4 z-50 shrink-0">
-        <div className="flex items-center gap-2">
+      <header className="flex flex-col lg:flex-row items-center justify-between p-4 border-b border-border bg-card gap-4 z-50 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 justify-center lg:justify-start">
           <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="font-bold h-9">Hoje</Button>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
@@ -123,13 +131,29 @@ export default function AgendaPage() {
           </h2>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3 justify-center">
+          {role === 'ADMIN' && (
+            <div className="flex items-center gap-2 bg-secondary/20 p-1 px-2 rounded-lg border border-border">
+              <Filter className="h-4 w-4 text-primary opacity-60" />
+              <Select value={staffFilter} onValueChange={setStaffFilter}>
+                <SelectTrigger className="w-[140px] md:w-[180px] h-8 bg-transparent border-none focus:ring-0 text-[10px] uppercase font-bold">
+                  <SelectValue placeholder="Todos Barbeiros" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Profissionais</SelectItem>
+                  {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
           {role === 'STAFF' && (
-            <Badge variant="outline" className="border-primary/50 text-primary hidden sm:flex">
-              Agenda Individual: {staff?.find(s => s.id === staffId)?.name || 'Carregando...'}
+            <Badge variant="outline" className="border-primary/50 text-primary hidden sm:flex uppercase text-[9px]">
+              Minha Agenda: {staff?.find(s => s.id === loggedStaffId)?.name || 'Carregando...'}
             </Badge>
           )}
-          <Button className="bg-primary text-black font-bold h-10 shadow-lg" onClick={() => setIsBookingOpen(true)}>
+          
+          <Button className="bg-primary text-black font-bold h-9 shadow-lg" onClick={() => setIsBookingOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo Horário
           </Button>
         </div>
@@ -197,13 +221,11 @@ export default function AgendaPage() {
                           </div>
                           <div className="flex flex-col gap-0.5 mt-2 border-t border-white/5 pt-1.5">
                             <div className="flex items-center gap-1 text-[9px] md:text-[10px] font-bold text-white/90">
-                              <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 shrink-0 text-primary" /> {appt.time} • {service?.durationMinutes} min
+                              <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 shrink-0 text-primary" /> {appt.time}
                             </div>
-                            {role === 'ADMIN' && (
-                              <div className="hidden sm:flex items-center gap-1 text-[9px] md:text-[10px] font-bold text-white/70">
-                                <User className="h-2.5 w-2.5 md:h-3 md:w-3 shrink-0 text-primary" /> {barber?.name}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-1 text-[9px] md:text-[10px] font-bold text-white/70">
+                              <User className="h-2.5 w-2.5 md:h-3 md:w-3 shrink-0 text-primary" /> {barber?.name}
+                            </div>
                           </div>
                           {isCompleted && <div className="absolute top-1 right-1 h-4 w-4 flex items-center justify-center rounded-full bg-green-500 text-black"><CheckCircle2 className="h-3 w-3" /></div>}
                         </div>

@@ -103,7 +103,7 @@ export default function DashboardPage() {
         {role === 'ADMIN' && (
           <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4">
-              <CardTitle className="text-[9px] font-bold uppercase opacity-60">Bruto Hoje</CardTitle>
+              <CardTitle className="text-[9px] font-bold uppercase opacity-60">Faturamento Hoje</CardTitle>
               <TrendingUp className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent className="px-4">
@@ -114,11 +114,13 @@ export default function DashboardPage() {
 
         <Card className="border-none bg-card shadow-lg border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4">
-            <CardTitle className="text-[9px] font-bold uppercase opacity-60">Total Serviços</CardTitle>
+            <CardTitle className="text-[9px] font-bold uppercase opacity-60">Serviços Feitos</CardTitle>
             <Scissors className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent className="px-4">
-            <div className="text-2xl md:text-3xl font-bold font-headline">{appointments?.filter(a => a.status === 'completed').length || 0}</div>
+            <div className="text-2xl md:text-3xl font-bold font-headline">
+              {appointments?.filter(a => a.status === 'completed').length || 0}
+            </div>
           </CardContent>
         </Card>
       </div>

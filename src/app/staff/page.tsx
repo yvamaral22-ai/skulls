@@ -89,7 +89,7 @@ export default function StaffPage() {
       createdAt: serverTimestamp()
     })
 
-    toast({ title: "Equipe Skulls Barber", description: `${name} foi adicionado à equipe.` })
+    toast({ title: "Equipe Barbearia Skull's", description: `${name} foi adicionado à equipe.` })
     setIsAddOpen(false)
   }
 
