@@ -71,7 +71,7 @@ export default function AgendaPage() {
   }, [db, barberProfileId, role, staffId]);
 
   const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'services'), [db, barberProfileId]);
-  const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberShopId, 'staff'), [db, barberShopId]);
+  const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'staff'), [db, barberProfileId]);
 
   const { data: appointments, isLoading: isLoadingAppts } = useCollection(appointmentsQuery);
   const { data: services } = useCollection(servicesQuery);

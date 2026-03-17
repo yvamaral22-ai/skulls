@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -21,19 +20,18 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { User, Search, Plus, Phone, Info, Pencil, Trash2, Loader2 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function CustomersPage() {
   const db = useFirestore()
+  const { barberProfileId } = useUser();
   const [searchTerm, setSearchTerm] = React.useState("")
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const { toast } = useToast()
-
-  const barberProfileId = "master-barbershop"
 
   const clientsQuery = useMemoFirebase(() => {
     return collection(db, "barberProfiles", barberProfileId, "clients")

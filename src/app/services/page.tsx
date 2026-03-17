@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -20,22 +19,21 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Scissors, Plus, Pencil, Trash2, Clock, Loader2 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc, setDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function ServicesPage() {
   const db = useFirestore()
+  const { barberProfileId } = useUser();
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingService, setEditingService] = React.useState<any | null>(null)
-  
-  const barberShopId = "master-barbershop";
 
   const servicesQuery = useMemoFirebase(() => {
-    return collection(db, "barberProfiles", barberShopId, "services")
-  }, [db, barberShopId])
+    return collection(db, "barberProfiles", barberProfileId, "services")
+  }, [db, barberProfileId])
 
   const { data: services, isLoading: isDataLoading } = useCollection(servicesQuery)
 
@@ -47,11 +45,11 @@ export default function ServicesPage() {
     const price = parseFloat(formData.get("price") as string)
     const durationMinutes = parseInt(formData.get("duration") as string)
 
-    const serviceRef = doc(collection(db, "barberProfiles", barberShopId, "services"))
+    const serviceRef = doc(collection(db, "barberProfiles", barberProfileId, "services"))
     
     setDoc(serviceRef, {
       id: serviceRef.id,
-      barberProfileId: barberShopId,
+      barberProfileId: barberProfileId,
       name,
       price,
       durationMinutes
@@ -73,7 +71,7 @@ export default function ServicesPage() {
     const price = parseFloat(formData.get("price") as string)
     const durationMinutes = parseInt(formData.get("duration") as string)
 
-    const serviceRef = doc(db, "barberProfiles", barberShopId, "services", editingService.id)
+    const serviceRef = doc(db, "barberProfiles", barberProfileId, "services", editingService.id)
     
     updateDocumentNonBlocking(serviceRef, {
       name,
@@ -89,7 +87,7 @@ export default function ServicesPage() {
   }
 
   const handleDelete = (id: string, name: string) => {
-    const serviceRef = doc(db, "barberProfiles", barberShopId, "services", id)
+    const serviceRef = doc(db, "barberProfiles", barberProfileId, "services", id)
     deleteDocumentNonBlocking(serviceRef)
     toast({
       variant: "destructive",
