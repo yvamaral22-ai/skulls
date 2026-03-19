@@ -1,4 +1,3 @@
-
 'use client';
 
 import './globals.css';
@@ -31,12 +30,22 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const [mounted, setMounted] = React.useState(false);
+
+  // Garante que o componente foi montado no cliente antes de renderizar lógica de Auth
+  // Isso evita erros de Hydration Mismatch entre servidor e cliente.
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
-    if (!isUserLoading && !user && pathname !== '/login') {
+    if (mounted && !isUserLoading && !user && pathname !== '/login') {
       router.push('/login');
     }
-  }, [user, isUserLoading, pathname, router]);
+  }, [user, isUserLoading, pathname, router, mounted]);
+
+  // Enquanto não estiver montado no cliente, não renderiza nada para evitar erro de hidratação
+  if (!mounted) return null;
 
   if (isUserLoading) {
     return (

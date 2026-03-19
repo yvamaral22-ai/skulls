@@ -59,6 +59,7 @@ export default function AgendaPage() {
   const weekStart = startOfWeek(selectedDate, { locale: ptBR });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  // Correção de barberShopId para barberProfileId
   const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'staff'), [db, barberProfileId]);
   const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'services'), [db, barberProfileId]);
   
