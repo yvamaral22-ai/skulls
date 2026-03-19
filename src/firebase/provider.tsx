@@ -49,7 +49,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     user: null,
     role: null,
     staffId: null,
-    barberProfileId: 'studio-4701647119-91ed7', // ID padrão para evitar erros de undefined
+    barberProfileId: '', 
     isUserLoading: true,
     userError: null,
   });
@@ -59,12 +59,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
-        setUserState(prev => ({ ...prev, user: null, role: null, staffId: null, isUserLoading: false }));
+        setUserState(prev => ({ ...prev, user: null, role: null, staffId: null, isUserLoading: false, barberProfileId: '' }));
         return;
       }
 
       try {
-        // 1. Verifica se é ADMIN (Dono da barbearia)
+        // 1. Verifica se é ADMIN (Dono)
         const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
         if (barberDoc.exists()) {
           setUserState({
@@ -78,14 +78,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 2. Verifica se é STAFF (Funcionário) usando Collection Group
+        // 2. Verifica se é STAFF (Funcionário)
         const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', firebaseUser.uid));
         const staffSnap = await getDocs(staffQuery);
         
         if (!staffSnap.empty) {
           const staffDoc = staffSnap.docs[0];
-          // Tenta obter o ID do dono através do caminho do documento
-          const barberId = staffDoc.ref.parent.parent?.id || 'studio-4701647119-91ed7';
+          const barberId = staffDoc.ref.parent.parent?.id || '';
           setUserState({
             user: firebaseUser,
             role: 'STAFF',
@@ -97,24 +96,22 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 3. Se não for nenhum dos dois, assume CLIENT
+        // 3. Caso contrário, assume CLIENT
         setUserState({
           user: firebaseUser,
           role: 'CLIENT',
           staffId: null,
-          barberProfileId: 'studio-4701647119-91ed7',
+          barberProfileId: '',
           isUserLoading: false,
           userError: null
         });
 
       } catch (error: any) {
-        console.error("Erro ao identificar papel do usuário:", error);
         setUserState(prev => ({ 
           ...prev, 
           user: firebaseUser, 
           isUserLoading: false, 
-          userError: error,
-          barberProfileId: 'studio-4701647119-91ed7' 
+          userError: error 
         }));
       }
     });

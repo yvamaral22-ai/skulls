@@ -29,15 +29,18 @@ export default function DashboardPage() {
   const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
 
   const appointmentsQuery = useMemoFirebase(() => {
-    const baseCol = collection(db, 'barberProfiles', barberProfileId, 'appointments');
-    // Filtro STAFF: vê apenas seus próprios dados
+    if (!barberProfileId) return null;
+    const baseCol = collection(db, 'barbers', barberProfileId, 'appointments');
     if (role === 'STAFF' && staffId) {
       return query(baseCol, where('staffId', '==', staffId));
     }
     return baseCol;
   }, [db, barberProfileId, role, staffId]);
 
-  const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'services'), [db, barberProfileId]);
+  const servicesQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, 'barbers', barberProfileId, 'services');
+  }, [db, barberProfileId]);
 
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery);
   const { data: services, isLoading: isServicesLoading } = useCollection(servicesQuery);
@@ -56,8 +59,9 @@ export default function DashboardPage() {
   }, [todayAppointments]);
 
   const handleDelete = async (id: string) => {
+    if (!barberProfileId) return;
     try {
-      await deleteDoc(doc(db, 'barberProfiles', barberProfileId, 'appointments', id));
+      await deleteDoc(doc(db, 'barbers', barberProfileId, 'appointments', id));
       setEditingAppointment(null);
       toast({ variant: "destructive", title: "Excluído", description: "O horário foi removido." });
     } catch (e) {
@@ -71,6 +75,16 @@ export default function DashboardPage() {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
+  }
+
+  if (role === 'CLIENT') {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <h1 className="text-2xl font-headline text-primary">Bem-vindo à Barbearia Skull's</h1>
+        <p className="text-muted-foreground">Você está logado como cliente.</p>
+        <Button asChild><Link href="/client">Ir para meus agendamentos</Link></Button>
+      </div>
+    );
   }
 
   return (

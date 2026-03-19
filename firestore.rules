@@ -4,44 +4,33 @@ service cloud.firestore {
 
     /**
      * CUSTOMER-FIRST BARBER SHOP SECURITY MODEL
-     *
-     * Core Philosophy:
-     * This ruleset enforces a strict Ownership model based on the "Barber-as-Tenant" architecture. 
-     * All application data—including clients, services, appointments, and schedule blocks—is 
-     * strictly nested under a root Barber document. Access is granted only when the 
-     * authenticated User ID matches the top-level Barber ID in the document path.
+     * Enforces strict isolation between barber shops and individual staff agendas.
      */
 
-    // --- Global Helper Functions ---
-
-    /** Checks if the request is made by an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** Checks if the authenticated user's UID matches the provided userId. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function isOwner(barberId) {
+      return isSignedIn() && request.auth.uid == barberId;
     }
 
-    /** 
-     * Combined check for ownership and document existence. 
-     */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+    function isExistingOwner(barberId) {
+      return resource != null && isOwner(barberId);
     }
-
-    // --- Collection Rules ---
 
     match /barbers/{barberId} {
-      allow get, list: if isOwner(barberId);
+      // Permite que qualquer usuário logado veja informações básicas da barbearia
+      allow get: if isSignedIn();
+      allow list: if isOwner(barberId);
       allow create: if isOwner(barberId) && request.resource.data.id == barberId;
       allow update: if isExistingOwner(barberId) && request.resource.data.id == barberId;
       allow delete: if isExistingOwner(barberId);
 
       /** Subcollection for staff management */
       match /staff/{staffId} {
-        allow get, list: if isOwner(barberId);
+        // Clientes precisam listar barbeiros para agendar
+        allow get, list: if isSignedIn();
         allow create, update, delete: if isOwner(barberId);
       }
 
@@ -49,39 +38,30 @@ service cloud.firestore {
       match /clients/{clientId} {
         allow get, list: if isOwner(barberId);
         allow create: if isOwner(barberId) && request.resource.data.id == clientId;
-        allow update: if isExistingOwner(barberId);
-        allow delete: if isExistingOwner(barberId);
+        allow update, delete: if isExistingOwner(barberId);
       }
 
       /** Subcollection for services */
       match /services/{serviceId} {
-        allow get, list: if isOwner(barberId);
-        allow create: if isOwner(barberId) && request.resource.data.id == serviceId;
-        allow update: if isExistingOwner(barberId);
-        allow delete: if isExistingOwner(barberId);
+        // Clientes precisam ver o menu de serviços
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isOwner(barberId);
       }
 
       /** Records of scheduled bookings. */
       match /appointments/{appointmentId} {
-        allow get, list: if isOwner(barberId) || (isSignedIn() && resource.data.staffId == request.auth.uid);
-        allow create: if isOwner(barberId) || (isSignedIn() && request.resource.data.staffId == request.auth.uid);
-        allow update: if isOwner(barberId) || (isSignedIn() && resource.data.staffId == request.auth.uid);
-        allow delete: if isOwner(barberId);
-      }
-
-      /** Periods when a barber is unavailable. */
-      match /blockedTimes/{blockedTimeId} {
-        allow get, list: if isOwner(barberId) || (isSignedIn() && resource.data.staffId == request.auth.uid);
-        allow create: if isOwner(barberId) || (isSignedIn() && request.resource.data.staffId == request.auth.uid);
-        allow update: if isOwner(barberId) || (isSignedIn() && resource.data.staffId == request.auth.uid);
+        // Dono vê tudo, Barbeiro vê apenas os seus, Cliente vê apenas os seus
+        allow get, list: if isOwner(barberId) 
+          || (isSignedIn() && (resource.data.staffId == request.auth.uid || resource.data.clientId == request.auth.uid));
+        
+        allow create: if isSignedIn();
+        allow update: if isOwner(barberId) 
+          || (isSignedIn() && resource.data.staffId == request.auth.uid);
         allow delete: if isOwner(barberId);
       }
     }
 
-    /** 
-     * Collection Group Support for Staff Role Detection 
-     * Allows a staff member to find which barber shop they belong to.
-     */
+    /** Permite que o funcionário encontre a qual barbearia pertence */
     match /{path=**}/staff/{staffId} {
       allow read: if isSignedIn() && request.auth.uid == staffId;
     }
