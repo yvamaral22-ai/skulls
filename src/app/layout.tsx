@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -53,12 +54,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Se estiver na página de login ou se o usuário estiver logado, renderiza o app
+  // Se estiver na página de login ou logado, permite renderizar
   if (pathname === '/login' || user) {
     return <>{children}</>;
   }
 
-  // Enquanto redireciona
   return null;
 }
 
@@ -70,24 +70,17 @@ export default function RootLayout({
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
 
-  React.useEffect(() => {
-    document.title = "Barbearia Skull's | Gestão Profissional";
-  }, []);
-
   return (
     <html lang="pt-BR" className="dark">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
-        
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png.png?v=3" />
-        
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Barbearia Skull's" />
         <meta name="theme-color" content="#000000" />
-        
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Metal+Mania&display=swap" rel="stylesheet" />
@@ -111,7 +104,6 @@ export default function RootLayout({
                       </div>
                       <SidebarTrigger />
                     </header>
-                    
                     <main className="p-4 md:p-8 pb-24 md:pb-8">
                       {children}
                     </main>
