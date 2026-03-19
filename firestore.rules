@@ -10,22 +10,6 @@ service cloud.firestore {
      * All application data—including clients, services, appointments, and schedule blocks—is 
      * strictly nested under a root Barber document. Access is granted only when the 
      * authenticated User ID matches the top-level Barber ID in the document path.
-     *
-     * Data Structure:
-     * The hierarchy follows: /barbers/{barberId}/[sub-collection]/{documentId}.
-     * This structure ensures that queries are automatically scoped to the authenticated 
-     * user's data, preventing cross-tenant data leakage.
-     *
-     * Key Security Decisions:
-     * 1. Path-Based Authorization: The {barberId} in the URL path is treated as the 
-     *    primary key for all authorization checks (request.auth.uid == barberId).
-     * 2. Relational Integrity: For appointments and blocked times, the rules enforce 
-     *    that the internal 'barberId' field matches the path parameter, ensuring 
-     *    consistency between where a document is stored and what it contains.
-     * 3. Denormalization for Performance: By nesting all data under the Barber, we avoid 
-     *    costly get() calls to parent documents for permission checks.
-     * 4. Prototyping Flexibility: Rules strictly enforce WHO can access data, but remain 
-     *    flexible on WHAT data is stored (schema-agnostic) to support rapid development.
      */
 
     // --- Global Helper Functions ---
@@ -42,7 +26,6 @@ service cloud.firestore {
 
     /** 
      * Combined check for ownership and document existence. 
-     * Used for updates and deletes to prevent operations on non-existent data.
      */
     function isExistingOwner(userId) {
       return resource != null && isOwner(userId);
@@ -50,75 +33,57 @@ service cloud.firestore {
 
     // --- Collection Rules ---
 
-    /**
-     * @description Rules for the root Barber profile. A barber can only manage their own profile.
-     * @path /barbers/{barberId}
-     * @allow Authenticated user (UID: 123) creates document /barbers/123 (create).
-     * @deny Authenticated user (UID: 123) attempts to create document /barbers/456 (create).
-     * @principle Self-Creation and Ownership: Ensures document ID matches the Auth UID.
-     */
     match /barbers/{barberId} {
-      allow get: if isOwner(barberId);
-      allow list: if isOwner(barberId);
+      allow get, list: if isOwner(barberId);
       allow create: if isOwner(barberId) && request.resource.data.id == barberId;
       allow update: if isExistingOwner(barberId) && request.resource.data.id == barberId;
       allow delete: if isExistingOwner(barberId);
 
-      /**
-       * @description Subcollection for clients managed by a specific barber.
-       * @path /barbers/{barberId}/clients/{clientId}
-       * @allow Barber (UID: 123) lists all documents in /barbers/123/clients (list).
-       * @deny Barber (UID: 123) attempts to read /barbers/999/clients/abc (get).
-       * @principle Structural Segregation: Access is gated by the parent path's UID.
-       */
+      /** Subcollection for staff management */
+      match /staff/{staffId} {
+        allow get, list: if isOwner(barberId);
+        allow create, update, delete: if isOwner(barberId);
+      }
+
+      /** Subcollection for clients */
       match /clients/{clientId} {
         allow get, list: if isOwner(barberId);
         allow create: if isOwner(barberId) && request.resource.data.id == clientId;
-        allow update: if isExistingOwner(barberId) && request.resource.data.id == resource.data.id;
+        allow update: if isExistingOwner(barberId);
         allow delete: if isExistingOwner(barberId);
       }
 
-      /**
-       * @description Subcollection for services offered by a barber.
-       * @path /barbers/{barberId}/services/{serviceId}
-       * @allow Barber (UID: 123) creates a new service in /barbers/123/services/cut (create).
-       * @deny Unauthenticated user attempts to list services (list).
-       * @principle Path-Based Access Control: Inherits authorization from the barberId parameter.
-       */
+      /** Subcollection for services */
       match /services/{serviceId} {
         allow get, list: if isOwner(barberId);
         allow create: if isOwner(barberId) && request.resource.data.id == serviceId;
-        allow update: if isExistingOwner(barberId) && request.resource.data.id == resource.data.id;
+        allow update: if isExistingOwner(barberId);
         allow delete: if isExistingOwner(barberId);
       }
 
-      /**
-       * @description Records of scheduled bookings. Includes relational validation for barberId.
-       * @path /barbers/{barberId}/appointments/{appointmentId}
-       * @allow Barber (UID: 123) updates an appointment where request.resource.data.barberId is '123' (update).
-       * @deny Barber (UID: 123) attempts to create appointment with barberId field set to '456' (create).
-       * @principle Relational Integrity: Enforces consistency between the URL path and document fields.
-       */
+      /** Records of scheduled bookings. */
       match /appointments/{appointmentId} {
-        allow get, list: if isOwner(barberId);
-        allow create: if isOwner(barberId) && request.resource.data.barberId == barberId;
-        allow update: if isExistingOwner(barberId) && request.resource.data.barberId == barberId;
-        allow delete: if isExistingOwner(barberId);
+        allow get, list: if isOwner(barberId) || (isSignedIn() && resource.data.staffId == request.auth.uid);
+        allow create: if isOwner(barberId) || (isSignedIn() && request.resource.data.staffId == request.auth.uid);
+        allow update: if isOwner(barberId) || (isSignedIn() && resource.data.staffId == request.auth.uid);
+        allow delete: if isOwner(barberId);
       }
 
-      /**
-       * @description Periods when a barber is unavailable.
-       * @path /barbers/{barberId}/blockedTimes/{blockedTimeId}
-       * @allow Barber (UID: 123) deletes a block in /barbers/123/blockedTimes/lunch (delete).
-       * @deny Barber (UID: 456) attempts to list blocks in /barbers/123/blockedTimes (list).
-       * @principle Authorization Independence: Uses denormalized barberId field to support secure, queryable writes.
-       */
+      /** Periods when a barber is unavailable. */
       match /blockedTimes/{blockedTimeId} {
-        allow get, list: if isOwner(barberId);
-        allow create: if isOwner(barberId) && request.resource.data.barberId == barberId;
-        allow update: if isExistingOwner(barberId) && request.resource.data.barberId == barberId;
-        allow delete: if isExistingOwner(barberId);
+        allow get, list: if isOwner(barberId) || (isSignedIn() && resource.data.staffId == request.auth.uid);
+        allow create: if isOwner(barberId) || (isSignedIn() && request.resource.data.staffId == request.auth.uid);
+        allow update: if isOwner(barberId) || (isSignedIn() && resource.data.staffId == request.auth.uid);
+        allow delete: if isOwner(barberId);
       }
+    }
+
+    /** 
+     * Collection Group Support for Staff Role Detection 
+     * Allows a staff member to find which barber shop they belong to.
+     */
+    match /{path=**}/staff/{staffId} {
+      allow read: if isSignedIn() && request.auth.uid == staffId;
     }
   }
 }

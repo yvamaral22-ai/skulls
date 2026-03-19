@@ -59,16 +59,14 @@ export default function AgendaPage() {
   const weekStart = startOfWeek(selectedDate, { locale: ptBR });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  // Correção de barberShopId para barberProfileId
-  const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'staff'), [db, barberProfileId]);
-  const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'services'), [db, barberProfileId]);
+  const staffQuery = useMemoFirebase(() => collection(db, 'barbers', barberProfileId, 'staff'), [db, barberProfileId]);
+  const servicesQuery = useMemoFirebase(() => collection(db, 'barbers', barberProfileId, 'services'), [db, barberProfileId]);
   
   const { data: staff } = useCollection(staffQuery);
   const { data: services } = useCollection(servicesQuery);
 
-  // Consulta de Agendamentos com Restrição de Role
   const appointmentsQuery = useMemoFirebase(() => {
-    const baseCol = collection(db, 'barberProfiles', barberProfileId, 'appointments');
+    const baseCol = collection(db, 'barbers', barberProfileId, 'appointments');
     
     // Se for Barbeiro (STAFF), vê APENAS os seus
     if (role === 'STAFF' && loggedStaffId) {
@@ -98,7 +96,7 @@ export default function AgendaPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'barberProfiles', barberProfileId, 'appointments', id));
+      await deleteDoc(doc(db, 'barbers', barberProfileId, 'appointments', id));
       setEditingAppointment(null);
       toast({ variant: "destructive", title: "Agendamento Excluído", description: "O horário foi removido." });
     } catch (e) {

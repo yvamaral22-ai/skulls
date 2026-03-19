@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -85,7 +84,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         
         if (!staffSnap.empty) {
           const staffDoc = staffSnap.docs[0];
-          const barberId = staffDoc.ref.parent.parent?.id || firebaseUser.uid;
+          // Tenta obter o ID do dono através do caminho do documento
+          const barberId = staffDoc.ref.parent.parent?.id || 'studio-4701647119-91ed7';
           setUserState({
             user: firebaseUser,
             role: 'STAFF',
@@ -109,7 +109,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
       } catch (error: any) {
         console.error("Erro ao identificar papel do usuário:", error);
-        setUserState(prev => ({ ...prev, user: firebaseUser, isUserLoading: false, userError: error }));
+        setUserState(prev => ({ 
+          ...prev, 
+          user: firebaseUser, 
+          isUserLoading: false, 
+          userError: error,
+          barberProfileId: 'studio-4701647119-91ed7' 
+        }));
       }
     });
 
@@ -156,3 +162,7 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & 
   if(memoized && typeof memoized === 'object') memoized.__memo = true;
   return memoized;
 }
+
+export const logout = async (auth: Auth) => {
+  await auth.signOut();
+};
