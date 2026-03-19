@@ -129,20 +129,18 @@ export const useUser = () => {
         });
 
         // 1. Tenta encontrar se o usuário é o DONO (Admin)
-        const ownerDoc = await getDoc(doc(firestore, 'barberProfiles', u.uid));
-        if (ownerDoc.exists()) {
-          setUserData({ role: 'ADMIN', barberProfileId: u.uid });
-        } else {
-          // 2. Tenta encontrar se o usuário é um FUNCIONÁRIO (Staff)
-          // Busca em todos os staffs pelo UID (SaaS lookup)
-          // EXIGE ÍNDICE DE COLLECTION GROUP
-          try {
+        try {
+          const ownerDoc = await getDoc(doc(firestore, 'barberProfiles', u.uid));
+          if (ownerDoc.exists()) {
+            setUserData({ role: 'ADMIN', barberProfileId: u.uid });
+          } else {
+            // 2. Tenta encontrar se o usuário é um FUNCIONÁRIO (Staff)
+            // EXIGE ÍNDICE DE COLLECTION GROUP
             const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', u.uid));
             const staffSnap = await getDocs(staffQuery);
             
             if (!staffSnap.empty) {
               const staffDoc = staffSnap.docs[0];
-              // O parent do staff é a subcoleção 'staff', o parent dela é o documento do perfil da barbearia
               const profileId = staffDoc.ref.parent.parent?.id || 'master-barbershop';
               setUserData({ 
                 role: 'STAFF', 
@@ -150,13 +148,12 @@ export const useUser = () => {
                 staffId: staffDoc.id
               });
             } else {
-              // 3. Caso contrário, é um CLIENTE
               setUserData({ role: 'CLIENT', barberProfileId: 'master-barbershop' });
             }
-          } catch (e) {
-            console.error("Erro ao buscar papel do usuário:", e);
-            setUserData({ role: 'CLIENT', barberProfileId: 'master-barbershop' });
           }
+        } catch (e) {
+          console.error("Erro ao buscar papel do usuário (Aguardando Índice):", e);
+          setUserData({ role: 'CLIENT', barberProfileId: 'master-barbershop' });
         }
       } else {
         setUser(null);

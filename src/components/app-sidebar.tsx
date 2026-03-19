@@ -37,7 +37,7 @@ export function AppSidebar() {
   const { role } = useUser();
 
   const menuItems = [
-    { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ['ADMIN', 'STAFF'] },
+    { title: "Início", url: "/", icon: LayoutDashboard, roles: ['ADMIN', 'STAFF'] },
     { title: "Minha Agenda", url: "/agenda", icon: CalendarDays, roles: ['ADMIN', 'STAFF'] },
     { title: "Clientes", url: "/customers", icon: Users, roles: ['ADMIN'] },
     { title: "Serviços", url: "/services", icon: Scissors, roles: ['ADMIN'] },
