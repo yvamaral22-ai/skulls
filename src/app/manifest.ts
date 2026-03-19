@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next'
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Barbearia Skull's",
-    short_name: "Barbearia",
+    short_name: "Skulls",
     description: "Gestão Profissional para Barbearia Skull's",
     start_url: '/',
     display: 'standalone',

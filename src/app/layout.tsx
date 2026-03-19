@@ -39,7 +39,7 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         
-        {/* CONFIGURAÇÃO DE ÍCONE REAL - USANDO O ARQUIVO NA PASTA PUBLIC */}
+        {/* CONFIGURAÇÃO DE ÍCONE REAL - USANDO O ARQUIVO NA PASTA PUBLIC COM CACHE BREAKING */}
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png.png?v=3" />
         <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png.png?v=3" />

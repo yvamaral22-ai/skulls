@@ -55,7 +55,7 @@ export function AppSidebar() {
             <BarberPoleIcon className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-headline text-primary text-xl leading-none uppercase">Skulls Barber</span>
+            <span className="font-headline text-primary text-xl leading-none uppercase tracking-tighter">Barbearia Skull's</span>
             <span className="text-[10px] uppercase tracking-widest opacity-60">Gestão Profissional</span>
           </div>
         </div>
@@ -80,8 +80,8 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-8 mt-auto flex items-center justify-center overflow-hidden min-h-[180px]">
-        <div className="relative group select-none">
-          <span className="dimension-text font-headline text-primary text-3xl text-center leading-tight tracking-[0.2em] px-4 block">
+        <div className="relative group select-none text-center">
+          <span className="dimension-text font-headline text-primary text-2xl leading-tight tracking-[0.2em] px-4 block">
             O Baiano tem o molho
           </span>
         </div>
