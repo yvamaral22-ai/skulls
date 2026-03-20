@@ -63,8 +63,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         return;
       }
 
+      setUserState(prev => ({ ...prev, isUserLoading: true, user: firebaseUser }));
+
       try {
-        // 1. Verifica se é ADMIN (Dono da Barbearia) na coleção 'barbers'
+        // 1. Verifica se é ADMIN (Dono da Barbearia) na coleção oficial 'barbers'
+        // Tentamos pelo UID dele ser o ID do documento da barbearia
         const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
         if (barberDoc.exists()) {
           setUserState({
@@ -78,7 +81,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 2. Verifica se é STAFF (Funcionário) via Collection Group
+        // 2. Verifica se é STAFF (Funcionário) via Collection Group em 'staff'
         const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', firebaseUser.uid));
         const staffSnap = await getDocs(staffQuery);
         
@@ -97,7 +100,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 3. Caso contrário, assume CLIENT
+        // 3. Caso não encontre em nenhum, assume CLIENT (pode ser o caso do primeiro acesso)
         setUserState({
           user: firebaseUser,
           role: 'CLIENT',
@@ -109,7 +112,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
       } catch (error: any) {
         console.error("Erro ao identificar perfil:", error);
-        // Em caso de erro de permissão no boot, ainda mantemos o usuário logado como CLIENT
         setUserState({ 
           user: firebaseUser, 
           role: 'CLIENT', 

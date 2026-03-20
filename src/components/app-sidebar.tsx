@@ -34,7 +34,7 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { role } = useUser();
+  const { role, isUserLoading } = useUser();
 
   const menuItems = [
     { title: "Início", url: "/", icon: LayoutDashboard, roles: ['ADMIN', 'STAFF'] },
@@ -45,44 +45,50 @@ export function AppSidebar() {
     { title: "Relatórios", url: "/reports", icon: BarChart3, roles: ['ADMIN'] },
   ];
 
-  const filteredItems = menuItems.filter(item => item.roles.includes(role));
+  // Se estiver carregando, mostra o esqueleto ou nada
+  if (isUserLoading) return null;
+
+  // Filtra itens com base no papel do usuário. 
+  // Se for ADMIN ou STAFF, mostra os respectivos itens.
+  const filteredItems = menuItems.filter(item => 
+    item.roles.includes(role as string)
+  );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border bg-card">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2 px-2">
-          <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-primary text-black">
+    <Sidebar collapsible="none" className="border-r border-border bg-card w-64 hidden md:flex">
+      <SidebarHeader className="p-6">
+        <div className="flex items-center gap-3">
+          <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-primary text-black shadow-lg shadow-primary/20">
             <BarberPoleIcon className="size-6" />
           </div>
-          <div className="flex flex-col gap-0.5 leading-none">
+          <div className="flex flex-col gap-0.5">
             <span className="font-headline text-primary text-xl leading-none uppercase tracking-tighter">Barbearia Skull's</span>
-            <span className="text-[10px] uppercase tracking-widest opacity-60">Gestão Profissional</span>
+            <span className="text-[9px] uppercase font-bold tracking-[0.2em] opacity-50">Gestão de Elite</span>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="px-2">
-        <SidebarMenu>
+      <SidebarContent className="px-4 py-4">
+        <SidebarMenu className="gap-2">
           {filteredItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 asChild
                 isActive={pathname === item.url}
-                tooltip={item.title}
-                className="hover:bg-primary/10 hover:text-primary transition-all h-12"
+                className={`hover:bg-primary/10 hover:text-primary transition-all h-12 px-4 rounded-xl ${pathname === item.url ? 'bg-primary/10 text-primary font-bold border-l-4 border-primary' : ''}`}
               >
-                <Link href={item.url}>
+                <Link href={item.url} className="flex items-center gap-3">
                   <item.icon className="size-5" />
-                  <span className="font-medium">{item.title}</span>
+                  <span className="uppercase text-xs tracking-widest">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-8 mt-auto flex items-center justify-center overflow-hidden min-h-[180px]">
-        <div className="relative group select-none text-center">
-          <span className="dimension-text font-headline text-primary text-2xl leading-tight tracking-[0.2em] px-4 block">
-            O Baiano tem o molho
+      <SidebarFooter className="p-8 mt-auto flex items-center justify-center border-t border-border/50">
+        <div className="text-center">
+          <span className="dimension-text font-headline text-primary text-lg leading-tight tracking-[0.2em] block">
+            Skull's Barber
           </span>
         </div>
       </SidebarFooter>
