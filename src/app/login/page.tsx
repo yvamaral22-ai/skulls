@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Lock, Chrome, Loader2 } from 'lucide-react';
 import { useAuth, useUser } from '@/firebase';
-import { initiateEmailSignIn, initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
+import { initiateEmailSignIn, initiateEmailSignUp, initiateGoogleSignIn, initiatePasswordReset } from '@/firebase/non-blocking-login';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,6 +34,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isSignUp, setIsSignUp] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [email, setEmail] = React.useState('');
 
   React.useEffect(() => {
     if (!isUserLoading && user) {
@@ -51,25 +52,23 @@ export default function LoginPage() {
 
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
+    const emailVal = formData.get('email') as string;
     const password = formData.get('password') as string;
 
     try {
       if (isSignUp) {
-        await initiateEmailSignUp(auth, email, password);
+        await initiateEmailSignUp(auth, emailVal, password);
         toast({ title: "Cadastro Realizado", description: "Bem-vindo à Barbearia Skull's!" });
       } else {
-        await initiateEmailSignIn(auth, email, password);
+        await initiateEmailSignIn(auth, emailVal, password);
       }
-      // O redirecionamento será feito pelo useEffect após a mudança do estado de auth
     } catch (error: any) {
-      console.error(error);
       setIsLoading(false);
       let message = "Verifique suas credenciais.";
       if (error.code === 'auth/email-already-in-use') message = "Este e-mail já está em uso.";
       if (error.code === 'auth/weak-password') message = "A senha deve ter pelo menos 6 caracteres.";
       if (error.code === 'auth/invalid-email') message = "E-mail inválido.";
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') message = "E-mail ou senha incorretos.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') message = "E-mail ou senha incorretos.";
       
       toast({ variant: "destructive", title: "Erro no Acesso", description: message });
     }
@@ -81,9 +80,28 @@ export default function LoginPage() {
     try {
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
-      console.error(error);
       setIsLoading(false);
       toast({ variant: "destructive", title: "Erro no Google", description: "Não foi possível completar o acesso." });
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!auth) return;
+    if (!email) {
+      toast({ variant: "destructive", title: "Atenção", description: "Por favor, digite seu e-mail no campo acima primeiro." });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await initiatePasswordReset(auth, email);
+      toast({ title: "E-mail enviado", description: "Enviamos instruções de recuperação para o seu e-mail." });
+    } catch (error: any) {
+      let message = "Erro ao enviar e-mail.";
+      if (error.code === 'auth/user-not-found') message = "E-mail não cadastrado.";
+      toast({ variant: "destructive", title: "Erro", description: message });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -115,16 +133,45 @@ export default function LoginPage() {
               <Label htmlFor="email">E-mail</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" className="pl-10 h-12 bg-background/50 border-primary/20" required />
+                <Input 
+                  id="email" 
+                  name="email" 
+                  type="email" 
+                  placeholder="nome@exemplo.com" 
+                  className="pl-10 h-12 bg-background/50 border-primary/20" 
+                  required 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10 h-12 bg-background/50 border-primary/20" required />
+            {!isSignUp && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Senha</Label>
+                  <button 
+                    type="button" 
+                    onClick={handleForgotPassword}
+                    className="text-[10px] text-primary hover:underline font-bold uppercase tracking-tighter"
+                  >
+                    Esqueceu sua senha?
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10 h-12 bg-background/50 border-primary/20" required />
+                </div>
               </div>
-            </div>
+            )}
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10 h-12 bg-background/50 border-primary/20" required />
+                </div>
+              </div>
+            )}
             <Button type="submit" className="w-full h-12 font-bold bg-primary text-black hover:bg-primary/90" disabled={isLoading}>
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (isSignUp ? 'Criar Cadastro' : 'Entrar no Sistema')}
             </Button>
