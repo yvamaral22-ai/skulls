@@ -2,7 +2,7 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, getDoc, collectionGroup, query, where, getDocs, setDoc } from 'firebase/firestore';
+import { Firestore, doc, getDoc, collection, collectionGroup, query, where, getDocs, setDoc, limit, serverTimestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
@@ -41,6 +41,12 @@ export interface FirebaseServicesAndUser extends UserAuthState {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
+// Lista de e-mails que devem ter acesso total (Admin) automaticamente
+const MASTER_ADMIN_EMAILS = [
+  'guinho2v2@gmail.com',
+  // Adicione outros e-mails de administradores aqui se necessário
+];
+
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
   firebaseApp,
@@ -68,62 +74,97 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       setUserState(prev => ({ ...prev, isUserLoading: true }));
 
       try {
-        if (firebaseUser.email) {
-          const emailNormalized = firebaseUser.email.toLowerCase().trim();
-          const staffQuery = query(
-            collectionGroup(firestore, 'staff'), 
-            where('email', '==', emailNormalized)
-          );
-          const staffSnap = await getDocs(staffQuery);
-          
-          if (!staffSnap.empty) {
-            const staffDoc = staffSnap.docs[0];
-            const staffData = staffDoc.data();
-            const barberId = staffDoc.ref.parent.parent?.id || '';
-            
-            setUserState({
-              user: firebaseUser,
-              role: (staffData.role as UserRole) || 'STAFF',
-              staffId: staffDoc.id,
-              barberProfileId: barberId,
-              isUserLoading: false,
-              userError: null
-            });
-            return;
-          }
+        const emailNormalized = firebaseUser.email?.toLowerCase().trim() || '';
+        
+        // 1. Tenta encontrar a barbearia principal (a primeira criada) para evitar silos
+        const barbersRef = collection(firestore, 'barbers');
+        const barbersSnap = await getDocs(query(barbersRef, limit(1)));
+        
+        let mainBarberId = '';
+        let mainBarberOwnerEmail = '';
+
+        if (!barbersSnap.empty) {
+          mainBarberId = barbersSnap.docs[0].id;
+          mainBarberOwnerEmail = barbersSnap.docs[0].data().ownerEmail?.toLowerCase().trim() || '';
+        } else {
+          // Se não existe NENHUMA barbearia, este usuário é o primeiro dono
+          mainBarberId = firebaseUser.uid;
+          mainBarberOwnerEmail = emailNormalized;
+          await setDoc(doc(firestore, 'barbers', mainBarberId), {
+            id: mainBarberId,
+            name: "Barbearia Skull's",
+            ownerEmail: emailNormalized,
+            createdAt: serverTimestamp()
+          });
         }
 
-        const barberId = firebaseUser.uid;
-        const barberRef = doc(firestore, 'barbers', barberId);
-        const barberSnap = await getDoc(barberRef);
-        
-        if (!barberSnap.exists()) {
-          await setDoc(barberRef, {
-            id: barberId,
-            name: "Barbearia Skull's",
-            ownerEmail: firebaseUser.email,
-            createdAt: new Date().toISOString()
-          }, { merge: true });
+        // 2. Verifica se o usuário é um Administrador Mestre por e-mail
+        if (MASTER_ADMIN_EMAILS.includes(emailNormalized) || emailNormalized === mainBarberOwnerEmail) {
+          setUserState({
+            user: firebaseUser,
+            role: 'ADMIN',
+            staffId: null,
+            barberProfileId: mainBarberId,
+            isUserLoading: false,
+            userError: null
+          });
+          return;
         }
+
+        // 3. Verifica se o usuário já está na lista de funcionários (Staff)
+        const staffQuery = query(
+          collectionGroup(firestore, 'staff'), 
+          where('email', '==', emailNormalized)
+        );
+        const staffSnap = await getDocs(staffQuery);
+        
+        if (!staffSnap.empty) {
+          const staffDoc = staffSnap.docs[0];
+          const staffData = staffDoc.data();
+          const barberId = staffDoc.ref.parent.parent?.id || mainBarberId;
+          
+          setUserState({
+            user: firebaseUser,
+            role: (staffData.role as UserRole) || 'STAFF',
+            staffId: staffDoc.id,
+            barberProfileId: barberId,
+            isUserLoading: false,
+            userError: null
+          });
+          return;
+        }
+
+        // 4. Se não for dono nem funcionário cadastrado, entra por padrão como STAFF (Funcionário) 
+        // mas precisamos criar o registro dele na equipe da barbearia principal
+        const newStaffId = firebaseUser.uid;
+        const newStaffRef = doc(firestore, 'barbers', mainBarberId, 'staff', newStaffId);
+        
+        await setDoc(newStaffRef, {
+          id: newStaffId,
+          barberProfileId: mainBarberId,
+          name: firebaseUser.displayName || emailNormalized.split('@')[0],
+          email: emailNormalized,
+          role: 'STAFF',
+          isActive: true,
+          createdAt: serverTimestamp()
+        }, { merge: true });
 
         setUserState({
           user: firebaseUser,
-          role: 'ADMIN',
-          staffId: null,
-          barberProfileId: barberId,
+          role: 'STAFF',
+          staffId: newStaffId,
+          barberProfileId: mainBarberId,
           isUserLoading: false,
           userError: null
         });
 
       } catch (error: any) {
-        setUserState({ 
-          user: firebaseUser, 
-          role: 'ADMIN', 
-          staffId: null, 
-          barberProfileId: firebaseUser.uid, 
+        console.error("Auth initialization error:", error);
+        setUserState(prev => ({ 
+          ...prev, 
           isUserLoading: false, 
           userError: error 
-        });
+        }));
       }
     });
 
