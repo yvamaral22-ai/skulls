@@ -26,13 +26,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Briefcase, Plus, TrendingUp, CalendarDays, Pencil, Loader2, Trash2, 
-  Clock, Scissors, User, ChevronRight, Lock, Mail
+  Clock, Scissors, User, ChevronRight, Lock, Mail, ShieldCheck
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
-import { collection, doc, setDoc, serverTimestamp, deleteDoc } from "firebase/firestore"
+import { collection, doc, setDoc, serverTimestamp, deleteDoc, updateDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { format, parseISO } from "date-fns"
 
@@ -57,6 +64,7 @@ export default function StaffPage() {
   const { barberProfileId, role } = useUser();
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
+  const [editingStaff, setEditingStaff] = React.useState<any | null>(null)
   const [selectedStaffPanel, setSelectedStaffPanel] = React.useState<any | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   
@@ -92,6 +100,7 @@ export default function StaffPage() {
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const email = formData.get("email") as string
+    const role = formData.get("role") as string || 'STAFF'
 
     try {
       const staffRef = doc(collection(db, "barbers", barberProfileId, "staff"))
@@ -100,14 +109,42 @@ export default function StaffPage() {
         barberProfileId: barberProfileId,
         name,
         email: email.toLowerCase().trim(),
+        role,
         isActive: true,
         createdAt: serverTimestamp()
       })
 
-      toast({ title: "Equipe Skull's", description: `${name} foi cadastrado como Barbeiro.` })
+      toast({ title: "Equipe Skull's", description: `${name} foi cadastrado.` })
       setIsAddOpen(false)
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao salvar funcionário" })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!barberProfileId || !editingStaff) return
+
+    setIsSubmitting(true)
+    const formData = new FormData(e.currentTarget)
+    const name = formData.get("name") as string
+    const email = formData.get("email") as string
+    const role = formData.get("role") as string
+
+    try {
+      const staffRef = doc(db, "barbers", barberProfileId, "staff", editingStaff.id)
+      await updateDoc(staffRef, {
+        name,
+        email: email.toLowerCase().trim(),
+        role
+      })
+
+      toast({ title: "Atualizado!", description: "Dados do profissional foram sincronizados." })
+      setEditingStaff(null)
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao atualizar" })
     } finally {
       setIsSubmitting(false)
     }
@@ -123,7 +160,7 @@ export default function StaffPage() {
     }
   }
 
-  if (role === 'STAFF') {
+  if (role !== 'ADMIN') {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
         <Lock className="h-12 w-12 text-destructive opacity-40" />
@@ -163,8 +200,8 @@ export default function StaffPage() {
           </DialogTrigger>
           <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl text-primary">Novo Barbeiro</DialogTitle>
-              <DialogDescription className="text-[10px] uppercase">Defina o e-mail oficial para o acesso do barbeiro.</DialogDescription>
+              <DialogTitle className="font-headline text-2xl text-primary">Novo Profissional</DialogTitle>
+              <DialogDescription className="text-[10px] uppercase">Defina o nível de acesso e dados do profissional.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -175,12 +212,24 @@ export default function StaffPage() {
                 <Label className="text-[10px] uppercase font-bold text-primary/60">E-mail de Acesso</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/40" />
-                  <Input name="email" type="email" placeholder="barbeiro@email.com" required className="h-12 bg-background border-primary/20 pl-10" />
+                  <Input name="email" type="email" placeholder="email@exemplo.com" required className="h-12 bg-background border-primary/20 pl-10" />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-bold text-primary/60">Nível de Permissão</Label>
+                <Select name="role" defaultValue="STAFF">
+                  <SelectTrigger className="h-12 bg-background border-primary/20">
+                    <SelectValue placeholder="Selecione o papel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STAFF">Colaborador (Vê apenas sua agenda)</SelectItem>
+                    <SelectItem value="ADMIN">Barbeiro (Acesso Total ao Painel)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <DialogFooter className="pt-4">
                 <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-primary text-black font-headline text-2xl">
-                  {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Cadastrar Barbeiro"}
+                  {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Cadastrar Profissional"}
                 </Button>
               </DialogFooter>
             </form>
@@ -200,10 +249,13 @@ export default function StaffPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary text-primary group-hover:bg-primary group-hover:text-black transition-all duration-300 transform -rotate-2">
-                      <Briefcase className="h-8 w-8" />
+                      {member.role === 'ADMIN' ? <ShieldCheck className="h-8 w-8" /> : <Briefcase className="h-8 w-8" />}
                     </div>
                     <div>
-                      <CardTitle className="font-headline text-2xl group-hover:text-primary transition-colors">{member.name}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="font-headline text-2xl group-hover:text-primary transition-colors">{member.name}</CardTitle>
+                        {member.role === 'ADMIN' && <Badge className="bg-primary/20 text-primary border-none text-[8px] font-bold">ADM</Badge>}
+                      </div>
                       <p className="text-[10px] text-muted-foreground font-bold flex items-center gap-1">
                         <Mail className="h-3 w-3" /> {member.email}
                       </p>
@@ -244,25 +296,67 @@ export default function StaffPage() {
                     Painel Individual <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
 
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-muted-foreground hover:text-primary hover:bg-destructive/10">
-                        <Trash2 className="h-5 w-5" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Remover Profissional?</AlertDialogTitle>
-                        <AlertDialogDescription className="uppercase tracking-tighter text-[9px]">
-                          Esta operação removerá {member.name} permanentemente.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold h-11">Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(member.id, member.name)} className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold h-11">Confirmar</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex gap-2">
+                    <Dialog open={editingStaff?.id === member.id} onOpenChange={(open) => setEditingStaff(open ? member : null)}>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10">
+                          <Pencil className="h-5 w-5" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-card border-border shadow-2xl">
+                        <DialogHeader>
+                          <DialogTitle className="font-headline text-2xl text-primary">Editar Profissional</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleUpdate} className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label className="text-[10px] uppercase font-bold">Nome</Label>
+                            <Input name="name" defaultValue={member.name} required className="h-12 bg-background border-primary/20" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] uppercase font-bold">E-mail</Label>
+                            <Input name="email" defaultValue={member.email} type="email" required className="h-12 bg-background border-primary/20" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] uppercase font-bold">Papel / Permissão</Label>
+                            <Select name="role" defaultValue={member.role || 'STAFF'}>
+                              <SelectTrigger className="h-12 bg-background border-primary/20">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="STAFF">Colaborador (Restrito)</SelectItem>
+                                <SelectItem value="ADMIN">Barbeiro (Acesso Total)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <DialogFooter className="pt-4">
+                            <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-primary text-black font-headline text-2xl">
+                              {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Salvar Alterações"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Remover Profissional?</AlertDialogTitle>
+                          <AlertDialogDescription className="uppercase tracking-tighter text-[9px]">
+                            Esta operação removerá {member.name} permanentemente.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-secondary uppercase text-[10px] font-bold h-11">Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(member.id, member.name)} className="bg-destructive text-white hover:bg-destructive/90 uppercase text-[10px] font-bold h-11">Confirmar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>

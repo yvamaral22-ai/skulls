@@ -2,7 +2,7 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, getDoc, collectionGroup, query, where, getDocs, collection, limit, setDoc } from 'firebase/firestore';
+import { Firestore, doc, getDoc, collectionGroup, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
@@ -68,7 +68,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       setUserState(prev => ({ ...prev, isUserLoading: true }));
 
       try {
-        // 1. Tenta identificar como STAFF (Funcionário) via e-mail
         if (firebaseUser.email) {
           const emailNormalized = firebaseUser.email.toLowerCase().trim();
           const staffQuery = query(
@@ -79,11 +78,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           
           if (!staffSnap.empty) {
             const staffDoc = staffSnap.docs[0];
+            const staffData = staffDoc.data();
             const barberId = staffDoc.ref.parent.parent?.id || '';
             
             setUserState({
               user: firebaseUser,
-              role: 'STAFF',
+              role: (staffData.role as UserRole) || 'STAFF',
               staffId: staffDoc.id,
               barberProfileId: barberId,
               isUserLoading: false,
@@ -93,19 +93,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           }
         }
 
-        // 2. Se não for funcionário, assumimos que é o DONO (ADMIN)
-        // Usamos o próprio UID do usuário como o ID da barbearia (SaaS Mode)
         const barberId = firebaseUser.uid;
-        
-        // Garante que o documento raiz exista (ou cria um básico se for novo)
         const barberRef = doc(firestore, 'barbers', barberId);
         const barberSnap = await getDoc(barberRef);
         
         if (!barberSnap.exists()) {
-          // Se for o primeiro acesso, criamos o esqueleto da barbearia
           await setDoc(barberRef, {
             id: barberId,
-            name: "Minha Barbearia Skull's",
+            name: "Barbearia Skull's",
             ownerEmail: firebaseUser.email,
             createdAt: new Date().toISOString()
           }, { merge: true });
@@ -121,7 +116,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         });
 
       } catch (error: any) {
-        console.error("Erro na identificação do perfil:", error);
         setUserState({ 
           user: firebaseUser, 
           role: 'ADMIN', 
