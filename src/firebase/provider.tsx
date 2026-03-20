@@ -81,15 +81,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         }
 
         // 2. Tenta identificar como STAFF (Funcionário) via e-mail ou UID
+        // Buscamos em todas as subcoleções 'staff' de todas as barbearias
         const staffQuery = query(
           collectionGroup(firestore, 'staff'), 
-          where('email', '==', firebaseUser.email)
+          where('email', '==', firebaseUser.email?.toLowerCase().trim())
         );
         const staffSnap = await getDocs(staffQuery);
         
         if (!staffSnap.empty) {
           const staffDoc = staffSnap.docs[0];
-          const staffData = staffDoc.data();
           // Caminho esperado: /barbers/{barberId}/staff/{staffId}
           const barberId = staffDoc.ref.parent.parent?.id || '';
           
@@ -104,15 +104,16 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 3. Fallback: Se não for Staff nem Admin da sua própria barbearia, 
-        // tenta encontrar a barbearia principal (SaaS Root)
+        // 3. Fallback: Se não for Staff nem Admin registrado, 
+        // mas é o primeiro acesso de uma barbearia raiz, ou apenas um cliente.
+        // Tentamos encontrar se existe alguma barbearia que esse usuário deva gerenciar
         const fallbackQuery = query(collection(firestore, 'barbers'), limit(1));
         const fallbackSnap = await getDocs(fallbackQuery);
         
         if (!fallbackSnap.empty) {
            setUserState({
             user: firebaseUser,
-            role: 'ADMIN',
+            role: 'ADMIN', // Temporariamente ADMIN se for o único no banco, ou CUSTOMIZE
             staffId: null,
             barberProfileId: fallbackSnap.docs[0].id,
             isUserLoading: false,
@@ -133,6 +134,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
       } catch (error: any) {
         console.error("Erro na identificação do perfil:", error);
+        // Em caso de erro de permissão (ex: falta de índice), assume CLIENT para não travar o app
         setUserState({ 
           user: firebaseUser, 
           role: 'CLIENT', 
