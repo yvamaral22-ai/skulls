@@ -80,42 +80,47 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 2. Tenta identificar como STAFF (Funcionário) via e-mail ou UID
-        // Buscamos em todas as subcoleções 'staff' de todas as barbearias
-        const staffQuery = query(
-          collectionGroup(firestore, 'staff'), 
-          where('email', '==', firebaseUser.email?.toLowerCase().trim())
-        );
-        const staffSnap = await getDocs(staffQuery);
-        
-        if (!staffSnap.empty) {
-          const staffDoc = staffSnap.docs[0];
-          // Caminho esperado: /barbers/{barberId}/staff/{staffId}
-          const barberId = staffDoc.ref.parent.parent?.id || '';
+        // 2. Tenta identificar como STAFF (Funcionário) via e-mail
+        // CRITICAL FIX: Garantir que o e-mail existe antes de fazer a query para evitar erro 'undefined'
+        if (firebaseUser.email) {
+          const emailNormalized = firebaseUser.email.toLowerCase().trim();
+          const staffQuery = query(
+            collectionGroup(firestore, 'staff'), 
+            where('email', '==', emailNormalized)
+          );
+          const staffSnap = await getDocs(staffQuery);
           
-          setUserState({
-            user: firebaseUser,
-            role: 'STAFF',
-            staffId: staffDoc.id,
-            barberProfileId: barberId,
-            isUserLoading: false,
-            userError: null
-          });
-          return;
+          if (!staffSnap.empty) {
+            const staffDoc = staffSnap.docs[0];
+            // Caminho esperado: /barbers/{barberId}/staff/{staffId}
+            const barberId = staffDoc.ref.parent.parent?.id || '';
+            
+            setUserState({
+              user: firebaseUser,
+              role: 'STAFF',
+              staffId: staffDoc.id,
+              barberProfileId: barberId,
+              isUserLoading: false,
+              userError: null
+            });
+            return;
+          }
         }
 
-        // 3. Fallback: Se não for Staff nem Admin registrado, 
-        // mas é o primeiro acesso de uma barbearia raiz, ou apenas um cliente.
-        // Tentamos encontrar se existe alguma barbearia que esse usuário deva gerenciar
+        // 3. Fallback: Se não for Staff nem Admin registrado pelo UID direto,
+        // mas já existe uma barbearia no sistema, o primeiro a logar geralmente é o dono/admin inicial
         const fallbackQuery = query(collection(firestore, 'barbers'), limit(1));
         const fallbackSnap = await getDocs(fallbackQuery);
         
         if (!fallbackSnap.empty) {
-           setUserState({
+          const firstBarberId = fallbackSnap.docs[0].id;
+          
+          // Se o UID do usuário não é o ID do doc mas ele é o único dono, ou se o doc root foi criado com outro ID
+          setUserState({
             user: firebaseUser,
-            role: 'ADMIN', // Temporariamente ADMIN se for o único no banco, ou CUSTOMIZE
+            role: 'ADMIN', 
             staffId: null,
-            barberProfileId: fallbackSnap.docs[0].id,
+            barberProfileId: firstBarberId,
             isUserLoading: false,
             userError: null
           });
@@ -134,7 +139,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
       } catch (error: any) {
         console.error("Erro na identificação do perfil:", error);
-        // Em caso de erro de permissão (ex: falta de índice), assume CLIENT para não travar o app
         setUserState({ 
           user: firebaseUser, 
           role: 'CLIENT', 
