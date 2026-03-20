@@ -66,7 +66,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
 
       try {
-        // 1. Tenta identificar como ADMIN pelo UID
+        // 1. Tenta identificar como ADMIN (Dono da Barbearia) pelo UID
         const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
         if (barberDoc.exists()) {
           setUserState({
@@ -80,18 +80,23 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 2. Tenta identificar como STAFF via busca de grupo (Murilo/Gusthavo)
-        const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', firebaseUser.uid));
+        // 2. Tenta identificar como STAFF (Funcionário) via e-mail ou UID
+        const staffQuery = query(
+          collectionGroup(firestore, 'staff'), 
+          where('email', '==', firebaseUser.email)
+        );
         const staffSnap = await getDocs(staffQuery);
         
         if (!staffSnap.empty) {
           const staffDoc = staffSnap.docs[0];
-          // Busca o ID da barbearia subindo na hierarquia do caminho: /barbers/{id}/staff/{staffId}
+          const staffData = staffDoc.data();
+          // Caminho esperado: /barbers/{barberId}/staff/{staffId}
           const barberId = staffDoc.ref.parent.parent?.id || '';
+          
           setUserState({
             user: firebaseUser,
             role: 'STAFF',
-            staffId: firebaseUser.uid,
+            staffId: staffDoc.id,
             barberProfileId: barberId,
             isUserLoading: false,
             userError: null
@@ -99,8 +104,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 3. Fallback SaaS: Tenta encontrar qualquer barbearia que o usuário tenha acesso
-        // Útil para quando o ID da barbearia no Firestore não é igual ao UID do administrador
+        // 3. Fallback: Se não for Staff nem Admin da sua própria barbearia, 
+        // tenta encontrar a barbearia principal (SaaS Root)
         const fallbackQuery = query(collection(firestore, 'barbers'), limit(1));
         const fallbackSnap = await getDocs(fallbackQuery);
         
@@ -116,7 +121,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 4. Se nada acima funcionar, é um CLIENT
+        // 4. Default como Cliente
         setUserState({
           user: firebaseUser,
           role: 'CLIENT',

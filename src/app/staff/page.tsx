@@ -29,7 +29,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Briefcase, Plus, TrendingUp, CalendarDays, Pencil, Loader2, Trash2, 
-  Clock, Scissors, User, ChevronRight, Lock
+  Clock, Scissors, User, ChevronRight, Lock, Mail
 } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, setDoc, serverTimestamp, deleteDoc } from "firebase/firestore"
@@ -57,11 +57,8 @@ export default function StaffPage() {
   const { barberProfileId, role } = useUser();
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
-  const [editingStaff, setEditingStaff] = React.useState<any | null>(null)
   const [selectedStaffPanel, setSelectedStaffPanel] = React.useState<any | null>(null)
   
-  const [filterDate, setFilterDate] = React.useState(format(new Date(), 'yyyy-MM-dd'))
-
   const staffQuery = useMemoFirebase(() => {
     if (!barberProfileId) return null;
     return collection(db, "barbers", barberProfileId, "staff");
@@ -88,17 +85,19 @@ export default function StaffPage() {
     if (!barberProfileId) return;
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
+    const email = formData.get("email") as string
 
     const staffRef = doc(collection(db, "barbers", barberProfileId, "staff"))
     await setDoc(staffRef, {
       id: staffRef.id,
       barberProfileId: barberProfileId,
       name,
+      email: email.toLowerCase().trim(),
       isActive: true,
       createdAt: serverTimestamp()
     })
 
-    toast({ title: "Equipe Skull's", description: `${name} foi cadastrado.` })
+    toast({ title: "Equipe Skull's", description: `${name} foi cadastrado como Barbeiro.` })
     setIsAddOpen(false)
   }
 
@@ -153,14 +152,22 @@ export default function StaffPage() {
           <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl text-primary">Novo Barbeiro</DialogTitle>
+              <DialogDescription className="text-[10px] uppercase">Defina o e-mail oficial para o acesso do barbeiro.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-bold text-primary/60">Nome</Label>
                 <Input name="name" placeholder="Ex: Murilo" required className="h-12 bg-background border-primary/20" />
               </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-bold text-primary/60">E-mail de Acesso</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/40" />
+                  <Input name="email" type="email" placeholder="barbeiro@email.com" required className="h-12 bg-background border-primary/20 pl-10" />
+                </div>
+              </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Cadastrar</Button>
+                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Cadastrar Barbeiro</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -183,6 +190,9 @@ export default function StaffPage() {
                     </div>
                     <div>
                       <CardTitle className="font-headline text-2xl group-hover:text-primary transition-colors">{member.name}</CardTitle>
+                      <p className="text-[10px] text-muted-foreground font-bold flex items-center gap-1">
+                        <Mail className="h-3 w-3" /> {member.email}
+                      </p>
                     </div>
                   </div>
                   <Badge className="bg-green-500/20 text-green-400 border-none text-[8px] font-bold">ATIVO</Badge>
@@ -193,17 +203,14 @@ export default function StaffPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-secondary/20 p-4 rounded-2xl border border-border/50">
                     <p className="text-[9px] uppercase font-bold text-muted-foreground flex items-center gap-2">
-                      <TrendingUp className="h-3 w-3 text-primary" /> Histórico
+                      <TrendingUp className="h-3 w-3 text-primary" /> Total
                     </p>
                     <p className="text-2xl font-black font-headline mt-1">{completedCount}</p>
                     <p className="text-[8px] uppercase text-muted-foreground">Serviços feitos</p>
                   </div>
                   
                   <div 
-                    onClick={() => {
-                      setFilterDate(todayStr);
-                      setSelectedStaffPanel(member);
-                    }}
+                    onClick={() => setSelectedStaffPanel(member)}
                     className="bg-secondary/20 p-4 rounded-2xl border border-border/50 cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-all active:scale-95 group/pendente"
                   >
                     <p className="text-[9px] uppercase font-bold text-muted-foreground flex items-center justify-between gap-2 group-hover/pendente:text-primary">
@@ -211,7 +218,7 @@ export default function StaffPage() {
                       <ChevronRight className="h-3 w-3 opacity-0 group-hover/pendente:opacity-100 transition-opacity" />
                     </p>
                     <p className="text-2xl font-black font-headline mt-1 group-hover/pendente:text-white">{pendingToday}</p>
-                    <p className="text-[8px] uppercase text-muted-foreground font-bold">Pendentes</p>
+                    <p className="text-[8px] uppercase text-muted-foreground font-bold">Agendados</p>
                   </div>
                 </div>
 
@@ -220,7 +227,7 @@ export default function StaffPage() {
                     onClick={() => setSelectedStaffPanel(member)}
                     className="flex-1 bg-secondary hover:bg-primary hover:text-black font-bold h-12 uppercase text-[10px] tracking-widest transition-all"
                   >
-                    Ver Painel <ChevronRight className="ml-2 h-4 w-4" />
+                    Painel Individual <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
 
                   <AlertDialog>
@@ -257,7 +264,7 @@ export default function StaffPage() {
                 <DialogTitle className="font-headline text-3xl text-primary flex items-center gap-3 uppercase">
                   <User className="h-8 w-8 text-primary" /> {selectedStaffPanel.name}
                 </DialogTitle>
-                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Painel do Profissional</DialogDescription>
+                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Agenda de {selectedStaffPanel.email}</DialogDescription>
               </DialogHeader>
 
               <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6 mt-4">
