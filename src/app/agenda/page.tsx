@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -48,7 +49,6 @@ export default function AgendaPage() {
   const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
   const [currentTime, setCurrentTime] = React.useState(new Date());
   
-  // Filtro de profissional (Apenas para ADMIN)
   const [staffFilter, setStaffFilter] = React.useState<string>("all");
 
   React.useEffect(() => {
@@ -59,26 +59,31 @@ export default function AgendaPage() {
   const weekStart = startOfWeek(selectedDate, { locale: ptBR });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const staffQuery = useMemoFirebase(() => collection(db, 'barbers', barberProfileId, 'staff'), [db, barberProfileId]);
-  const servicesQuery = useMemoFirebase(() => collection(db, 'barbers', barberProfileId, 'services'), [db, barberProfileId]);
+  const staffQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, 'barbers', barberProfileId, 'staff');
+  }, [db, barberProfileId]);
+
+  const servicesQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, 'barbers', barberProfileId, 'services');
+  }, [db, barberProfileId]);
   
   const { data: staff } = useCollection(staffQuery);
   const { data: services } = useCollection(servicesQuery);
 
   const appointmentsQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
     const baseCol = collection(db, 'barbers', barberProfileId, 'appointments');
     
-    // Se for Barbeiro (STAFF), vê APENAS os seus
     if (role === 'STAFF' && loggedStaffId) {
       return query(baseCol, where('staffId', '==', loggedStaffId));
     }
     
-    // Se for Admin e tiver filtro de barbeiro selecionado
     if (role === 'ADMIN' && staffFilter !== 'all') {
       return query(baseCol, where('staffId', '==', staffFilter));
     }
     
-    // Admin sem filtro vê todos
     return baseCol;
   }, [db, barberProfileId, role, loggedStaffId, staffFilter]);
 
@@ -95,6 +100,7 @@ export default function AgendaPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!barberProfileId) return;
     try {
       await deleteDoc(doc(db, 'barbers', barberProfileId, 'appointments', id));
       setEditingAppointment(null);

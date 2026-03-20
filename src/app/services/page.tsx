@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -18,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Scissors, Plus, Pencil, Trash2, Clock, Loader2 } from "lucide-react"
+import { Scissors, Plus, Pencil, Trash2, Clock, Loader2, Lock } from "lucide-react"
 import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, useUser } from "@/firebase"
 import { collection, doc, setDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
@@ -26,26 +27,28 @@ import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function ServicesPage() {
   const db = useFirestore()
-  const { barberProfileId } = useUser();
+  const { barberProfileId, role } = useUser();
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingService, setEditingService] = React.useState<any | null>(null)
 
   const servicesQuery = useMemoFirebase(() => {
-    return collection(db, "barberProfiles", barberProfileId, "services")
+    if (!barberProfileId) return null;
+    return collection(db, "barbers", barberProfileId, "services")
   }, [db, barberProfileId])
 
   const { data: services, isLoading: isDataLoading } = useCollection(servicesQuery)
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!barberProfileId) return;
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const price = parseFloat(formData.get("price") as string)
     const durationMinutes = parseInt(formData.get("duration") as string)
 
-    const serviceRef = doc(collection(db, "barberProfiles", barberProfileId, "services"))
+    const serviceRef = doc(collection(db, "barbers", barberProfileId, "services"))
     
     setDoc(serviceRef, {
       id: serviceRef.id,
@@ -64,14 +67,14 @@ export default function ServicesPage() {
 
   const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!editingService) return
+    if (!editingService || !barberProfileId) return
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const price = parseFloat(formData.get("price") as string)
     const durationMinutes = parseInt(formData.get("duration") as string)
 
-    const serviceRef = doc(db, "barberProfiles", barberProfileId, "services", editingService.id)
+    const serviceRef = doc(db, "barbers", barberProfileId, "services", editingService.id)
     
     updateDocumentNonBlocking(serviceRef, {
       name,
@@ -87,13 +90,25 @@ export default function ServicesPage() {
   }
 
   const handleDelete = (id: string, name: string) => {
-    const serviceRef = doc(db, "barberProfiles", barberProfileId, "services", id)
+    if (!barberProfileId) return;
+    const serviceRef = doc(db, "barbers", barberProfileId, "services", id)
     deleteDocumentNonBlocking(serviceRef)
     toast({
       variant: "destructive",
       title: "Serviço Removido",
       description: `O serviço "${name}" foi excluído do catálogo.`,
     })
+  }
+
+  if (role === 'STAFF') {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
+        <Lock className="h-12 w-12 text-destructive opacity-40" />
+        <h1 className="text-2xl font-headline text-primary">Acesso Restrito</h1>
+        <p className="text-muted-foreground">Apenas o administrador pode gerenciar serviços.</p>
+        <Button asChild variant="outline" className="mt-4"><a href="/">Voltar</a></Button>
+      </div>
+    );
   }
 
   if (isDataLoading) {

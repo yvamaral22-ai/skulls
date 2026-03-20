@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -59,12 +60,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
-        setUserState(prev => ({ ...prev, user: null, role: null, staffId: null, isUserLoading: false, barberProfileId: '' }));
+        setUserState({ user: null, role: null, staffId: null, isUserLoading: false, barberProfileId: '', userError: null });
         return;
       }
 
       try {
-        // 1. Verifica se é ADMIN (Dono)
+        // 1. Verifica se é ADMIN (Dono da Barbearia)
         const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
         if (barberDoc.exists()) {
           setUserState({
@@ -78,12 +79,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 2. Verifica se é STAFF (Funcionário)
+        // 2. Verifica se é STAFF (Funcionário) em qualquer barbearia
         const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', firebaseUser.uid));
         const staffSnap = await getDocs(staffQuery);
         
         if (!staffSnap.empty) {
           const staffDoc = staffSnap.docs[0];
+          // O ID da barbearia é o avô do documento staff (/barbers/{barberId}/staff/{staffId})
           const barberId = staffDoc.ref.parent.parent?.id || '';
           setUserState({
             user: firebaseUser,
@@ -107,6 +109,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         });
 
       } catch (error: any) {
+        console.error("Erro ao identificar perfil:", error);
         setUserState(prev => ({ 
           ...prev, 
           user: firebaseUser, 
