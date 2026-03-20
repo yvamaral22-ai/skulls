@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase } from "lucide-react"
+import { CalendarDays, LayoutDashboard, Users, Scissors, BarChart3, Briefcase, LogOut } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -34,20 +34,19 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { role, isUserLoading } = useUser();
+  const { role, isUserLoading, logout, auth } = useUser();
 
   const menuItems = [
     { title: "Painel Geral", url: "/", icon: LayoutDashboard, roles: ['ADMIN', 'STAFF'] },
     { title: "Agenda", url: "/agenda", icon: CalendarDays, roles: ['ADMIN', 'STAFF'] },
-    { title: "Gestão de Clientes", url: "/customers", icon: Users, roles: ['ADMIN'] },
-    { title: "Meus Serviços", url: "/services", icon: Scissors, roles: ['ADMIN'] },
-    { title: "Minha Equipe", url: "/staff", icon: Briefcase, roles: ['ADMIN'] },
-    { title: "Financeiro", url: "/reports", icon: BarChart3, roles: ['ADMIN'] },
+    { title: "Clientes", url: "/customers", icon: Users, roles: ['ADMIN'] },
+    { title: "Serviços", url: "/services", icon: Scissors, roles: ['ADMIN'] },
+    { title: "Equipe", url: "/staff", icon: Briefcase, roles: ['ADMIN'] },
+    { title: "Relatórios", url: "/reports", icon: BarChart3, roles: ['ADMIN'] },
   ];
 
   if (isUserLoading) return null;
 
-  // Se o papel for nulo (ex: Client ou erro de identificação), mostramos apenas o básico
   const effectiveRole = role || 'CLIENT';
 
   const filteredItems = menuItems.filter(item => 
@@ -62,7 +61,7 @@ export function AppSidebar() {
             <BarberPoleIcon className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="font-headline text-primary text-xl leading-none uppercase tracking-tighter">Skull's Barber</span>
+            <span className="font-headline text-primary text-xl leading-none uppercase tracking-tighter">Barbearia Skull's</span>
             <span className="text-[9px] uppercase font-bold tracking-[0.2em] opacity-50">Gestão de Elite</span>
           </div>
         </div>
@@ -85,12 +84,18 @@ export function AppSidebar() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-8 mt-auto flex items-center justify-center border-t border-border/50">
-        <div className="text-center">
-          <span className="dimension-text font-headline text-primary text-lg leading-tight tracking-[0.2em] block">
-            Barbearia Skull's
-          </span>
-        </div>
+      <SidebarFooter className="p-4 mt-auto border-t border-border/50">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              onClick={() => { if(confirm('Deseja sair?')) logout(auth!); }}
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors h-12 px-4 rounded-xl"
+            >
+              <LogOut className="size-5" />
+              <span className="uppercase text-[10px] font-bold tracking-widest">Sair do Sistema</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

@@ -3,7 +3,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, getDoc, collectionGroup, query, where, getDocs, collection, limit } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 interface FirebaseProviderProps {
@@ -29,12 +29,14 @@ export interface FirebaseContextState extends UserAuthState {
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
+  logout: (auth: Auth) => Promise<void>;
 }
 
 export interface FirebaseServicesAndUser extends UserAuthState {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
+  logout: (auth: Auth) => Promise<void>;
 }
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
@@ -84,6 +86,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         
         if (!staffSnap.empty) {
           const staffDoc = staffSnap.docs[0];
+          // Busca o ID da barbearia subindo na hierarquia do caminho: /barbers/{id}/staff/{staffId}
           const barberId = staffDoc.ref.parent.parent?.id || '';
           setUserState({
             user: firebaseUser,
@@ -96,15 +99,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 3. Fallback: Se for o dono mas o ID da barbearia for diferente do UID (Caso de transição)
-        // Buscamos a primeira barbearia disponível, já que as regras permitem 'list' para usuários logados
+        // 3. Fallback SaaS: Tenta encontrar qualquer barbearia que o usuário tenha acesso
+        // Útil para quando o ID da barbearia no Firestore não é igual ao UID do administrador
         const fallbackQuery = query(collection(firestore, 'barbers'), limit(1));
         const fallbackSnap = await getDocs(fallbackQuery);
         
         if (!fallbackSnap.empty) {
            setUserState({
             user: firebaseUser,
-            role: 'ADMIN', // Assumimos admin se ele conseguir listar a barbearia mas não for staff
+            role: 'ADMIN',
             staffId: null,
             barberProfileId: fallbackSnap.docs[0].id,
             isUserLoading: false,
@@ -113,7 +116,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 4. Se nada acima funcionar, é um CLIENT novo
+        // 4. Se nada acima funcionar, é um CLIENT
         setUserState({
           user: firebaseUser,
           role: 'CLIENT',
@@ -146,6 +149,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       firebaseApp: servicesAvailable ? firebaseApp : null,
       firestore: servicesAvailable ? firestore : null,
       auth: servicesAvailable ? auth : null,
+      logout: async (authInstance: Auth) => {
+        await signOut(authInstance);
+      },
       ...userState
     };
   }, [firebaseApp, firestore, auth, userState]);
@@ -167,11 +173,40 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   return context as FirebaseServicesAndUser;
 };
 
-export const useAuth = () => useFirebase().auth;
-export const useFirestore = () => useFirebase().firestore;
+export const useAuth = () => {
+  const context = useContext(FirebaseContext);
+  return context?.auth || null;
+};
+
+export const useFirestore = () => {
+  const context = useContext(FirebaseContext);
+  return context?.firestore || null;
+};
+
 export const useUser = () => {
-  const { user, role, staffId, barberProfileId, isUserLoading, userError } = useFirebase();
-  return { user, role, staffId, barberProfileId, isUserLoading, userError };
+  const context = useContext(FirebaseContext);
+  if (context === undefined) {
+    return {
+      user: null,
+      role: null,
+      staffId: null,
+      barberProfileId: '',
+      isUserLoading: true,
+      userError: null,
+      logout: async () => {},
+      auth: null
+    };
+  }
+  return { 
+    user: context.user, 
+    role: context.role, 
+    staffId: context.staffId, 
+    barberProfileId: context.barberProfileId, 
+    isUserLoading: context.isUserLoading, 
+    userError: context.userError,
+    logout: context.logout,
+    auth: context.auth
+  };
 };
 
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & {__memo?: boolean} {
@@ -179,7 +214,3 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & 
   if(memoized && typeof memoized === 'object') memoized.__memo = true;
   return memoized;
 }
-
-export const logout = async (auth: Auth) => {
-  await auth.signOut();
-};

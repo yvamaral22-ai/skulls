@@ -44,6 +44,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!mounted) return null;
 
+  // Sempre permite renderizar a página de login sem o loading screen se o usuário não estiver logado
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
   if (isUserLoading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -60,8 +65,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Se não estiver logado e não estiver na tela de login, mostramos nada enquanto redireciona
-  if (!user && pathname !== '/login') return null;
+  if (!user && pathname !== '/login') {
+    return null;
+  }
 
   return <>{children}</>;
 }
