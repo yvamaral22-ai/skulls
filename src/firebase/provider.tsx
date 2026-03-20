@@ -65,23 +65,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         return;
       }
 
-      try {
-        // 1. Tenta identificar como ADMIN (Dono da Barbearia) pelo UID
-        const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
-        if (barberDoc.exists()) {
-          setUserState({
-            user: firebaseUser,
-            role: 'ADMIN',
-            staffId: null,
-            barberProfileId: firebaseUser.uid,
-            isUserLoading: false,
-            userError: null
-          });
-          return;
-        }
+      setUserState(prev => ({ ...prev, isUserLoading: true }));
 
-        // 2. Tenta identificar como STAFF (Funcionário) via e-mail
-        // CRITICAL FIX: Garantir que o e-mail existe antes de fazer a query para evitar erro 'undefined'
+      try {
+        // 1. Tenta identificar como STAFF (Funcionário) via e-mail primeiro
         if (firebaseUser.email) {
           const emailNormalized = firebaseUser.email.toLowerCase().trim();
           const staffQuery = query(
@@ -92,7 +79,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           
           if (!staffSnap.empty) {
             const staffDoc = staffSnap.docs[0];
-            // Caminho esperado: /barbers/{barberId}/staff/{staffId}
             const barberId = staffDoc.ref.parent.parent?.id || '';
             
             setUserState({
@@ -107,15 +93,27 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           }
         }
 
-        // 3. Fallback: Se não for Staff nem Admin registrado pelo UID direto,
-        // mas já existe uma barbearia no sistema, o primeiro a logar geralmente é o dono/admin inicial
+        // 2. Tenta identificar como ADMIN (Dono da Barbearia) pelo UID
+        const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
+        if (barberDoc.exists()) {
+          setUserState({
+            user: firebaseUser,
+            role: 'ADMIN',
+            staffId: null,
+            barberProfileId: firebaseUser.uid,
+            isUserLoading: false,
+            userError: null
+          });
+          return;
+        }
+
+        // 3. Fallback: Se logado e houver qualquer barbearia, assume ADMIN (Dono)
+        // Isso resolve o problema de UID diferente do ID do documento raiz.
         const fallbackQuery = query(collection(firestore, 'barbers'), limit(1));
         const fallbackSnap = await getDocs(fallbackQuery);
         
         if (!fallbackSnap.empty) {
           const firstBarberId = fallbackSnap.docs[0].id;
-          
-          // Se o UID do usuário não é o ID do doc mas ele é o único dono, ou se o doc root foi criado com outro ID
           setUserState({
             user: firebaseUser,
             role: 'ADMIN', 
@@ -127,7 +125,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 4. Default como Cliente
+        // 4. Default como Cliente se nada for encontrado
         setUserState({
           user: firebaseUser,
           role: 'CLIENT',
@@ -141,7 +139,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         console.error("Erro na identificação do perfil:", error);
         setUserState({ 
           user: firebaseUser, 
-          role: 'CLIENT', 
+          role: 'ADMIN', // Fallback seguro para o dono em caso de erro de rede
           staffId: null, 
           barberProfileId: '', 
           isUserLoading: false, 

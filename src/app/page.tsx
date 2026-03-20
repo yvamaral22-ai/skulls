@@ -1,9 +1,8 @@
-
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Scissors, TrendingUp, Calendar, Plus, Loader2, Briefcase, LayoutDashboard } from "lucide-react"
+import { Scissors, TrendingUp, Calendar, Plus, Loader2, Briefcase } from "lucide-react"
 import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, deleteDoc, query, where } from "firebase/firestore"
@@ -21,9 +20,25 @@ import { BookingForm } from "@/components/booking-form"
 import { CheckoutDialog } from "@/components/checkout-dialog"
 import { useToast } from "@/hooks/use-toast"
 
+const BarberPoleIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={`${className} animate-barber-spin`}
+  >
+    <path d="M10 2h4M10 22h4" />
+    <rect x="8" y="4" width="8" height="16" rx="1" />
+    <path d="M8 7l8 3M8 11l8 3M8 15l8 3" />
+  </svg>
+);
+
 export default function DashboardPage() {
   const db = useFirestore()
-  const { role, staffId, barberProfileId, isUserLoading: isAuthLoading } = useUser();
+  const { role, staffId, barberProfileId, isUserLoading: isAuthLoading, user } = useUser();
   const { toast } = useToast()
   const today = format(new Date(), 'yyyy-MM-dd')
 
@@ -80,14 +95,14 @@ export default function DashboardPage() {
     );
   }
 
-  // Se não estiver identificado como Admin ou Staff, mostra tela de entrada amigável
-  if (role !== 'ADMIN' && role !== 'STAFF') {
+  // Se não houver usuário ou papel identificado como STAFF/ADMIN, mostra tela amigável
+  if (!user || (role !== 'ADMIN' && role !== 'STAFF')) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-8 max-w-md mx-auto animate-in fade-in zoom-in duration-700">
         <div className="relative">
           <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
           <div className="relative p-8 bg-card border border-primary/20 rounded-full shadow-2xl">
-            <Scissors className="h-16 w-16 text-primary animate-pulse" />
+            <BarberPoleIcon className="h-16 w-16 text-primary" />
           </div>
         </div>
         
@@ -96,16 +111,16 @@ export default function DashboardPage() {
             BEM-VINDO À <br /> BARBEARIA SKULL'S
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed px-4">
-            Sua conta está ativa. Para gerenciar agendamentos e ver seu painel personalizado, acesse o menu oficial.
+            Gerenciamento profissional e agendamentos simplificados.
           </p>
         </div>
 
         <Button asChild className="h-16 w-full max-w-xs bg-primary text-black font-black text-xl shadow-2xl shadow-primary/30 hover:scale-105 transition-transform rounded-2xl" variant="default">
-          <Link href="/agenda">ACESSAR MENU</Link>
+          <Link href={user ? "/agenda" : "/login"}>ACESSAR MENU</Link>
         </Button>
         
         <div className="pt-8 opacity-40">
-          <p className="text-[10px] uppercase font-bold tracking-[0.3em]">Gestão de Elite • Versão 2024</p>
+          <p className="text-[10px] uppercase font-bold tracking-[0.3em]">Gestão de Elite • Skull's Barber</p>
         </div>
       </div>
     );
@@ -118,7 +133,7 @@ export default function DashboardPage() {
           <h1 className="text-3xl md:text-5xl font-headline text-primary uppercase tracking-tighter">Barbearia Skull's</h1>
           <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-[0.3em] flex items-center gap-2">
             <span className="h-1 w-8 bg-primary/30" />
-            {role === 'ADMIN' ? 'Painel do Barbeiro (Acesso Total)' : 'Painel do Funcionário'}
+            {role === 'ADMIN' ? 'Painel Administrativo' : 'Painel do Funcionário'}
           </p>
         </div>
         <Button className="h-14 w-full sm:w-auto font-black bg-primary text-black shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform rounded-xl" asChild>
@@ -148,7 +163,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold font-headline text-primary">R$ {totalRevenueToday.toFixed(0)}</div>
-              <p className="text-[9px] text-muted-foreground uppercase mt-1">Ganhos brutos acumulados</p>
+              <p className="text-[9px] text-muted-foreground uppercase mt-1">Ganhos acumulados</p>
             </CardContent>
           </Card>
         )}
@@ -213,7 +228,7 @@ export default function DashboardPage() {
 
         <Card className="border border-border bg-card shadow-2xl rounded-2xl overflow-hidden">
           <CardHeader className="bg-primary/5 border-b border-border/50 px-6 py-6">
-            <CardTitle className="text-xl font-headline text-primary uppercase">Atalhos</CardTitle>
+            <CardTitle className="text-xl font-headline text-primary uppercase">Atalhos Rápidos</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 p-6">
             <Button variant="outline" className="h-20 justify-start gap-6 border-2 border-border hover:border-primary hover:bg-primary/5 transition-all text-left group rounded-2xl" asChild>
@@ -222,7 +237,7 @@ export default function DashboardPage() {
                   <Calendar className="h-6 w-6" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-headline text-lg uppercase tracking-tight">Ver Agenda</p>
+                  <p className="font-headline text-lg uppercase tracking-tight">Ver Agenda Completa</p>
                   <p className="text-[10px] uppercase font-bold opacity-40 tracking-widest">Confira os horários</p>
                 </div>
               </Link>
@@ -235,8 +250,8 @@ export default function DashboardPage() {
                       <TrendingUp className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-headline text-lg uppercase tracking-tight">Financeiro</p>
-                      <p className="text-[10px] uppercase font-bold opacity-40 tracking-widest">Relatórios e ganhos</p>
+                      <p className="font-headline text-lg uppercase tracking-tight">Relatórios Financeiros</p>
+                      <p className="text-[10px] uppercase font-bold opacity-40 tracking-widest">Controle de ganhos</p>
                     </div>
                   </Link>
                 </Button>
@@ -246,8 +261,8 @@ export default function DashboardPage() {
                       <Briefcase className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-headline text-lg uppercase tracking-tight">Gestão de Equipe</p>
-                      <p className="text-[10px] uppercase font-bold opacity-40 tracking-widest">Controle de barbeiros</p>
+                      <p className="font-headline text-lg uppercase tracking-tight">Gerenciar Equipe</p>
+                      <p className="text-[10px] uppercase font-bold opacity-40 tracking-widest">Barbeiros e acessos</p>
                     </div>
                   </Link>
                 </Button>
@@ -260,7 +275,7 @@ export default function DashboardPage() {
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
         <DialogContent className="w-[95vw] max-w-[450px] border-none shadow-3xl bg-card">
           <DialogHeader className="p-4 border-b border-border/50">
-            <DialogTitle className="font-headline text-2xl text-primary uppercase">Atendimento</DialogTitle>
+            <DialogTitle className="font-headline text-2xl text-primary uppercase">Detalhes do Atendimento</DialogTitle>
           </DialogHeader>
           {editingAppointment && (
             <div className="p-4 space-y-6">

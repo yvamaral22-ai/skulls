@@ -34,7 +34,7 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { role, isUserLoading, logout, auth } = useUser();
+  const { role, isUserLoading, logout, auth, user } = useUser();
 
   const menuItems = [
     { title: "Painel Geral", url: "/", icon: LayoutDashboard, roles: ['ADMIN', 'STAFF'] },
@@ -45,7 +45,22 @@ export function AppSidebar() {
     { title: "Relatórios", url: "/reports", icon: BarChart3, roles: ['ADMIN'] },
   ];
 
-  if (isUserLoading) return null;
+  // Se estiver carregando, mostra o esqueleto do sidebar para não dar efeito de "piscar"
+  if (isUserLoading) {
+    return (
+      <Sidebar collapsible="none" className="border-r border-border bg-card w-64 hidden md:flex">
+        <SidebarHeader className="p-6">
+          <div className="flex items-center gap-3 animate-pulse">
+            <div className="size-10 bg-primary/20 rounded-xl" />
+            <div className="h-4 w-24 bg-primary/20 rounded" />
+          </div>
+        </SidebarHeader>
+        <SidebarContent className="px-4 py-4 space-y-2">
+          {[1,2,3].map(i => <div key={i} className="h-12 w-full bg-secondary/20 rounded-xl animate-pulse" />)}
+        </SidebarContent>
+      </Sidebar>
+    );
+  }
 
   const effectiveRole = role || 'CLIENT';
 
@@ -88,7 +103,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton 
-              onClick={() => { if(confirm('Deseja sair?')) logout(auth!); }}
+              onClick={() => { if(confirm('Deseja sair do sistema?')) logout(auth!); }}
               className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors h-12 px-4 rounded-xl"
             >
               <LogOut className="size-5" />
