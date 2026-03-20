@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -37,7 +36,8 @@ export default function ClientPage() {
 
   React.useEffect(() => {
     async function findBarbershop() {
-      const q = query(collection(db, 'barberProfiles'), limit(1));
+      // Ajustado para buscar na coleção correta 'barbers'
+      const q = query(collection(db, 'barbers'), limit(1));
       const snap = await getDocs(q);
       if (!snap.empty) {
         setTargetBarberId(snap.docs[0].id);
@@ -49,19 +49,19 @@ export default function ClientPage() {
   const appointmentsQuery = useMemoFirebase(() => {
     if (!targetBarberId || !user) return null;
     return query(
-      collection(db, 'barberProfiles', targetBarberId, 'appointments'),
+      collection(db, 'barbers', targetBarberId, 'appointments'),
       where('clientId', '==', user.uid)
     );
   }, [db, targetBarberId, user]);
 
   const servicesQuery = useMemoFirebase(() => {
     if (!targetBarberId) return null;
-    return collection(db, 'barberProfiles', targetBarberId, 'services');
+    return collection(db, 'barbers', targetBarberId, 'services');
   }, [db, targetBarberId]);
 
   const staffQuery = useMemoFirebase(() => {
     if (!targetBarberId) return null;
-    return collection(db, 'barberProfiles', targetBarberId, 'staff');
+    return collection(db, 'barbers', targetBarberId, 'staff');
   }, [db, targetBarberId]);
 
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery);
@@ -83,7 +83,7 @@ export default function ClientPage() {
           <h1 className="text-3xl md:text-4xl font-black font-headline text-primary">
             Olá, {user?.displayName?.split(' ')[0] || 'Campeão'}!
           </h1>
-          <p className="text-muted-foreground text-sm">Pronto para renovar seu visual na Skull Barber?</p>
+          <p className="text-muted-foreground text-sm">Pronto para renovar seu visual na Barbearia Skull's?</p>
         </div>
 
         <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
@@ -103,7 +103,6 @@ export default function ClientPage() {
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Meus Agendamentos */}
         <Card className="border-none bg-card shadow-2xl border-t-4 border-t-primary">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -147,11 +146,10 @@ export default function ClientPage() {
           </CardContent>
         </Card>
 
-        {/* Catálogo de Serviços */}
-        <Card className="border-none bg-card shadow-2xl border-t-4 border-t-accent">
+        <Card className="border-none bg-card shadow-2xl border-t-4 border-t-primary">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Scissors className="h-5 w-5 text-accent" />
+              <Scissors className="h-5 w-5 text-primary" />
               Menu de Serviços
             </CardTitle>
           </CardHeader>
@@ -163,7 +161,7 @@ export default function ClientPage() {
                     <p className="font-bold text-sm">{service.name}</p>
                     <p className="text-[10px] text-muted-foreground">{service.durationMinutes} min • Visual Impecável</p>
                   </div>
-                  <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20 font-black">
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-black">
                     R$ {Number(service.price).toFixed(2)}
                   </Badge>
                 </div>

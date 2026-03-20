@@ -34,7 +34,8 @@ export default function CustomersPage() {
   const { toast } = useToast()
 
   const clientsQuery = useMemoFirebase(() => {
-    return collection(db, "barberProfiles", barberProfileId, "clients")
+    if (!barberProfileId) return null;
+    return collection(db, "barbers", barberProfileId, "clients")
   }, [db, barberProfileId])
 
   const { data: clients, isLoading: isDataLoading } = useCollection(clientsQuery)
@@ -49,13 +50,14 @@ export default function CustomersPage() {
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!barberProfileId) return;
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const phone = formData.get("phone") as string
     const preferences = formData.get("preferences") as string
 
-    const clientRef = doc(collection(db, "barberProfiles", barberProfileId, "clients"))
+    const clientRef = doc(collection(db, "barbers", barberProfileId, "clients"))
     
     await setDoc(clientRef, {
       id: clientRef.id,
@@ -75,14 +77,14 @@ export default function CustomersPage() {
 
   const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!editingId) return
+    if (!editingId || !barberProfileId) return
 
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const phone = formData.get("phone") as string
     const preferences = formData.get("preferences") as string
 
-    const clientRef = doc(db, "barberProfiles", barberProfileId, "clients", editingId)
+    const clientRef = doc(db, "barbers", barberProfileId, "clients", editingId)
     
     updateDocumentNonBlocking(clientRef, {
       name,
@@ -98,7 +100,8 @@ export default function CustomersPage() {
   }
 
   const handleDelete = (clientId: string, clientName: string) => {
-    const clientRef = doc(db, "barberProfiles", barberProfileId, "clients", clientId)
+    if (!barberProfileId) return;
+    const clientRef = doc(db, "barbers", barberProfileId, "clients", clientId)
     deleteDocumentNonBlocking(clientRef)
     toast({
       variant: "destructive",

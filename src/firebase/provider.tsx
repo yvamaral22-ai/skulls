@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -65,7 +64,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
 
       try {
-        // 1. Verifica se é ADMIN (Dono da Barbearia)
+        // 1. Verifica se é ADMIN (Dono da Barbearia) na coleção 'barbers'
         const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
         if (barberDoc.exists()) {
           setUserState({
@@ -79,7 +78,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 2. Verifica se é STAFF (Funcionário) em qualquer barbearia
+        // 2. Verifica se é STAFF (Funcionário) via Collection Group
         const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', firebaseUser.uid));
         const staffSnap = await getDocs(staffQuery);
         
@@ -110,12 +109,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
       } catch (error: any) {
         console.error("Erro ao identificar perfil:", error);
-        setUserState(prev => ({ 
-          ...prev, 
+        // Em caso de erro de permissão no boot, ainda mantemos o usuário logado como CLIENT
+        setUserState({ 
           user: firebaseUser, 
+          role: 'CLIENT', 
+          staffId: null, 
+          barberProfileId: '', 
           isUserLoading: false, 
           userError: error 
-        }));
+        });
       }
     });
 

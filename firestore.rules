@@ -3,8 +3,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * CUSTOMER-FIRST BARBER SHOP SECURITY MODEL
-     * Enforces strict isolation between barber shops and individual staff agendas.
+     * BARBERIA SKULL'S SECURITY MODEL
+     * Garante isolamento entre barbearias e acesso restrito a agendas e faturamento.
      */
 
     function isSignedIn() {
@@ -15,53 +15,45 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == barberId;
     }
 
-    function isExistingOwner(barberId) {
-      return resource != null && isOwner(barberId);
-    }
-
     match /barbers/{barberId} {
       // Permite que qualquer usuário logado veja informações básicas da barbearia
       allow get: if isSignedIn();
-      allow list: if isOwner(barberId);
-      allow create: if isOwner(barberId) && request.resource.data.id == barberId;
-      allow update: if isExistingOwner(barberId) && request.resource.data.id == barberId;
-      allow delete: if isExistingOwner(barberId);
+      allow list: if isSignedIn(); // Permite descoberta de barbearias
+
+      allow create: if isSignedIn() && request.auth.uid == barberId;
+      allow update, delete: if isOwner(barberId);
 
       /** Subcollection for staff management */
       match /staff/{staffId} {
-        // Clientes precisam listar barbeiros para agendar
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isOwner(barberId);
+        allow read: if isSignedIn();
+        allow write: if isOwner(barberId);
       }
 
       /** Subcollection for clients */
       match /clients/{clientId} {
-        allow get, list: if isOwner(barberId);
-        allow create: if isOwner(barberId) && request.resource.data.id == clientId;
-        allow update, delete: if isExistingOwner(barberId);
+        allow read: if isOwner(barberId) || (isSignedIn() && request.auth.uid == clientId);
+        allow write: if isOwner(barberId) || (isSignedIn() && request.auth.uid == clientId);
       }
 
       /** Subcollection for services */
       match /services/{serviceId} {
-        // Clientes precisam ver o menu de serviços
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isOwner(barberId);
+        allow read: if isSignedIn();
+        allow write: if isOwner(barberId);
       }
 
       /** Records of scheduled bookings. */
       match /appointments/{appointmentId} {
-        // Dono vê tudo, Barbeiro vê apenas os seus, Cliente vê apenas os seus
-        allow get, list: if isOwner(barberId) 
+        allow read: if isOwner(barberId) 
           || (isSignedIn() && (resource.data.staffId == request.auth.uid || resource.data.clientId == request.auth.uid));
         
         allow create: if isSignedIn();
         allow update: if isOwner(barberId) 
-          || (isSignedIn() && resource.data.staffId == request.auth.uid);
+          || (isSignedIn() && (resource.data.staffId == request.auth.uid || resource.data.clientId == request.auth.uid));
         allow delete: if isOwner(barberId);
       }
     }
 
-    /** Permite que o funcionário encontre a qual barbearia pertence */
+    /** Permite que o funcionário encontre a qual barbearia pertence via Collection Group */
     match /{path=**}/staff/{staffId} {
       allow read: if isSignedIn() && request.auth.uid == staffId;
     }
