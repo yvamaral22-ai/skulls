@@ -58,6 +58,7 @@ export default function StaffPage() {
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [selectedStaffPanel, setSelectedStaffPanel] = React.useState<any | null>(null)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   
   const staffQuery = useMemoFirebase(() => {
     if (!barberProfileId) return null;
@@ -82,23 +83,34 @@ export default function StaffPage() {
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!barberProfileId) return;
+    if (!barberProfileId) {
+      toast({ variant: "destructive", title: "Erro", description: "Sessão inválida." })
+      return;
+    }
+
+    setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const email = formData.get("email") as string
 
-    const staffRef = doc(collection(db, "barbers", barberProfileId, "staff"))
-    await setDoc(staffRef, {
-      id: staffRef.id,
-      barberProfileId: barberProfileId,
-      name,
-      email: email.toLowerCase().trim(),
-      isActive: true,
-      createdAt: serverTimestamp()
-    })
+    try {
+      const staffRef = doc(collection(db, "barbers", barberProfileId, "staff"))
+      await setDoc(staffRef, {
+        id: staffRef.id,
+        barberProfileId: barberProfileId,
+        name,
+        email: email.toLowerCase().trim(),
+        isActive: true,
+        createdAt: serverTimestamp()
+      })
 
-    toast({ title: "Equipe Skull's", description: `${name} foi cadastrado como Barbeiro.` })
-    setIsAddOpen(false)
+      toast({ title: "Equipe Skull's", description: `${name} foi cadastrado como Barbeiro.` })
+      setIsAddOpen(false)
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao salvar funcionário" })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleDelete = async (id: string, name: string) => {
@@ -167,7 +179,9 @@ export default function StaffPage() {
                 </div>
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Cadastrar Barbeiro</Button>
+                <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-primary text-black font-headline text-2xl">
+                  {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Cadastrar Barbeiro"}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>

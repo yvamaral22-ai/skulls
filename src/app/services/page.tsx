@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -20,10 +19,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Scissors, Plus, Pencil, Trash2, Clock, Loader2, Lock } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, useUser } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, setDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 
 export default function ServicesPage() {
   const db = useFirestore()
@@ -31,6 +30,7 @@ export default function ServicesPage() {
   const { toast } = useToast()
   const [isAddOpen, setIsAddOpen] = React.useState(false)
   const [editingService, setEditingService] = React.useState<any | null>(null)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   const servicesQuery = useMemoFirebase(() => {
     if (!barberProfileId) return null;
@@ -39,65 +39,65 @@ export default function ServicesPage() {
 
   const { data: services, isLoading: isDataLoading } = useCollection(servicesQuery)
 
-  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!barberProfileId) return;
+    if (!barberProfileId) {
+      toast({ variant: "destructive", title: "Erro", description: "Sessão inválida. Tente logar novamente." })
+      return;
+    }
 
+    setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const price = parseFloat(formData.get("price") as string)
     const durationMinutes = parseInt(formData.get("duration") as string)
 
-    const serviceRef = doc(collection(db, "barbers", barberProfileId, "services"))
-    
-    setDoc(serviceRef, {
-      id: serviceRef.id,
-      barberProfileId: barberProfileId,
-      name,
-      price,
-      durationMinutes
-    })
+    try {
+      const serviceRef = doc(collection(db, "barbers", barberProfileId, "services"))
+      await setDoc(serviceRef, {
+        id: serviceRef.id,
+        barberProfileId: barberProfileId,
+        name,
+        price,
+        durationMinutes
+      })
 
-    toast({
-      title: "Serviço Adicionado",
-      description: `O serviço "${name}" foi incluído no catálogo.`,
-    })
-    setIsAddOpen(false)
+      toast({
+        title: "Serviço Adicionado",
+        description: `O serviço "${name}" foi incluído no catálogo.`,
+      })
+      setIsAddOpen(false)
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao salvar", description: "Verifique sua conexão." })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!editingService || !barberProfileId) return
 
+    setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const price = parseFloat(formData.get("price") as string)
     const durationMinutes = parseInt(formData.get("duration") as string)
 
-    const serviceRef = doc(db, "barbers", barberProfileId, "services", editingService.id)
-    
-    updateDocumentNonBlocking(serviceRef, {
-      name,
-      price,
-      durationMinutes
-    })
+    try {
+      const serviceRef = doc(db, "barbers", barberProfileId, "services", editingService.id)
+      await setDoc(serviceRef, { name, price, durationMinutes }, { merge: true })
 
-    toast({
-      title: "Serviço Atualizado",
-      description: "As informações do serviço foram sincronizadas.",
-    })
-    setEditingService(null)
-  }
-
-  const handleDelete = (id: string, name: string) => {
-    if (!barberProfileId) return;
-    const serviceRef = doc(db, "barbers", barberProfileId, "services", id)
-    deleteDocumentNonBlocking(serviceRef)
-    toast({
-      variant: "destructive",
-      title: "Serviço Removido",
-      description: `O serviço "${name}" foi excluído do catálogo.`,
-    })
+      toast({
+        title: "Serviço Atualizado",
+        description: "As informações do serviço foram sincronizadas.",
+      })
+      setEditingService(null)
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao atualizar" })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (role === 'STAFF') {
@@ -154,7 +154,9 @@ export default function ServicesPage() {
                 </div>
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Salvar Serviço</Button>
+                <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-primary text-black font-headline text-2xl">
+                  {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Salvar Serviço"}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -218,7 +220,9 @@ export default function ServicesPage() {
                               </div>
                             </div>
                             <DialogFooter className="pt-4">
-                              <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Salvar Ajustes</Button>
+                              <Button type="submit" disabled={isSubmitting} className="w-full h-14 bg-primary text-black font-headline text-2xl">
+                                {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Salvar Ajustes"}
+                              </Button>
                             </DialogFooter>
                           </form>
                         </DialogContent>
