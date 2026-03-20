@@ -32,8 +32,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mounted, setMounted] = React.useState(false);
 
-  // Garante que o componente foi montado no cliente antes de renderizar lógica de Auth
-  // Isso evita erros de Hydration Mismatch entre servidor e cliente.
   React.useEffect(() => {
     setMounted(true);
   }, []);
@@ -44,7 +42,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, isUserLoading, pathname, router, mounted]);
 
-  // Enquanto não estiver montado no cliente, não renderiza nada para evitar erro de hidratação
   if (!mounted) return null;
 
   if (isUserLoading) {
@@ -63,7 +60,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Se estiver na página de login ou logado, permite renderizar
   if (pathname === '/login' || user) {
     return <>{children}</>;
   }

@@ -63,11 +63,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         return;
       }
 
-      setUserState(prev => ({ ...prev, isUserLoading: true, user: firebaseUser }));
-
       try {
         // 1. Verifica se é ADMIN (Dono da Barbearia) na coleção oficial 'barbers'
-        // Tentamos pelo UID dele ser o ID do documento da barbearia
         const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
         if (barberDoc.exists()) {
           setUserState({
@@ -82,12 +79,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         }
 
         // 2. Verifica se é STAFF (Funcionário) via Collection Group em 'staff'
+        // IMPORTANTE: Isso requer um índice COLLECTION_GROUP no Firestore
         const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', firebaseUser.uid));
         const staffSnap = await getDocs(staffQuery);
         
         if (!staffSnap.empty) {
           const staffDoc = staffSnap.docs[0];
-          // O ID da barbearia é o avô do documento staff (/barbers/{barberId}/staff/{staffId})
           const barberId = staffDoc.ref.parent.parent?.id || '';
           setUserState({
             user: firebaseUser,
@@ -100,7 +97,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 3. Caso não encontre em nenhum, assume CLIENT (pode ser o caso do primeiro acesso)
+        // 3. Caso não encontre, assume CLIENT ou aguarda criação do perfil
         setUserState({
           user: firebaseUser,
           role: 'CLIENT',
@@ -111,7 +108,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         });
 
       } catch (error: any) {
-        console.error("Erro ao identificar perfil:", error);
+        console.error("Erro na identificação do perfil:", error);
         setUserState({ 
           user: firebaseUser, 
           role: 'CLIENT', 

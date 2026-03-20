@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, parseISO, startOfDay, isSameDay } from 'date-fns';
+import { format, parseISO, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Clock, Loader2, Check, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -61,8 +61,15 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const servicesQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'services'), [db, barberProfileId]);
-  const staffQuery = useMemoFirebase(() => collection(db, 'barberProfiles', barberProfileId, 'staff'), [db, barberProfileId]);
+  const servicesQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, 'barbers', barberProfileId, 'services');
+  }, [db, barberProfileId]);
+
+  const staffQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, 'barbers', barberProfileId, 'staff');
+  }, [db, barberProfileId]);
 
   const { data: services } = useCollection(servicesQuery);
   const { data: staff } = useCollection(staffQuery);
@@ -82,9 +89,9 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   const selectedStaffId = form.watch('staffId');
 
   const appointmentsQuery = useMemoFirebase(() => {
-    if (!selectedDate || !selectedStaffId) return null;
+    if (!selectedDate || !selectedStaffId || !barberProfileId) return null;
     return query(
-      collection(db, 'barberProfiles', barberProfileId, 'appointments'),
+      collection(db, 'barbers', barberProfileId, 'appointments'),
       where('date', '==', format(selectedDate, 'yyyy-MM-dd')),
       where('staffId', '==', selectedStaffId)
     );
@@ -100,13 +107,14 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
   }, [existingAppointments, initialData]);
 
   async function onSubmit(data: BookingFormValues) {
+    if (!barberProfileId) return;
     setIsSubmitting(true);
     const targetDateStr = format(data.date, 'yyyy-MM-dd');
 
     try {
       const selectedService = services?.find(s => s.id === data.serviceId);
       const isUpdate = !!initialData?.id;
-      const apptId = initialData?.id || doc(collection(db, 'barberProfiles', barberProfileId, 'appointments')).id;
+      const apptId = initialData?.id || doc(collection(db, 'barbers', barberProfileId, 'appointments')).id;
       
       const appointmentData = {
         id: apptId,
@@ -122,9 +130,9 @@ export function BookingForm({ onSuccess, initialData }: BookingFormProps) {
       };
 
       if (isUpdate) {
-        await updateDoc(doc(db, 'barberProfiles', barberProfileId, 'appointments', apptId), appointmentData);
+        await updateDoc(doc(db, 'barbers', barberProfileId, 'appointments', apptId), appointmentData);
       } else {
-        await setDoc(doc(db, 'barberProfiles', barberProfileId, 'appointments', apptId), {
+        await setDoc(doc(db, 'barbers', barberProfileId, 'appointments', apptId), {
           ...appointmentData,
           createdAt: serverTimestamp(),
         });

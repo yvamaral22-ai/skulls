@@ -45,11 +45,8 @@ export function AppSidebar() {
     { title: "Relatórios", url: "/reports", icon: BarChart3, roles: ['ADMIN'] },
   ];
 
-  // Se estiver carregando, mostra o esqueleto ou nada
   if (isUserLoading) return null;
 
-  // Filtra itens com base no papel do usuário. 
-  // Se for ADMIN ou STAFF, mostra os respectivos itens.
   const filteredItems = menuItems.filter(item => 
     item.roles.includes(role as string)
   );
