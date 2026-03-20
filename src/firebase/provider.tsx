@@ -64,7 +64,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
 
       try {
-        // 1. Verifica se é ADMIN (Dono da Barbearia) na coleção oficial 'barbers'
+        // 1. Verifica se é ADMIN (Dono da Barbearia)
         const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
         if (barberDoc.exists()) {
           setUserState({
@@ -78,13 +78,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 2. Verifica se é STAFF (Funcionário) via Collection Group em 'staff'
-        // IMPORTANTE: Isso requer um índice COLLECTION_GROUP no Firestore
+        // 2. Verifica se é STAFF (Funcionário)
         const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', firebaseUser.uid));
         const staffSnap = await getDocs(staffQuery);
         
         if (!staffSnap.empty) {
           const staffDoc = staffSnap.docs[0];
+          // O barberId é o ID do documento pai (a barbearia)
           const barberId = staffDoc.ref.parent.parent?.id || '';
           setUserState({
             user: firebaseUser,
@@ -97,7 +97,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 3. Caso não encontre, assume CLIENT ou aguarda criação do perfil
+        // 3. Caso contrário, é um CLIENT ou novo usuário
         setUserState({
           user: firebaseUser,
           role: 'CLIENT',

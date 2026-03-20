@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -54,10 +53,13 @@ export function CheckoutDialog({
       return;
     }
 
+    if (!barberProfileId) return;
+
     setIsProcessing(true);
     try {
       const appointmentPrice = Number(price);
-      const appointmentRef = doc(db, 'barberProfiles', barberProfileId, 'appointments', appointmentId);
+      // Sincronizado para a coleção correta 'barbers'
+      const appointmentRef = doc(db, 'barbers', barberProfileId, 'appointments', appointmentId);
       
       await updateDoc(appointmentRef, {
         status: 'completed',
@@ -68,7 +70,7 @@ export function CheckoutDialog({
 
       toast({
         title: 'Sucesso!',
-        description: `Pagamento via ${selectedMethod} registrado para ${customerName}.`,
+        description: `Pagamento via ${selectedMethod} registrado.`,
       });
 
       setIsOpen(false);
@@ -87,29 +89,29 @@ export function CheckoutDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold h-12">
-          <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar
+        <Button size="lg" className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold h-12 uppercase text-[10px]">
+          <CheckCircle2 className="mr-2 h-4 w-4" /> Finalizar Atendimento
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="sm:max-w-[400px] bg-card border-none shadow-3xl">
         <DialogHeader>
-          <DialogTitle className="font-headline text-2xl flex items-center gap-2">
-            <ShoppingCart className="h-6 w-6 text-primary" />
+          <DialogTitle className="font-headline text-2xl flex items-center gap-2 text-primary uppercase">
+            <ShoppingCart className="h-6 w-6" />
             Checkout
           </DialogTitle>
-          <DialogDescription>
-            Confirmar recebimento de {customerName}.
+          <DialogDescription className="uppercase text-[9px] tracking-widest">
+            Confirmar pagamento de {customerName}
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4 space-y-6">
           <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-1">
             <div className="flex justify-between items-center text-sm">
-              <span className="opacity-60 uppercase font-bold tracking-tighter">Serviço</span>
-              <span className="font-bold">{serviceName}</span>
+              <span className="opacity-60 uppercase font-bold tracking-tighter text-[10px]">Serviço Prestado</span>
+              <span className="font-bold text-white">{serviceName}</span>
             </div>
-            <div className="flex justify-between items-center text-xl pt-2 border-t mt-2">
-              <span className="font-black uppercase tracking-tighter">Total</span>
+            <div className="flex justify-between items-center text-xl pt-2 border-t border-border/50 mt-2">
+              <span className="font-black uppercase tracking-tighter text-sm">Total a Pagar</span>
               <span className="font-black text-primary">R$ {Number(price).toFixed(2)}</span>
             </div>
           </div>
@@ -126,11 +128,11 @@ export function CheckoutDialog({
                     "flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 hover:scale-[1.02] active:scale-95",
                     selectedMethod === method.id 
                       ? "border-primary bg-primary/10 shadow-lg shadow-primary/10" 
-                      : "border-border bg-secondary/20 grayscale opacity-60 hover:grayscale-0 hover:opacity-100"
+                      : "border-border bg-secondary/20 opacity-60 hover:opacity-100"
                   )}
                 >
                   <Icon className={cn("h-6 w-6", method.color)} />
-                  <span className="text-[10px] font-bold uppercase">{method.label}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{method.label}</span>
                 </button>
               );
             })}
@@ -139,11 +141,11 @@ export function CheckoutDialog({
 
         <DialogFooter className="mt-4">
           <Button 
-            className="w-full h-14 bg-primary text-white font-black text-lg shadow-xl" 
+            className="w-full h-14 bg-primary text-black font-black text-lg shadow-xl uppercase tracking-tighter" 
             disabled={!selectedMethod || isProcessing}
             onClick={handleCheckout}
           >
-            {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : 'CONFIRMAR PAGAMENTO'}
+            {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : 'CONFIRMAR RECEBIMENTO'}
           </Button>
         </DialogFooter>
       </DialogContent>

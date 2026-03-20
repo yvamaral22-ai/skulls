@@ -29,12 +29,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Briefcase, Plus, TrendingUp, CalendarDays, Pencil, Loader2, Trash2, 
-  Clock, Scissors, User, ChevronRight
+  Clock, Scissors, User, ChevronRight, Lock
 } from "lucide-react"
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, useUser } from "@/firebase"
-import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
+import { collection, doc, setDoc, serverTimestamp, deleteDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 import { format, parseISO } from "date-fns"
 
 const BarberPoleIcon = ({ className }: { className?: string }) => (
@@ -62,11 +61,21 @@ export default function StaffPage() {
   const [selectedStaffPanel, setSelectedStaffPanel] = React.useState<any | null>(null)
   
   const [filterDate, setFilterDate] = React.useState(format(new Date(), 'yyyy-MM-dd'))
-  const [filterTime, setFilterTime] = React.useState("")
 
-  const staffQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberProfileId, "staff"), [db, barberProfileId])
-  const appointmentsQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberProfileId, "appointments"), [db, barberProfileId])
-  const servicesQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberProfileId, "services"), [db, barberProfileId])
+  const staffQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, "barbers", barberProfileId, "staff");
+  }, [db, barberProfileId])
+
+  const appointmentsQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, "barbers", barberProfileId, "appointments");
+  }, [db, barberProfileId])
+
+  const servicesQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, "barbers", barberProfileId, "services");
+  }, [db, barberProfileId])
 
   const { data: staff, isLoading: isStaffLoading } = useCollection(staffQuery)
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery)
@@ -76,10 +85,11 @@ export default function StaffPage() {
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!barberProfileId) return;
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
 
-    const staffRef = doc(collection(db, "barberProfiles", barberProfileId, "staff"))
+    const staffRef = doc(collection(db, "barbers", barberProfileId, "staff"))
     await setDoc(staffRef, {
       id: staffRef.id,
       barberProfileId: barberProfileId,
@@ -88,33 +98,26 @@ export default function StaffPage() {
       createdAt: serverTimestamp()
     })
 
-    toast({ title: "Equipe Barbearia Skull's", description: `${name} foi adicionado à equipe.` })
+    toast({ title: "Equipe Skull's", description: `${name} foi cadastrado.` })
     setIsAddOpen(false)
   }
 
-  const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!editingStaff) return
-    const formData = new FormData(e.currentTarget)
-    const name = formData.get("name") as string
-
-    const staffRef = doc(db, "barberProfiles", barberProfileId, "staff", editingStaff.id)
-    updateDocumentNonBlocking(staffRef, { name })
-    toast({ title: "Perfil Atualizado", description: "As informações foram sincronizadas." })
-    setEditingStaff(null)
-  }
-
-  const handleDelete = (id: string, name: string) => {
-    const staffRef = doc(db, "barberProfiles", barberProfileId, "staff", id);
-    deleteDocumentNonBlocking(staffRef);
-    toast({ variant: "destructive", title: "Profissional Removido", description: `${name} foi excluído.` })
+  const handleDelete = async (id: string, name: string) => {
+    if (!barberProfileId) return;
+    try {
+      await deleteDoc(doc(db, "barbers", barberProfileId, "staff", id));
+      toast({ variant: "destructive", title: "Removido", description: `${name} foi excluído.` })
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao excluir" })
+    }
   }
 
   if (role === 'STAFF') {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
-        <h1 className="text-2xl font-headline text-primary">ACESSO RESTRITO</h1>
-        <p className="text-muted-foreground">Esta área é exclusiva para o administrador.</p>
+        <Lock className="h-12 w-12 text-destructive opacity-40" />
+        <h1 className="text-2xl font-headline text-primary uppercase">ACESSO RESTRITO</h1>
+        <p className="text-muted-foreground uppercase text-[10px]">Apenas o administrador pode gerenciar a equipe.</p>
         <Button asChild variant="outline" className="mt-4"><a href="/">Voltar ao Início</a></Button>
       </div>
     );
@@ -136,7 +139,7 @@ export default function StaffPage() {
             <BarberPoleIcon className="h-6 w-6 text-black" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold font-headline text-primary">Nossa Equipe</h1>
+            <h1 className="text-3xl font-bold font-headline text-primary uppercase">Equipe</h1>
             <p className="text-muted-foreground uppercase text-[9px] tracking-[0.2em]">Gestão de Profissionais</p>
           </div>
         </div>
@@ -144,21 +147,20 @@ export default function StaffPage() {
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-black font-bold h-12 shadow-xl shadow-primary/20">
-              <Plus className="mr-2 h-5 w-5" /> Novo Barbeiro
+              <Plus className="mr-2 h-5 w-5" /> Novo Profissional
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl text-primary">Novo Cadastro</DialogTitle>
-              <DialogDescription className="uppercase text-[9px] tracking-widest">Insira o nome do profissional.</DialogDescription>
+              <DialogTitle className="font-headline text-2xl text-primary">Novo Barbeiro</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-bold text-primary/60">Nome</Label>
-                <Input name="name" placeholder="Ex: Tony" required className="h-12 bg-background border-primary/20" />
+                <Input name="name" placeholder="Ex: Murilo" required className="h-12 bg-background border-primary/20" />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Salvar</Button>
+                <Button type="submit" className="w-full h-14 bg-primary text-black font-headline text-2xl">Cadastrar</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -200,7 +202,6 @@ export default function StaffPage() {
                   <div 
                     onClick={() => {
                       setFilterDate(todayStr);
-                      setFilterTime("");
                       setSelectedStaffPanel(member);
                     }}
                     className="bg-secondary/20 p-4 rounded-2xl border border-border/50 cursor-pointer hover:bg-primary/10 hover:border-primary/30 transition-all active:scale-95 group/pendente"
@@ -216,38 +217,12 @@ export default function StaffPage() {
 
                 <div className="flex gap-2">
                   <Button 
-                    onClick={() => {
-                      setFilterDate(""); 
-                      setFilterTime("");
-                      setSelectedStaffPanel(member);
-                    }}
+                    onClick={() => setSelectedStaffPanel(member)}
                     className="flex-1 bg-secondary hover:bg-primary hover:text-black font-bold h-12 uppercase text-[10px] tracking-widest transition-all"
                   >
-                    Painel Pessoal <ChevronRight className="ml-2 h-4 w-4" />
+                    Ver Painel <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
 
-                  <Dialog open={editingStaff?.id === member.id} onOpenChange={(open) => setEditingStaff(open ? member : null)}>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10">
-                        <Pencil className="h-5 w-5" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-card border-border shadow-2xl">
-                      <DialogHeader>
-                        <DialogTitle className="font-headline text-2xl">Editar</DialogTitle>
-                      </DialogHeader>
-                      <form onSubmit={handleUpdate} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label>Nome</Label>
-                          <Input name="name" defaultValue={member.name} className="h-12 bg-background" required />
-                        </div>
-                        <DialogFooter className="pt-4">
-                          <Button type="submit" className="w-full h-14 bg-primary text-black font-bold">Salvar</Button>
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                  
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-muted-foreground hover:text-primary hover:bg-destructive/10">
@@ -256,7 +231,7 @@ export default function StaffPage() {
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-destructive/20 shadow-2xl">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Excluir?</AlertDialogTitle>
+                        <AlertDialogTitle className="font-headline text-2xl text-destructive uppercase">Remover Profissional?</AlertDialogTitle>
                         <AlertDialogDescription className="uppercase tracking-tighter text-[9px]">
                           Esta operação removerá {member.name} permanentemente.
                         </AlertDialogDescription>
@@ -279,54 +254,22 @@ export default function StaffPage() {
           {selectedStaffPanel && (
             <>
               <DialogHeader className="p-6 pb-0">
-                <DialogTitle className="font-headline text-3xl text-primary flex items-center gap-3">
+                <DialogTitle className="font-headline text-3xl text-primary flex items-center gap-3 uppercase">
                   <User className="h-8 w-8 text-primary" /> {selectedStaffPanel.name}
                 </DialogTitle>
-                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Painel Pessoal</DialogDescription>
+                <DialogDescription className="uppercase text-[9px] tracking-[0.2em] opacity-60">Painel do Profissional</DialogDescription>
               </DialogHeader>
 
-              <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-6 bg-background/50 p-4 rounded-2xl border border-border">
-                  <div className="space-y-1">
-                    <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar Data</Label>
-                    <Input 
-                      type="date" 
-                      value={filterDate} 
-                      onChange={(e) => setFilterDate(e.target.value)} 
-                      className="h-10 bg-card border-primary/10"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[9px] uppercase font-bold text-muted-foreground">Filtrar Hora</Label>
-                    <Input 
-                      type="time" 
-                      value={filterTime} 
-                      onChange={(e) => setFilterTime(e.target.value)} 
-                      className="h-10 bg-card border-primary/10"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => { setFilterDate(""); setFilterTime(""); }}
-                      className="w-full h-10 text-[9px] uppercase font-bold"
-                    >
-                      Limpar
-                    </Button>
-                  </div>
-                </div>
-
+              <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6 mt-4">
                 <Tabs defaultValue="agenda" className="flex-1 flex flex-col overflow-hidden">
                   <TabsList className="bg-secondary/50 p-1 h-12 rounded-xl border border-border">
-                    <TabsTrigger value="agenda" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Agenda</TabsTrigger>
-                    <TabsTrigger value="historico" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Histórico</TabsTrigger>
+                    <TabsTrigger value="agenda" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Próximos Horários</TabsTrigger>
+                    <TabsTrigger value="historico" className="flex-1 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black font-bold uppercase text-[10px]">Histórico Concluído</TabsTrigger>
                   </TabsList>
                   
                   <div className="flex-1 overflow-y-auto mt-4 pr-2 scrollbar-thin">
                     <TabsContent value="agenda" className="space-y-3 m-0">
                       {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'scheduled')
-                        .filter(a => !filterDate || a.date === filterDate)
-                        .filter(a => !filterTime || a.time.includes(filterTime))
                         .sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
                         .map((appt) => {
                           const service = services?.find(s => s.id === appt.serviceId)
@@ -340,7 +283,7 @@ export default function StaffPage() {
                                   <span className="flex items-center gap-1"><Scissors className="h-3 w-3 text-primary" /> {service?.name}</span>
                                 </div>
                               </div>
-                              <Badge className="bg-primary text-black font-bold uppercase text-[8px]">Agendado</Badge>
+                              <Badge className="bg-primary text-black font-bold uppercase text-[8px]">Pendente</Badge>
                             </div>
                           )
                         })}
@@ -348,8 +291,6 @@ export default function StaffPage() {
 
                     <TabsContent value="historico" className="space-y-3 m-0">
                       {appointments?.filter(a => a.staffId === selectedStaffPanel.id && a.status === 'completed')
-                        .filter(a => !filterDate || a.date === filterDate)
-                        .filter(a => !filterTime || a.time.includes(filterTime))
                         .sort((a,b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time))
                         .map((appt) => {
                           const service = services?.find(s => s.id === appt.serviceId)
@@ -363,6 +304,7 @@ export default function StaffPage() {
                                   <span className="text-green-400 font-black">R$ {Number(appt.priceAtAppointment).toFixed(2)}</span>
                                 </div>
                               </div>
+                              <Badge className="bg-green-500 text-white font-bold uppercase text-[8px]">Pago</Badge>
                             </div>
                           )
                         })}

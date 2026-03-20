@@ -37,12 +37,12 @@ export function AppSidebar() {
   const { role, isUserLoading } = useUser();
 
   const menuItems = [
-    { title: "Início", url: "/", icon: LayoutDashboard, roles: ['ADMIN', 'STAFF'] },
-    { title: "Minha Agenda", url: "/agenda", icon: CalendarDays, roles: ['ADMIN', 'STAFF'] },
-    { title: "Clientes", url: "/customers", icon: Users, roles: ['ADMIN'] },
-    { title: "Serviços", url: "/services", icon: Scissors, roles: ['ADMIN'] },
-    { title: "Equipe", url: "/staff", icon: Briefcase, roles: ['ADMIN'] },
-    { title: "Relatórios", url: "/reports", icon: BarChart3, roles: ['ADMIN'] },
+    { title: "Painel Geral", url: "/", icon: LayoutDashboard, roles: ['ADMIN', 'STAFF'] },
+    { title: "Agenda", url: "/agenda", icon: CalendarDays, roles: ['ADMIN', 'STAFF'] },
+    { title: "Gestão de Clientes", url: "/customers", icon: Users, roles: ['ADMIN'] },
+    { title: "Meus Serviços", url: "/services", icon: Scissors, roles: ['ADMIN'] },
+    { title: "Minha Equipe", url: "/staff", icon: Briefcase, roles: ['ADMIN'] },
+    { title: "Financeiro", url: "/reports", icon: BarChart3, roles: ['ADMIN'] },
   ];
 
   if (isUserLoading) return null;
@@ -59,7 +59,7 @@ export function AppSidebar() {
             <BarberPoleIcon className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="font-headline text-primary text-xl leading-none uppercase tracking-tighter">Barbearia Skull's</span>
+            <span className="font-headline text-primary text-xl leading-none uppercase tracking-tighter">Skull's Barber</span>
             <span className="text-[9px] uppercase font-bold tracking-[0.2em] opacity-50">Gestão de Elite</span>
           </div>
         </div>
@@ -75,7 +75,7 @@ export function AppSidebar() {
               >
                 <Link href={item.url} className="flex items-center gap-3">
                   <item.icon className="size-5" />
-                  <span className="uppercase text-xs tracking-widest">{item.title}</span>
+                  <span className="uppercase text-[10px] font-bold tracking-widest">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

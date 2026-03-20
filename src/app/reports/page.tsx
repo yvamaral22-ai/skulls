@@ -44,9 +44,20 @@ export default function ReportsPage() {
     setEndDate(end);
   }, []);
 
-  const appointmentsQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberProfileId, "appointments"), [db, barberProfileId]);
-  const staffQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberProfileId, "staff"), [db, barberProfileId]);
-  const servicesQuery = useMemoFirebase(() => collection(db, "barberProfiles", barberProfileId, "services"), [db, barberProfileId]);
+  const appointmentsQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, "barbers", barberProfileId, "appointments");
+  }, [db, barberProfileId]);
+
+  const staffQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, "barbers", barberProfileId, "staff");
+  }, [db, barberProfileId]);
+
+  const servicesQuery = useMemoFirebase(() => {
+    if (!barberProfileId) return null;
+    return collection(db, "barbers", barberProfileId, "services");
+  }, [db, barberProfileId]);
 
   const { data: appointments, isLoading: isApptsLoading } = useCollection(appointmentsQuery)
   const { data: staff } = useCollection(staffQuery)
@@ -133,7 +144,7 @@ export default function ReportsPage() {
           <Lock className="h-10 w-10 text-destructive" />
         </div>
         <h1 className="text-2xl font-headline text-destructive">ACESSO RESTRITO</h1>
-        <p className="text-muted-foreground max-w-xs mx-auto">Esta área é exclusiva para o administrador da barbearia.</p>
+        <p className="text-muted-foreground max-w-xs mx-auto">Esta área é exclusiva para o administrador.</p>
         <Button asChild variant="outline" className="mt-4"><a href="/">Voltar ao Início</a></Button>
       </div>
     );
@@ -151,8 +162,8 @@ export default function ReportsPage() {
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black font-headline text-primary">Relatórios</h1>
-          <p className="text-muted-foreground">Faturamento e produtividade da equipe.</p>
+          <h1 className="text-3xl font-black font-headline text-primary uppercase">Relatórios</h1>
+          <p className="text-muted-foreground uppercase text-[10px] tracking-widest">Controle de Faturamento</p>
         </div>
         
         <div className="flex flex-col gap-3 bg-card p-4 rounded-2xl border border-border shadow-xl">
@@ -165,13 +176,6 @@ export default function ReportsPage() {
                 onChange={(e) => setStartDate(e.target.value)} 
                 className="w-36 bg-transparent border-none focus-visible:ring-0 text-sm h-8 p-0" 
               />
-              <Clock className="h-3 w-3 ml-2 text-muted-foreground" />
-              <Input 
-                type="time" 
-                value={startTime} 
-                onChange={(e) => setStartTime(e.target.value)} 
-                className="w-20 bg-transparent border-none focus-visible:ring-0 text-sm h-8 p-0" 
-              />
             </div>
             <span className="text-muted-foreground font-bold">até</span>
             <div className="flex items-center gap-2 bg-background/50 p-2 rounded-lg border border-border">
@@ -182,15 +186,8 @@ export default function ReportsPage() {
                 onChange={(e) => setEndDate(e.target.value)} 
                 className="w-36 bg-transparent border-none focus-visible:ring-0 text-sm h-8 p-0" 
               />
-              <Clock className="h-3 w-3 ml-2 text-muted-foreground" />
-              <Input 
-                type="time" 
-                value={endTime} 
-                onChange={(e) => setEndTime(e.target.value)} 
-                className="w-20 bg-transparent border-none focus-visible:ring-0 text-sm h-8 p-0" 
-              />
             </div>
-            <Button onClick={handleApplyFilters} disabled={isGenerating} className="bg-primary hover:bg-primary/90 text-white h-10 px-6 font-bold shadow-lg shadow-primary/20">
+            <Button onClick={handleApplyFilters} disabled={isGenerating} className="bg-primary hover:bg-primary/90 text-black h-10 px-6 font-bold shadow-lg shadow-primary/20">
               {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="mr-2 h-4 w-4 fill-current" />}
               Gerar Relatório
             </Button>
@@ -201,7 +198,7 @@ export default function ReportsPage() {
       {!appliedFilters ? (
         <div className="flex flex-col items-center justify-center py-32 border-2 border-dashed border-border rounded-3xl opacity-60">
           <FileBarChart className="h-16 w-16 text-muted-foreground mb-4 opacity-20" />
-          <h3 className="text-xl font-bold font-headline">Selecione um período</h3>
+          <h3 className="text-xl font-bold font-headline uppercase">Selecione um período</h3>
         </div>
       ) : (
         <>
@@ -216,10 +213,10 @@ export default function ReportsPage() {
                 <p className="text-xs text-muted-foreground mt-1">{stats?.count ?? 0} finalizados</p>
               </CardContent>
             </Card>
-            <Card className="border-none bg-card shadow-xl border-t-4 border-t-blue-500">
+            <Card className="border-none bg-card shadow-xl border-t-4 border-t-primary">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Produtividade</CardTitle>
-                <Briefcase className="h-4 w-4 text-blue-500" />
+                <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Produção Total</CardTitle>
+                <Briefcase className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black">{stats?.count ?? 0} Atendimentos</div>
@@ -230,7 +227,7 @@ export default function ReportsPage() {
 
           <Card className="border-none bg-card shadow-xl overflow-hidden">
             <CardHeader className="bg-secondary/20">
-              <CardTitle className="font-headline text-lg">Produção por Barbeiro</CardTitle>
+              <CardTitle className="font-headline text-lg uppercase">Produção por Barbeiro</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -252,7 +249,7 @@ export default function ReportsPage() {
                         </TableRow>
                         {s.serviceBreakdown.map((service, sIdx) => (
                           <TableRow key={`svc-${idx}-${sIdx}`} className="border-border border-l-4 border-l-primary/30">
-                            <TableCell className="pl-12 text-[10px] uppercase text-muted-foreground">
+                            <TableCell className="pl-12 text-[10px] uppercase text-muted-foreground font-bold">
                               {service.name}
                             </TableCell>
                             <TableCell className="text-[10px] font-bold">{service.count}</TableCell>
@@ -266,26 +263,6 @@ export default function ReportsPage() {
                   )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none bg-card shadow-xl">
-            <CardHeader><CardTitle className="font-headline text-lg">Métodos de Pagamento</CardTitle></CardHeader>
-            <CardContent className="h-[300px]">
-              {stats && stats.count > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats.chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="name" fontSize={12} tick={{ fill: '#888' }} />
-                    <YAxis fontSize={12} tick={{ fill: '#888' }} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#130f1f', border: 'none', borderRadius: '12px' }}
-                      itemStyle={{ color: 'hsl(var(--primary))' }}
-                    />
-                    <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : <div className="h-full flex items-center justify-center text-muted-foreground italic">Sem dados.</div>}
             </CardContent>
           </Card>
         </>
