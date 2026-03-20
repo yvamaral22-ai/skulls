@@ -56,26 +56,34 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        initiateEmailSignUp(auth, email, password);
+        await initiateEmailSignUp(auth, email, password);
+        toast({ title: "Cadastro Realizado", description: "Bem-vindo à Barbearia Skull's!" });
       } else {
-        initiateEmailSignIn(auth, email, password);
+        await initiateEmailSignIn(auth, email, password);
       }
-      // Não damos setIsLoading(false) aqui no finally pois o redirecionamento 
-      // ou a persistência do estado de carregamento deve ser gerida pelo estado global do Firebase
+      // O redirecionamento será feito pelo useEffect após a mudança do estado de auth
     } catch (error: any) {
       console.error(error);
       setIsLoading(false);
-      toast({ variant: "destructive", title: "Erro no Acesso", description: "Verifique suas credenciais." });
+      let message = "Verifique suas credenciais.";
+      if (error.code === 'auth/email-already-in-use') message = "Este e-mail já está em uso.";
+      if (error.code === 'auth/weak-password') message = "A senha deve ter pelo menos 6 caracteres.";
+      if (error.code === 'auth/invalid-email') message = "E-mail inválido.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') message = "E-mail ou senha incorretos.";
+      
+      toast({ variant: "destructive", title: "Erro no Acesso", description: message });
     }
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     if (!auth) return;
     setIsLoading(true);
     try {
-      initiateGoogleSignIn(auth);
-    } catch (error) {
+      await initiateGoogleSignIn(auth);
+    } catch (error: any) {
+      console.error(error);
       setIsLoading(false);
+      toast({ variant: "destructive", title: "Erro no Google", description: "Não foi possível completar o acesso." });
     }
   };
 
