@@ -60,11 +60,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (pathname === '/login' || user) {
-    return <>{children}</>;
-  }
+  // Se não estiver logado e não estiver na tela de login, mostramos nada enquanto redireciona
+  if (!user && pathname !== '/login') return null;
 
-  return null;
+  return <>{children}</>;
 }
 
 export default function RootLayout({

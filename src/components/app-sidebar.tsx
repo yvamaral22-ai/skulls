@@ -47,8 +47,11 @@ export function AppSidebar() {
 
   if (isUserLoading) return null;
 
+  // Se o papel for nulo (ex: Client ou erro de identificação), mostramos apenas o básico
+  const effectiveRole = role || 'CLIENT';
+
   const filteredItems = menuItems.filter(item => 
-    item.roles.includes(role as string)
+    item.roles.includes(effectiveRole)
   );
 
   return (
@@ -85,7 +88,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-8 mt-auto flex items-center justify-center border-t border-border/50">
         <div className="text-center">
           <span className="dimension-text font-headline text-primary text-lg leading-tight tracking-[0.2em] block">
-            Skull's Barber
+            Barbearia Skull's
           </span>
         </div>
       </SidebarFooter>

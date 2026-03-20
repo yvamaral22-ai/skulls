@@ -86,14 +86,11 @@ export default function DashboardPage() {
         </div>
         <h1 className="text-3xl font-headline text-primary uppercase">Bem-vindo à Barbearia Skull's</h1>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Você está logado. Se você for o proprietário ou um barbeiro, aguarde a identificação do seu perfil ou entre em contato com o suporte.
+          Sua conta está ativa. Aguarde a identificação do seu perfil profissional ou entre em contato com o suporte caso os dados ainda não tenham aparecido.
         </p>
         <div className="flex flex-col gap-3 w-full">
           <Button asChild className="h-12 bg-primary text-black font-bold" variant="default">
-            <Link href="/agenda">Minha Agenda</Link>
-          </Button>
-          <Button asChild variant="outline" className="h-12 border-primary/20 text-primary">
-            <Link href="/client">Área do Cliente</Link>
+            <Link href="/agenda">Ir para Agenda</Link>
           </Button>
         </div>
       </div>

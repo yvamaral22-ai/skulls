@@ -2,7 +2,7 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
+import { Firestore, doc, getDoc, collectionGroup, query, where, getDocs, collection, limit } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
@@ -64,7 +64,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
 
       try {
-        // 1. Verifica se é ADMIN (Dono da Barbearia)
+        // 1. Tenta identificar como ADMIN pelo UID
         const barberDoc = await getDoc(doc(firestore, 'barbers', firebaseUser.uid));
         if (barberDoc.exists()) {
           setUserState({
@@ -78,13 +78,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 2. Verifica se é STAFF (Funcionário)
+        // 2. Tenta identificar como STAFF via busca de grupo (Murilo/Gusthavo)
         const staffQuery = query(collectionGroup(firestore, 'staff'), where('id', '==', firebaseUser.uid));
         const staffSnap = await getDocs(staffQuery);
         
         if (!staffSnap.empty) {
           const staffDoc = staffSnap.docs[0];
-          // O barberId é o ID do documento pai (a barbearia)
           const barberId = staffDoc.ref.parent.parent?.id || '';
           setUserState({
             user: firebaseUser,
@@ -97,7 +96,24 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 3. Caso contrário, é um CLIENT ou novo usuário
+        // 3. Fallback: Se for o dono mas o ID da barbearia for diferente do UID (Caso de transição)
+        // Buscamos a primeira barbearia disponível, já que as regras permitem 'list' para usuários logados
+        const fallbackQuery = query(collection(firestore, 'barbers'), limit(1));
+        const fallbackSnap = await getDocs(fallbackQuery);
+        
+        if (!fallbackSnap.empty) {
+           setUserState({
+            user: firebaseUser,
+            role: 'ADMIN', // Assumimos admin se ele conseguir listar a barbearia mas não for staff
+            staffId: null,
+            barberProfileId: fallbackSnap.docs[0].id,
+            isUserLoading: false,
+            userError: null
+          });
+          return;
+        }
+
+        // 4. Se nada acima funcionar, é um CLIENT novo
         setUserState({
           user: firebaseUser,
           role: 'CLIENT',
