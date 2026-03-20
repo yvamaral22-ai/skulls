@@ -9,6 +9,7 @@ import { Mail, Lock, Chrome, Loader2 } from 'lucide-react';
 import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn, initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const BarberPoleIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -29,6 +30,7 @@ const BarberPoleIcon = ({ className }: { className?: string }) => (
 export default function LoginPage() {
   const auth = useAuth();
   const { user, role, isUserLoading } = useUser();
+  const { toast } = useToast();
   const router = useRouter();
   const [isSignUp, setIsSignUp] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -42,6 +44,11 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!auth) {
+      toast({ variant: "destructive", title: "Erro", description: "O serviço de autenticação ainda não está pronto." });
+      return;
+    }
+
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
@@ -53,19 +60,26 @@ export default function LoginPage() {
       } else {
         initiateEmailSignIn(auth, email, password);
       }
-    } catch (error) {
+      // Não damos setIsLoading(false) aqui no finally pois o redirecionamento 
+      // ou a persistência do estado de carregamento deve ser gerida pelo estado global do Firebase
+    } catch (error: any) {
       console.error(error);
-    } finally {
       setIsLoading(false);
+      toast({ variant: "destructive", title: "Erro no Acesso", description: "Verifique suas credenciais." });
     }
   };
 
   const handleGoogleSignIn = () => {
+    if (!auth) return;
     setIsLoading(true);
-    initiateGoogleSignIn(auth);
+    try {
+      initiateGoogleSignIn(auth);
+    } catch (error) {
+      setIsLoading(false);
+    }
   };
 
-  if (isUserLoading) {
+  if (isUserLoading && !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -117,12 +131,23 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full h-12 border-primary/20 hover:bg-primary/5 hover:text-primary" onClick={handleGoogleSignIn} disabled={isLoading}>
-            <Chrome className="mr-2 h-5 w-5" /> Google
+          <Button 
+            variant="outline" 
+            type="button"
+            className="w-full h-12 border-primary/20 hover:bg-primary/5 hover:text-primary" 
+            onClick={handleGoogleSignIn} 
+            disabled={isLoading}
+          >
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+              <>
+                <Chrome className="mr-2 h-5 w-5" /> Google
+              </>
+            )}
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <button 
+            type="button"
             onClick={() => setIsSignUp(!isSignUp)}
             className="text-xs text-primary hover:underline font-medium uppercase tracking-widest"
           >
