@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { 
   Plus, ChevronLeft, ChevronRight, 
-  Loader2, CheckCircle2, Clock, User, Scissors, Filter
+  Loader2, CheckCircle2, Clock, User, Scissors, Filter, CalendarCheck
 } from 'lucide-react';
 import { BookingForm } from '@/components/booking-form';
 import { CheckoutDialog } from '@/components/checkout-dialog';
@@ -76,10 +76,12 @@ export default function AgendaPage() {
     if (!barberProfileId) return null;
     const baseCol = collection(db, 'barbers', barberProfileId, 'appointments');
     
+    // Se for STAFF, filtra para ver apenas os próprios horários
     if (role === 'STAFF' && loggedStaffId) {
       return query(baseCol, where('staffId', '==', loggedStaffId));
     }
     
+    // Se for ADMIN, permite filtrar ou ver todos
     if (role === 'ADMIN' && staffFilter !== 'all') {
       return query(baseCol, where('staffId', '==', staffFilter));
     }
@@ -122,7 +124,7 @@ export default function AgendaPage() {
     <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] overflow-hidden bg-background rounded-2xl border border-border shadow-2xl relative">
       <header className="flex flex-col lg:flex-row items-center justify-between p-4 border-b border-border bg-card gap-4 z-50 shrink-0">
         <div className="flex flex-wrap items-center gap-2 justify-center lg:justify-start">
-          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="font-bold h-9">Hoje</Button>
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="font-bold h-9 uppercase text-[10px]">Hoje</Button>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
               <ChevronLeft className="h-4 w-4" />
@@ -145,7 +147,7 @@ export default function AgendaPage() {
                   <SelectValue placeholder="Filtrar Barbeiro" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Ver Todos Barbeiros</SelectItem>
+                  <SelectItem value="all">Ver Todas Agendas</SelectItem>
                   {staff?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -153,12 +155,12 @@ export default function AgendaPage() {
           )}
           
           {role === 'STAFF' && (
-            <Badge variant="outline" className="border-primary/50 text-primary uppercase text-[9px] font-bold px-3 py-1">
-              Minha Agenda: {staff?.find(s => s.id === loggedStaffId)?.name || 'Carregando...'}
+            <Badge variant="outline" className="border-primary/50 text-primary uppercase text-[9px] font-bold px-3 py-1 flex items-center gap-2">
+              <CalendarCheck className="h-3 w-3" /> Minha Agenda: {staff?.find(s => s.id === loggedStaffId)?.name || 'Carregando...'}
             </Badge>
           )}
           
-          <Button className="bg-primary text-black font-bold h-9 shadow-lg hover:bg-primary/90" onClick={() => setIsBookingOpen(true)}>
+          <Button className="bg-primary text-black font-black h-9 shadow-lg hover:bg-primary/90 uppercase text-[10px]" onClick={() => setIsBookingOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo Horário
           </Button>
         </div>
@@ -253,14 +255,14 @@ export default function AgendaPage() {
 
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
         <DialogContent className="w-[95vw] max-w-[450px]">
-          <DialogHeader><DialogTitle className="font-headline text-xl text-primary">Novo Agendamento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-headline text-xl text-primary uppercase">Novo Agendamento</DialogTitle></DialogHeader>
           <div className="max-h-[70vh] overflow-y-auto"><BookingForm onSuccess={() => setIsBookingOpen(false)} /></div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
         <DialogContent className="w-[95vw] max-w-[450px]">
-          <DialogHeader><DialogTitle className="font-headline text-xl text-primary">{editingAppointment?.id ? 'Detalhes' : 'Novo'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-headline text-xl text-primary uppercase">{editingAppointment?.id ? 'Detalhes' : 'Novo Horário'}</DialogTitle></DialogHeader>
           {editingAppointment && (
             <div className="space-y-4">
               {editingAppointment.id && (
@@ -279,7 +281,7 @@ export default function AgendaPage() {
               <div className="max-h-[40vh] overflow-y-auto"><BookingForm initialData={editingAppointment} onSuccess={() => setEditingAppointment(null)} /></div>
               {editingAppointment.id && (
                 <div className="flex gap-2 pt-4 border-t border-border/50">
-                  {editingAppointment.status !== 'completed' && (
+                  {editingAppointment.status !== 'completed' && role === 'ADMIN' && (
                     <CheckoutDialog 
                       appointmentId={editingAppointment.id} 
                       customerName={editingAppointment.clientName} 

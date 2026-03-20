@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -8,7 +9,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { BottomNav } from '@/components/bottom-nav';
 import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Scissors } from 'lucide-react';
 
 const BarberPoleIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -37,6 +38,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   React.useEffect(() => {
+    // Redireciona para login se não estiver autenticado (exceto se já estiver na página de login)
     if (mounted && !isUserLoading && !user && pathname !== '/login') {
       router.push('/login');
     }
@@ -44,27 +46,29 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!mounted) return null;
 
-  // Sempre permite renderizar a página de login sem o loading screen se o usuário não estiver logado
+  // Página de login é sempre acessível
   if (pathname === '/login') {
     return <>{children}</>;
   }
 
+  // Mostra loading enquanto verifica autenticação
   if (isUserLoading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6">
-          <div className="h-20 w-20 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/20">
-            <BarberPoleIcon className="h-10 w-10 text-black" />
+          <div className="h-24 w-24 rounded-3xl bg-primary flex items-center justify-center shadow-3xl shadow-primary/20 animate-pulse">
+            <BarberPoleIcon className="h-12 w-12 text-black" />
           </div>
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Barbearia Skull's</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 ml-1">BARBEARIA SKULL'S</p>
           </div>
         </div>
       </div>
     );
   }
 
+  // Se não houver usuário e não estiver no login, não renderiza nada até o redirecionamento
   if (!user && pathname !== '/login') {
     return null;
   }
@@ -99,20 +103,20 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <AuthGuard>
             {isLoginPage ? (
-              <main>{children}</main>
+              <main className="min-h-screen">{children}</main>
             ) : (
               <SidebarProvider defaultOpen={true}>
                 <div className="flex min-h-screen w-full relative">
                   <AppSidebar />
-                  <SidebarInset className="flex-1 overflow-auto">
-                    <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card sticky top-0 z-40">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-primary rounded-md">
+                  <SidebarInset className="flex-1 overflow-auto bg-background/50">
+                    <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-40">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary rounded-lg shadow-lg shadow-primary/10">
                           <BarberPoleIcon className="h-4 w-4 text-black" />
                         </div>
                         <span className="font-headline text-primary text-sm uppercase tracking-tighter">Barbearia Skull's</span>
                       </div>
-                      <SidebarTrigger />
+                      <SidebarTrigger className="text-primary" />
                     </header>
                     <main className="p-4 md:p-8 pb-24 md:pb-8">
                       {children}
