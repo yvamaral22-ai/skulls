@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -111,16 +112,16 @@ export default function DashboardPage() {
             BEM-VINDO À <br /> BARBEARIA SKULL'S
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed px-4">
-            Gerenciamento profissional e agendamentos simplificados.
+            Gerenciamento profissional e agendamentos simplificados para elite.
           </p>
         </div>
 
         <Button asChild className="h-16 w-full max-w-xs bg-primary text-black font-black text-xl shadow-2xl shadow-primary/30 hover:scale-105 transition-transform rounded-2xl" variant="default">
-          <Link href={user ? "/agenda" : "/login"}>ACESSAR MENU</Link>
+          <Link href={user ? "/" : "/login"}>ACESSAR MENU</Link>
         </Button>
         
         <div className="pt-8 opacity-40">
-          <p className="text-[10px] uppercase font-bold tracking-[0.3em]">Gestão de Elite • Skull's Barber</p>
+          <p className="text-[10px] uppercase font-bold tracking-[0.3em]">Gestão Profissional • Skull's Barber</p>
         </div>
       </div>
     );
@@ -130,8 +131,8 @@ export default function DashboardPage() {
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-5xl font-headline text-primary uppercase tracking-tighter">Barbearia Skull's</h1>
-          <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-[0.3em] flex items-center gap-2">
+          <h1 className="text-3xl md:text-5xl font-headline text-primary uppercase tracking-tighter leading-none">Barbearia Skull's</h1>
+          <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-[0.3em] flex items-center gap-2 mt-2">
             <span className="h-1 w-8 bg-primary/30" />
             {role === 'ADMIN' ? 'Painel Administrativo' : 'Painel do Funcionário'}
           </p>
@@ -283,7 +284,7 @@ export default function DashboardPage() {
                 <BookingForm initialData={editingAppointment} onSuccess={() => setEditingAppointment(null)} />
               </div>
               <div className="flex gap-3 pt-6 border-t border-border/50">
-                {editingAppointment.status !== 'completed' && (
+                {editingAppointment.status !== 'completed' && role === 'ADMIN' && (
                   <CheckoutDialog 
                     appointmentId={editingAppointment.id} 
                     customerName={editingAppointment.clientName} 
