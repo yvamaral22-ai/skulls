@@ -46,18 +46,25 @@ export default function DashboardPage() {
   const [editingAppointment, setEditingAppointment] = React.useState<any | null>(null);
 
   const appointmentsQuery = useMemoFirebase(() => {
-    if (!barberProfileId) return null;
+    if (!barberProfileId || !db) return null;
     const baseCol = collection(db, 'barbers', barberProfileId, 'appointments');
+    
+    // Se for ADMIN, vê todos (a regra de segurança isOwner cuidará do acesso real)
+    if (role === 'ADMIN') {
+      return baseCol;
+    }
+    
     // Se for STAFF, vê apenas os seus
     if (role === 'STAFF' && staffId) {
       return query(baseCol, where('staffId', '==', staffId));
     }
-    // Se for ADMIN, vê todos
-    return baseCol;
+    
+    // Para outros papéis ou usuários não identificados, não tenta carregar a coleção inteira
+    return null;
   }, [db, barberProfileId, role, staffId]);
 
   const servicesQuery = useMemoFirebase(() => {
-    if (!barberProfileId) return null;
+    if (!barberProfileId || !db) return null;
     return collection(db, 'barbers', barberProfileId, 'services');
   }, [db, barberProfileId]);
 
@@ -78,7 +85,7 @@ export default function DashboardPage() {
   }, [todayAppointments]);
 
   const handleDelete = async (id: string) => {
-    if (!barberProfileId) return;
+    if (!barberProfileId || !db) return;
     try {
       await deleteDoc(doc(db, 'barbers', barberProfileId, 'appointments', id));
       setEditingAppointment(null);
@@ -96,7 +103,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Se não houver usuário ou papel identificado como STAFF/ADMIN, mostra tela amigável
   if (!user || (role !== 'ADMIN' && role !== 'STAFF')) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-8 max-w-md mx-auto animate-in fade-in zoom-in duration-700">

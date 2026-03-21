@@ -12,36 +12,37 @@ service cloud.firestore {
     }
 
     function isOwner(barberId) {
-      return isSignedIn() && request.auth.uid == barberId;
+      let barberDoc = get(/databases/$(database)/documents/barbers/$(barberId)).data;
+      return isSignedIn() && (
+        request.auth.uid == barberId || 
+        request.auth.token.email == barberDoc.ownerEmail ||
+        request.auth.token.email == "guinho2v2@gmail.com"
+      );
     }
 
     match /barbers/{barberId} {
-      // Permite que qualquer usuário logado veja informações básicas da barbearia (necessário para o Dashboard)
+      // Permite que qualquer usuário logado veja informações básicas da barbearia
       allow get: if isSignedIn();
       allow list: if isSignedIn(); 
 
       // Apenas o dono cria/edita a raiz da barbearia
-      allow create: if isSignedIn() && request.auth.uid == barberId;
+      allow create: if isSignedIn();
       allow update, delete: if isOwner(barberId);
 
       /** Subcollection for staff management */
       match /staff/{staffId} {
-        // Funcionários e Dono podem ler a lista de equipe
         allow read: if isSignedIn();
-        // Apenas o dono pode gerenciar a equipe
-        allow write: if isOwner(barberId);
+        allow write: if isOwner(barberId) || (isSignedIn() && request.auth.uid == staffId);
       }
 
       /** Subcollection for clients */
       match /clients/{clientId} {
-        // Dono tem acesso total; Clientes acessam apenas seus dados
         allow read: if isOwner(barberId) || (isSignedIn() && request.auth.uid == clientId);
         allow write: if isOwner(barberId) || (isSignedIn() && request.auth.uid == clientId);
       }
 
       /** Subcollection for services */
       match /services/{serviceId} {
-        // Menu de serviços é público para usuários logados
         allow read: if isSignedIn();
         allow write: if isOwner(barberId);
       }
@@ -52,10 +53,8 @@ service cloud.firestore {
         allow read: if isOwner(barberId) 
           || (isSignedIn() && (resource.data.staffId == request.auth.uid || resource.data.clientId == request.auth.uid || request.auth.token.email == resource.data.staffEmail));
         
-        // Qualquer um logado pode criar agendamentos (clientes ou equipe)
         allow create: if isSignedIn();
         
-        // Dono e o profissional designado podem atualizar o status/checkout
         allow update: if isOwner(barberId) 
           || (isSignedIn() && (resource.data.staffId == request.auth.uid || request.auth.token.email == resource.data.staffEmail));
           
@@ -63,10 +62,6 @@ service cloud.firestore {
       }
     }
 
-    /** 
-     * Permite que o funcionário se encontre via Collection Group 
-     * CRITICAL: Permite a busca filtrada por e-mail para identificação de papel
-     */
     match /{path=**}/staff/{staffId} {
       allow read: if isSignedIn();
     }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -41,10 +42,8 @@ export interface FirebaseServicesAndUser extends UserAuthState {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-// Lista de e-mails que devem ter acesso total (Admin) automaticamente
 const MASTER_ADMIN_EMAILS = [
   'guinho2v2@gmail.com',
-  // Adicione outros e-mails de administradores aqui se necessário
 ];
 
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
@@ -76,7 +75,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       try {
         const emailNormalized = firebaseUser.email?.toLowerCase().trim() || '';
         
-        // 1. Tenta encontrar a barbearia principal (a primeira criada) para evitar silos
+        // 1. Localiza a barbearia principal
         const barbersRef = collection(firestore, 'barbers');
         const barbersSnap = await getDocs(query(barbersRef, limit(1)));
         
@@ -87,19 +86,34 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           mainBarberId = barbersSnap.docs[0].id;
           mainBarberOwnerEmail = barbersSnap.docs[0].data().ownerEmail?.toLowerCase().trim() || '';
         } else {
-          // Se não existe NENHUMA barbearia, este usuário é o primeiro dono
-          mainBarberId = firebaseUser.uid;
-          mainBarberOwnerEmail = emailNormalized;
-          await setDoc(doc(firestore, 'barbers', mainBarberId), {
-            id: mainBarberId,
-            name: "Barbearia Skull's",
-            ownerEmail: emailNormalized,
-            createdAt: serverTimestamp()
-          });
+          // Se não houver barbearia e o usuário não for anônimo, cria a primeira
+          if (!firebaseUser.isAnonymous) {
+            mainBarberId = firebaseUser.uid;
+            mainBarberOwnerEmail = emailNormalized;
+            await setDoc(doc(firestore, 'barbers', mainBarberId), {
+              id: mainBarberId,
+              name: "Barbearia Skull's",
+              ownerEmail: emailNormalized,
+              createdAt: serverTimestamp()
+            });
+          }
         }
 
-        // 2. Verifica se o usuário é um Administrador Mestre por e-mail
-        if (MASTER_ADMIN_EMAILS.includes(emailNormalized) || emailNormalized === mainBarberOwnerEmail) {
+        // Se for anônimo e já existir uma barbearia, apenas define o ID mas papel nulo
+        if (firebaseUser.isAnonymous) {
+          setUserState({
+            user: firebaseUser,
+            role: null,
+            staffId: null,
+            barberProfileId: mainBarberId,
+            isUserLoading: false,
+            userError: null
+          });
+          return;
+        }
+
+        // 2. Verifica se é Admin Mestre
+        if (MASTER_ADMIN_EMAILS.includes(emailNormalized) || (mainBarberOwnerEmail && emailNormalized === mainBarberOwnerEmail)) {
           setUserState({
             user: firebaseUser,
             role: 'ADMIN',
@@ -111,7 +125,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 3. Verifica se o usuário já está na lista de funcionários (Staff)
+        // 3. Verifica Staff existente
         const staffQuery = query(
           collectionGroup(firestore, 'staff'), 
           where('email', '==', emailNormalized)
@@ -134,29 +148,30 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           return;
         }
 
-        // 4. Se não for dono nem funcionário cadastrado, entra por padrão como STAFF (Funcionário) 
-        // mas precisamos criar o registro dele na equipe da barbearia principal
-        const newStaffId = firebaseUser.uid;
-        const newStaffRef = doc(firestore, 'barbers', mainBarberId, 'staff', newStaffId);
-        
-        await setDoc(newStaffRef, {
-          id: newStaffId,
-          barberProfileId: mainBarberId,
-          name: firebaseUser.displayName || emailNormalized.split('@')[0],
-          email: emailNormalized,
-          role: 'STAFF',
-          isActive: true,
-          createdAt: serverTimestamp()
-        }, { merge: true });
+        // 4. Se for usuário logado mas não staff, registra como STAFF por padrão na barbearia principal
+        if (mainBarberId) {
+          const newStaffId = firebaseUser.uid;
+          const newStaffRef = doc(firestore, 'barbers', mainBarberId, 'staff', newStaffId);
+          
+          await setDoc(newStaffRef, {
+            id: newStaffId,
+            barberProfileId: mainBarberId,
+            name: firebaseUser.displayName || emailNormalized.split('@')[0],
+            email: emailNormalized,
+            role: 'STAFF',
+            isActive: true,
+            createdAt: serverTimestamp()
+          }, { merge: true });
 
-        setUserState({
-          user: firebaseUser,
-          role: 'STAFF',
-          staffId: newStaffId,
-          barberProfileId: mainBarberId,
-          isUserLoading: false,
-          userError: null
-        });
+          setUserState({
+            user: firebaseUser,
+            role: 'STAFF',
+            staffId: newStaffId,
+            barberProfileId: mainBarberId,
+            isUserLoading: false,
+            userError: null
+          });
+        }
 
       } catch (error: any) {
         console.error("Auth initialization error:", error);
