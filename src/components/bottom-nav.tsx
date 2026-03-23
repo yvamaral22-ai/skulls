@@ -9,7 +9,7 @@ import { useUser } from '@/firebase';
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user, isUserLoading, logout } = useUser();
+  const { user, isUserLoading, logout, auth } = useUser();
 
   // Exibe para usuários logados no mobile
   if (isUserLoading || !user || pathname === '/login') return null;
@@ -43,7 +43,7 @@ export function BottomNav() {
         })}
         <button 
           onClick={() => {
-            if(confirm('Deseja sair do sistema?')) logout();
+            if(confirm('Deseja sair do sistema?')) logout(auth!);
           }}
           className="flex flex-col items-center justify-center gap-1 text-muted-foreground opacity-60 px-2"
         >

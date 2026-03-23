@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -49,17 +48,14 @@ export default function DashboardPage() {
     if (!barberProfileId || !db) return null;
     const baseCol = collection(db, 'barbers', barberProfileId, 'appointments');
     
-    // Se for ADMIN, vê todos (a regra de segurança isOwner cuidará do acesso real)
     if (role === 'ADMIN') {
       return baseCol;
     }
     
-    // Se for STAFF, vê apenas os seus
     if (role === 'STAFF' && staffId) {
       return query(baseCol, where('staffId', '==', staffId));
     }
     
-    // Para outros papéis ou usuários não identificados, não tenta carregar a coleção inteira
     return null;
   }, [db, barberProfileId, role, staffId]);
 
@@ -123,7 +119,7 @@ export default function DashboardPage() {
         </div>
 
         <Button asChild className="h-16 w-full max-w-xs bg-primary text-black font-black text-xl shadow-2xl shadow-primary/30 hover:scale-105 transition-transform rounded-2xl" variant="default">
-          <Link href={user ? "/" : "/login"}>ACESSAR MENU</Link>
+          <Link href="/login">ACESSAR MENU</Link>
         </Button>
         
         <div className="pt-8 opacity-40">

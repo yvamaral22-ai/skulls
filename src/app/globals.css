@@ -98,7 +98,7 @@
   will-change: transform, opacity, filter;
 }
 
-/* FIX CRÍTICO: Força interatividade total no iOS */
+/* FIX CRÍTICO: Força interatividade total no iOS e Mobile */
 [data-radix-portal], 
 [data-radix-popper-content-wrapper],
 .rdp,
