@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -114,17 +115,6 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-
-  if (isUserLoading && !user) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-[10px] font-bold uppercase tracking-widest animate-pulse">Sincronizando Perfil...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
